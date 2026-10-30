@@ -62,7 +62,24 @@ public class HomeActivity extends Activity {
     LinearLayout content;
     String tileSig = "";
     final Handler h = new Handler(Looper.getMainLooper());
-    final Runnable tick = new Runnable() { public void run() { updateClock(); weatherTick(); idleTick(); h.postDelayed(this, 15000); } };
+    final Runnable tick = new Runnable() { public void run() { updateClock(); weatherTick(); idleTick(); radioTick(); h.postDelayed(this, 15000); } };
+
+    /** Live-Kachel des Radios: aktuelles Cover und Titel. */
+    void radioTick() {
+        if (radioTile == null || System.currentTimeMillis() - lastRadio < 30000) return;
+        lastRadio = System.currentTimeMillis();
+        new Thread(new Runnable() { public void run() {
+            try {
+                final Radio.State st = Radio.fetch(HomeActivity.this);
+                final Bitmap bm = st.now.art == null ? null : Emby.fetch(st.now.art);
+                h.post(new Runnable() { public void run() {
+                    radioBanner.title = st.now.title; radioBanner.artist = st.now.artist;
+                    if (bm != null) radioBanner.cover = bm;
+                    if (radioTile != null) radioTile.invalidate();
+                }});
+            } catch (Exception ignored) {}
+        }}).start();
+    }
 
     void weatherTick() {
         boolean on = Style.prefs(this).getBoolean("weather_on", true) && Style.loadConfig(this) != null;
@@ -90,6 +107,9 @@ public class HomeActivity extends Activity {
     }
     @Override public boolean dispatchKeyEvent(KeyEvent e) { lastInput = System.currentTimeMillis(); return super.dispatchKeyEvent(e); }
 
+    final Radio.Banner radioBanner = new Radio.Banner();
+    Tile radioTile;
+    long lastRadio;
     LinearLayout weatherRow; Weather.Icon weatherIcon; TextView weatherText;
     long lastWeather, lastInput = System.currentTimeMillis();
     volatile String message;   // Live-Nachricht aus Home Assistant
@@ -256,13 +276,14 @@ public class HomeActivity extends Activity {
         final PackageManager pm = getPackageManager();
         List<String> shown = new ArrayList<>();
         for (String p : favs(this)) if (Style.launchIntent(pm, p) != null) shown.add(p);
-        String sig = TextUtils.join(",", shown) + (update != null ? "#u" + update.optInt("versionCode") : "");
+        String sig = (Style.prefs(this).getBoolean("hide_radio", false) ? "" : "R,") + TextUtils.join(",", shown) + (update != null ? "#u" + update.optInt("versionCode") : "");
         if (!force && sig.equals(tileSig)) return;
         tileSig = sig;
         String focusedTag = null;
         View cur = row.findFocus();
         if (cur instanceof Tile) focusedTag = ((Tile) cur).tag;
         row.removeAllViews();
+        radioTile = null;
 
         float screenDp = getResources().getDisplayMetrics().widthPixels / Style.dp;
         int n = shown.size();
@@ -291,6 +312,14 @@ public class HomeActivity extends Activity {
             if (p.equals(focusedTag)) toFocus = t;
         }
         int small = Style.px(Math.max(100, tileW * 0.6f));
+        if (!Style.prefs(this).getBoolean("hide_radio", false)) {
+            Tile radio = new Tile(this, "midnox Radio", radioBanner, null, Tile.GLYPH_NONE,
+                    new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, RadioActivity.class)); } }, null);
+            radio.tag = "#radio";
+            radioTile = radio;
+            addTile(radio, Style.px(tileW), tileH);
+            if ("#radio".equals(focusedTag)) toFocus = radio;
+        }
         Tile all = new Tile(this, "Alle Apps", null, null, Tile.GLYPH_GRID,
                 new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, AppsActivity.class)); } }, null);
         all.tag = "#all";
@@ -459,7 +488,7 @@ public class HomeActivity extends Activity {
             }});
         }
         lastInput = System.currentTimeMillis();
-        lastWeather = 0;
+        lastWeather = 0; lastRadio = 0;
         h.post(tick); ha.start(); emby.start();
     }
     @Override protected void onPause() { super.onPause(); h.removeCallbacks(tick); ha.stop(); emby.stop(); overlay.stop(); }

@@ -155,6 +155,7 @@ public class SettingsActivity extends Activity {
         fx.onOk = fx.onRight = new Runnable() { public void run() { pr.edit().putInt("fx_level", (pr.getInt("fx_level", 2) + 1) % 3).apply(); fxShow.run(); SetupActivity.changed = true; } };
         fx.onLeft = new Runnable() { public void run() { pr.edit().putInt("fx_level", (pr.getInt("fx_level", 2) + 2) % 3).apply(); fxShow.run(); SetupActivity.changed = true; } };
         toggle("Beschreibung im Kopfbereich", "hero_text", true, false);
+        toggle("midnox Radio auf der Startseite", "hide_radio", false, true);
 
         section("WETTER");
         toggle("Wetter unter der Uhr anzeigen", "weather_on", true, false);

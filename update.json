@@ -1,6 +1,6 @@
 {
-  "versionCode": 25,
-  "versionName": "6.1",
+  "versionCode": 26,
+  "versionName": "6.2",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Theme-Grafiken mit Tiefe und Lichtstimmung, Deko-Stufe einstellbar"
+  "notes": "midnox Radio: Live-Kachel, Cover, Songtext und zuletzt gespielte Titel"
 }

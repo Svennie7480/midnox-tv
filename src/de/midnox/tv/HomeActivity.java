@@ -180,9 +180,10 @@ public class HomeActivity extends Activity {
 
         content.addView(emby.bottom, new LinearLayout.LayoutParams(-1, -2));
         root.addView(hero.backdrop, new FrameLayout.LayoutParams(-1, -1));
+        headFrame.setClipChildren(true);
         root.addView(headFrame, new FrameLayout.LayoutParams(-1, Style.px(HERO_H)));
         FrameLayout.LayoutParams vlp = new FrameLayout.LayoutParams(-1, -1);
-        vlp.topMargin = Style.px(HERO_H - 14);
+        vlp.topMargin = Style.px(HERO_H);   // Liste beginnt erst unter dem Kopfbereich
         root.addView(vscroll, vlp);
 
         // dezente Versionsanzeige unten rechts

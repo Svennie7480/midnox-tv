@@ -1,6 +1,6 @@
 {
-  "versionCode": 16,
-  "versionName": "5.3",
+  "versionCode": 17,
+  "versionName": "5.4",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Update-Suche mit Fehlerprotokoll; erster Update-Test"
+  "notes": "Beschreibungstext liegt nicht mehr hinter den Kacheln"
 }

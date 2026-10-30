@@ -365,6 +365,8 @@ public class HomeActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        if (SetupActivity.changed) { SetupActivity.changed = false; recreate(); return; }
+        if (Style.loadConfig(this) == null) { message = "Willkommen bei midnox TV!\nEinstellungen \u2192 Mit Handy einrichten"; setAlerts(new ArrayList<String>()); }
         Theme now = Theme.current(this);
         if (!now.id.equals(theme.id) || !now.greeting.equals(theme.greeting)) { recreate(); return; } // neue Saison / neuer Tag
         overlay.start();

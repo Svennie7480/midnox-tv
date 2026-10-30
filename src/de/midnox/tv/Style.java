@@ -65,6 +65,14 @@ public final class Style {
         } catch (Exception e) { return null; }
     }
 
+    /** Einstellungsdatei schreiben (dieselbe Datei, die das PC-Skript ablegt). */
+    public static void saveConfig(Context c, JSONObject cfg) throws IOException {
+        File f = new File(c.getExternalFilesDir(null), "ha.json");
+        OutputStream o = new FileOutputStream(f);
+        o.write(cfg.toString().getBytes("UTF-8"));
+        o.close();
+    }
+
     public static String read(InputStream in) throws IOException {
         BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8"));
         StringBuilder sb = new StringBuilder(); String line;

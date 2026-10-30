@@ -244,8 +244,9 @@ public class SettingsActivity extends Activity {
     void connections() {
         final Row ha = add("Home Assistant");
         final Row em = add("Emby");
-        Row how = add("Andere Server einrichten");
-        how.value.setText("am PC: 5_homeassistant_verbinden.bat");
+        Row how = add("Mit Handy einrichten");
+        how.value.setText("QR-Code  \u203a");
+        how.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, SetupActivity.class)); } };
         final JSONObject cfg = Style.loadConfig(this);
         ha.value.setText(cfg == null ? "nicht eingerichtet" : cfg.optString("url") + "  \u00b7  pr\u00fcfe \u2026");
         final Emby e = Emby.from(this);

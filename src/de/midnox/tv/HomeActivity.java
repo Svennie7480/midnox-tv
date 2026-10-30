@@ -189,7 +189,13 @@ public class HomeActivity extends Activity {
         root.addView(headFrame, new FrameLayout.LayoutParams(-1, Style.px(HERO_H)));
         FrameLayout.LayoutParams vlp = new FrameLayout.LayoutParams(-1, -1);
         vlp.topMargin = Style.px(HERO_H);   // Liste beginnt erst unter dem Kopfbereich
-        root.addView(vscroll, vlp);
+        // Eigener Rahmen, der die Liste hart an seiner Kante abschneidet.
+        // (Ob ein View an seinen Grenzen beschnitten wird, entscheidet sein Eltern-View;
+        //  root zeichnet bewusst ueber Grenzen hinaus, darum dieser Zwischenrahmen.)
+        FrameLayout listBox = new FrameLayout(this);
+        listBox.setClipChildren(true);
+        listBox.addView(vscroll, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(listBox, vlp);
 
         // dezente Versionsanzeige unten rechts
         String vn = "?";

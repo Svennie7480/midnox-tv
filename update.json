@@ -1,6 +1,6 @@
 {
-  "versionCode": 20,
-  "versionName": "5.7",
+  "versionCode": 21,
+  "versionName": "5.8",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Verbindungen am Fernseher einstellbar, Lampen-Auswahl zurück, Texte nicht mehr hinter den Kacheln"
+  "notes": "Reihen werden am Kopfbereich sauber abgeschnitten; Beschreibung abschaltbar"
 }

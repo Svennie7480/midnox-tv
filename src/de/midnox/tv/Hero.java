@@ -93,6 +93,7 @@ public class Hero {
         title.setText(e.title);
         meta.setText(e.meta == null ? "" : e.meta);
         overview.setText(e.overview == null ? "" : e.overview);
+        overview.setVisibility(Style.prefs(act).getBoolean("hero_text", true) ? View.VISIBLE : View.GONE);
         normal.animate().alpha(0f).setDuration(160).start();
         info.animate().alpha(1f).setDuration(220).start();
         // Bild leicht verzoegert laden, damit schnelles Durchscrollen fluessig bleibt

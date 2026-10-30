@@ -128,6 +128,8 @@ public class SettingsActivity extends Activity {
         theme.onOk = next; theme.onRight = next;
         theme.onLeft = new Runnable() { public void run() { cycleTheme(-1); showTheme.run(); } };
 
+        toggle("Beschreibung im Kopfbereich", "hero_text", true, false);
+
         section("REIHEN AUF DER STARTSEITE");
         toggle("Weiterschauen", "hide_resume", false, true);
         toggle("Zuhause (Home Assistant)", "hide_home", false, true);

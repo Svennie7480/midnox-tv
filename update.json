@@ -1,6 +1,6 @@
 {
-  "versionCode": 17,
-  "versionName": "5.4",
+  "versionCode": 18,
+  "versionName": "5.5",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Beschreibungstext liegt nicht mehr hinter den Kacheln"
+  "notes": "Live-Nachrichten aus Home Assistant, Lampen-Auswahl fuer den Kino-Modus, Verbindungs-Anzeige"
 }

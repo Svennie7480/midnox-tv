@@ -20,8 +20,8 @@ public class KinoService extends Service {
     Thread worker;
     int state = IDLE, idleCount = 0;
     boolean active;            // Kino-Szene wurde angewendet
-    List<String> lights;       // Lichter im Bereich, ohne Ambient
-    String ambient;            // TV LED
+    List<String> lights;       // werden ausgeschaltet
+    List<String> ambients = new ArrayList<>();   // werden gedimmt eingeschaltet
 
     @Override public IBinder onBind(Intent i) { return null; }
 
@@ -94,15 +94,15 @@ public class KinoService extends Service {
         if (k == null) k = new JSONObject();
         if (to == PLAYING && !active) {
             if (pr.getBoolean("kino_dark", true) && !dark(base, token)) { status("Wiedergabe – hell draußen, Licht bleibt"); return; }
-            loadLights(base, token, k);
+            loadLights(base, token, k, pr);
             JSONArray all = new JSONArray(lights);
-            if (ambient != null) all.put(ambient);
+            for (String a : ambients) all.put(a);
             call(base, token, "scene", "create", new JSONObject().put("scene_id", "midnox_kino_vorher").put("snapshot_entities", all));
-            playScene(base, token, k);
+            playScene(base, token, k, pr);
             active = true;
             status("Film läuft – Kino-Licht an");
         } else if (to == PLAYING && active) {
-            playScene(base, token, k);
+            playScene(base, token, k, pr);
             status("Film läuft weiter");
         } else if (to == PAUSED && active) {
             if (!lights.isEmpty()) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", new JSONArray(lights)).put("brightness_pct", k.optInt("pause_pct", 25)));
@@ -114,24 +114,38 @@ public class KinoService extends Service {
         }
     }
 
-    void playScene(String base, String token, JSONObject k) throws Exception {
+    void playScene(String base, String token, JSONObject k, SharedPreferences pr) throws Exception {
         if (!lights.isEmpty()) call(base, token, "light", "turn_off", new JSONObject().put("entity_id", new JSONArray(lights)));
-        if (ambient != null) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", ambient).put("brightness_pct", k.optInt("ambient_pct", 20)));
+        if (!ambients.isEmpty()) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", new JSONArray(ambients))
+                .put("brightness_pct", pr.getInt("kino_amb", k.optInt("ambient_pct", 20))));
     }
 
-    /** Lichter im Bereich (Standard Wohnzimmer), die erreichbar sind; Ambient-Licht separat. */
-    void loadLights(String base, String token, JSONObject k) throws Exception {
-        String area = k.optString("area", "Wohnzimmer"), amb = k.optString("ambient", "TV LED");
-        String tpl = "{{ area_entities('" + area + "') | select('match','light\\\\.') | list | tojson }}";
-        JSONArray ids = new JSONArray(Style.httpPost(base + "/api/template", token, new JSONObject().put("template", tpl).toString()).trim());
-        lights = new ArrayList<>(); ambient = null;
-        for (int i = 0; i < ids.length(); i++) {
-            String id = ids.getString(i);
-            JSONObject st = new JSONObject(Style.httpGet(base + "/api/states/" + id, token));
-            if ("unavailable".equals(st.optString("state"))) continue;
-            String name = st.optJSONObject("attributes") == null ? "" : st.getJSONObject("attributes").optString("friendly_name");
-            if (name.equalsIgnoreCase(amb)) ambient = id; else lights.add(id);
+    /** Lampen-Auswahl aus dem Einstellungsmenue; ohne Auswahl: Bereich Wohnzimmer aus, "TV LED" als Ambient. */
+    void loadLights(String base, String token, JSONObject k, SharedPreferences pr) throws Exception {
+        lights = new ArrayList<>(); ambients = new ArrayList<>();
+        String saved = pr.getString("kino_lights", null);
+        if (saved != null) {
+            JSONObject m = new JSONObject(saved);
+            for (Iterator<String> it = m.keys(); it.hasNext(); ) {
+                String id = it.next(), mode = m.optString(id);
+                if ("off".equals(mode)) lights.add(id); else if ("ambient".equals(mode)) ambients.add(id);
+            }
+            return;
         }
+        for (JSONArray l : allLights(base, token)) {
+            if (!l.optString(2).equalsIgnoreCase(k.optString("area", "Wohnzimmer"))) continue;
+            if (l.optString(1).equalsIgnoreCase(k.optString("ambient", "TV LED"))) ambients.add(l.optString(0)); else lights.add(l.optString(0));
+        }
+    }
+
+    /** Alle erreichbaren Lampen als [entity_id, Name, Bereich], ohne LED-Segmente. */
+    static List<JSONArray> allLights(String base, String token) throws Exception {
+        String tpl = "{% set ns = namespace(l=[]) %}{% for s in states.light %}{% if s.state != 'unavailable' and 'Segment' not in s.name %}"
+                + "{% set ns.l = ns.l + [[s.entity_id, s.name, area_name(s.entity_id) or '']] %}{% endif %}{% endfor %}{{ ns.l | tojson }}";
+        JSONArray arr = new JSONArray(Style.httpPost(base + "/api/template", token, new JSONObject().put("template", tpl).toString()).trim());
+        List<JSONArray> out = new ArrayList<>();
+        for (int i = 0; i < arr.length(); i++) out.add(arr.getJSONArray(i));
+        return out;
     }
 
     boolean dark(String base, String token) {

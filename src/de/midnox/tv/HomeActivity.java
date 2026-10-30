@@ -64,6 +64,7 @@ public class HomeActivity extends Activity {
     final Handler h = new Handler(Looper.getMainLooper());
     final Runnable tick = new Runnable() { public void run() { updateClock(); h.postDelayed(this, 15000); } };
 
+    volatile String message;   // Live-Nachricht aus Home Assistant
     Theme theme;
     Theme.Overlay overlay;
 
@@ -303,7 +304,18 @@ public class HomeActivity extends Activity {
     /** Hinweise aus Home Assistant oben in der Mitte anzeigen. */
     void setAlerts(List<String> alerts) {
         alertBox.removeAllViews();
-        for (int i = 0; i < Math.min(3, alerts.size()); i++) {
+        if (message != null) {
+            AlertPill mp = new AlertPill(this, message);
+            mp.setSingleLine(false);
+            mp.setMaxLines(3);
+            mp.setMaxWidth(Style.px(330));
+            mp.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+            mp.setLineSpacing(Style.px(2), 1f);
+            LinearLayout.LayoutParams mlp = new LinearLayout.LayoutParams(-2, -2);
+            mlp.bottomMargin = Style.px(6);
+            alertBox.addView(mp, mlp);
+        }
+        for (int i = 0; i < Math.min(message != null ? 2 : 3, alerts.size()); i++) {
             Style.Fit fit = new Style.Fit(this);
             fit.addView(new AlertPill(this, alerts.get(i)));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2);
@@ -327,7 +339,7 @@ public class HomeActivity extends Activity {
         @Override protected void onDraw(Canvas c) {
             float dp = Style.dp;
             RectF r = new RectF(1 * dp, 1 * dp, getWidth() - 1 * dp, getHeight() - 1 * dp);
-            float rad = r.height() / 2;
+            float rad = Math.min(r.height() / 2, 16 * dp);
             p.setShader(null); p.setStyle(Paint.Style.FILL); p.setColor(0xCC15141F);
             c.drawRoundRect(r, rad, rad, p);
             p.setShader(Style.brand(r.left, r.right)); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.5f * dp);

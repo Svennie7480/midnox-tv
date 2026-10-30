@@ -42,7 +42,7 @@ public class HaPanel extends LinearLayout {
             while (g == gen) {
                 refresh();
                 if (g != gen) return;
-                try { Thread.sleep(60000); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(30000); } catch (InterruptedException e) { return; }
             }
         }}, "ha-refresh").start();
     }
@@ -76,6 +76,12 @@ public class HaPanel extends LinearLayout {
                 if (main == null) continue;
                 items.add(new Item(t.getString("label"), main, sub == null ? "" : sub));
             }
+            // Live-Nachricht aus Home Assistant (Textfeld "midnox TV Nachricht")
+            JSONObject msg = byId.get(cfg.optString("message_entity", "input_text.midnox_tv_nachricht"));
+            if (msg != null) {
+                String m = msg.optString("state", "").trim();
+                if (!m.isEmpty() && !m.equals("unknown") && !m.equals("unavailable")) act.message = m; else act.message = null;
+            } else act.message = null;
             JSONArray rules = cfg.optJSONArray("alerts");
             for (int i = 0; rules != null && i < rules.length(); i++) {
                 try { alert(rules.getJSONObject(i), states, byId, byName, alerts); } catch (Exception ignored) {}

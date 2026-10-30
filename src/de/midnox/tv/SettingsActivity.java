@@ -76,7 +76,7 @@ public class SettingsActivity extends Activity {
         list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
         sv.addView(list);
-        col.addView(sv, new LinearLayout.LayoutParams(Style.px(560), -1));
+        col.addView(sv, new LinearLayout.LayoutParams(Style.px(640), -1));
         root.addView(col);
         setContentView(root);
         build();
@@ -164,6 +164,106 @@ public class SettingsActivity extends Activity {
             Style.start(SettingsActivity.this, i);
         }};
         if (list.getChildCount() > 1) list.getChildAt(1).requestFocus();
+    }
+
+    int lampSection;
+    Row lampLoading;
+
+    void percent(String label, final String key, final int def) {
+        final Row r = add(label);
+        final Runnable upd = new Runnable() { public void run() { r.value.setText("\u25C0  " + pr.getInt(key, def) + " %  \u25B6"); } };
+        upd.run();
+        r.onRight = r.onOk = new Runnable() { public void run() { pr.edit().putInt(key, Math.min(100, pr.getInt(key, def) + 5)).apply(); upd.run(); } };
+        r.onLeft = new Runnable() { public void run() { pr.edit().putInt(key, Math.max(5, pr.getInt(key, def) - 5)).apply(); upd.run(); } };
+    }
+
+    /** Lampen aus Home Assistant laden; Wohnzimmer zuerst. */
+    void loadLamps() {
+        final Handler h = new Handler(Looper.getMainLooper());
+        new Thread(new Runnable() { public void run() {
+            try {
+                JSONObject cfg = Style.loadConfig(SettingsActivity.this);
+                final List<JSONArray> lamps = KinoService.allLights(cfg.getString("url").replaceAll("/+$", ""), cfg.getString("token"));
+                Collections.sort(lamps, new Comparator<JSONArray>() { public int compare(JSONArray a, JSONArray b) {
+                    boolean wa = a.optString(2).equalsIgnoreCase("Wohnzimmer"), wb = b.optString(2).equalsIgnoreCase("Wohnzimmer");
+                    if (wa != wb) return wa ? -1 : 1;
+                    int c = a.optString(2).compareToIgnoreCase(b.optString(2));
+                    return c != 0 ? c : a.optString(1).compareToIgnoreCase(b.optString(1));
+                }});
+                h.post(new Runnable() { public void run() { showLamps(lamps); } });
+            } catch (final Exception e) {
+                h.post(new Runnable() { public void run() { lampLoading.name.setText("Lampen konnten nicht geladen werden"); lampLoading.value.setText(e.getClass().getSimpleName()); } });
+            }
+        }}).start();
+    }
+
+    void showLamps(List<JSONArray> lamps) {
+        final JSONObject modes;
+        JSONObject m;
+        try { m = new JSONObject(pr.getString("kino_lights", "")); }
+        catch (Exception e) { // noch nichts gespeichert: Standard wie bisher
+            m = new JSONObject();
+            try {
+                for (JSONArray l : lamps) if (l.optString(2).equalsIgnoreCase("Wohnzimmer"))
+                    m.put(l.optString(0), l.optString(1).equalsIgnoreCase("TV LED") ? "ambient" : "off");
+            } catch (Exception ignored) {}
+        }
+        modes = m;
+        int pos = list.indexOfChild(lampLoading);
+        list.removeView(lampLoading);
+        final String[] keys = {"off", "ambient", ""};
+        final String[] names = {"Ausschalten", "Ambient", "Nicht \u00e4ndern"};
+        for (final JSONArray l : lamps) {
+            final String id = l.optString(0);
+            final Row r = new Row(l.optString(1) + (l.optString(2).isEmpty() ? "" : "   \u00b7  " + l.optString(2)));
+            final Runnable upd = new Runnable() { public void run() {
+                String mode = modes.optString(id, "");
+                int i = Arrays.asList(keys).indexOf(mode);
+                r.value.setText(names[i < 0 ? 2 : i]);
+            }};
+            upd.run();
+            final int[] dir = {1};
+            Runnable cyc = new Runnable() { public void run() {
+                int i = Arrays.asList(keys).indexOf(modes.optString(id, ""));
+                if (i < 0) i = 2;
+                i = (i + dir[0] + keys.length) % keys.length;
+                try { if (keys[i].isEmpty()) modes.remove(id); else modes.put(id, keys[i]); } catch (Exception ignored) {}
+                pr.edit().putString("kino_lights", modes.toString()).apply();
+                upd.run();
+            }};
+            r.onOk = r.onRight = cyc;
+            final Runnable back = cyc;
+            r.onLeft = new Runnable() { public void run() { dir[0] = -1; back.run(); dir[0] = 1; } };
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+            lp.bottomMargin = Style.px(6);
+            list.addView(r, pos++, lp);
+        }
+    }
+
+    /** Anzeige, womit der Fernseher verbunden ist. */
+    void connections() {
+        final Row ha = add("Home Assistant");
+        final Row em = add("Emby");
+        Row how = add("Andere Server einrichten");
+        how.value.setText("am PC: 5_homeassistant_verbinden.bat");
+        final JSONObject cfg = Style.loadConfig(this);
+        ha.value.setText(cfg == null ? "nicht eingerichtet" : cfg.optString("url") + "  \u00b7  pr\u00fcfe \u2026");
+        final Emby e = Emby.from(this);
+        em.value.setText(e == null ? "nicht eingerichtet" : e.base + "  \u00b7  pr\u00fcfe \u2026");
+        final Handler h = new Handler(Looper.getMainLooper());
+        new Thread(new Runnable() { public void run() {
+            String haS = "", emS = "";
+            if (cfg != null) {
+                try { Style.httpGet(cfg.getString("url").replaceAll("/+$", "") + "/api/", cfg.getString("token")); haS = cfg.optString("url") + "  \u00b7  verbunden \u2713"; }
+                catch (Exception x) { haS = cfg.optString("url") + "  \u00b7  nicht erreichbar"; }
+            }
+            if (e != null) {
+                try { String n = e.getObj("/emby/Users/" + e.user).optString("Name"); emS = e.base + "  \u00b7  " + n + "  \u2713"; }
+                catch (Exception x) { emS = e.base + "  \u00b7  nicht erreichbar"; }
+            }
+            final String a = haS, b = emS;
+            h.post(new Runnable() { public void run() { if (!a.isEmpty()) ha.value.setText(a); if (!b.isEmpty()) em.value.setText(b); } });
+        }}).start();
     }
 
     void cycleTheme(int d) {

@@ -1,6 +1,7 @@
 package de.midnox.tv;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.*;
 import android.content.pm.PackageInfo;
 import android.graphics.*;
@@ -82,6 +83,8 @@ public class SettingsActivity extends Activity {
         build();
     }
 
+    @Override protected void onRestart() { super.onRestart(); if (haState != null) refreshConnections(); }
+
     void section(String t) {
         TextView v = Style.text(this, t, 11, Style.MUTED);
         v.setLetterSpacing(0.3f);
@@ -142,6 +145,15 @@ public class SettingsActivity extends Activity {
         final Row kinoState = add("Status");
         kinoState.value.setText(pr.getString("kino_status", "–"));
         kinoState.setFocusable(true);
+        percent("Ambient-Helligkeit bei Wiedergabe", "kino_amb", 20);
+        percent("Helligkeit bei Pause", "kino_pause", 25);
+
+        section("LAMPEN F\u00dcR DEN KINO-MODUS");
+        lampLoading = add("Lampen werden geladen \u2026");
+        if (Style.loadConfig(this) != null) loadLamps(); else lampLoading.name.setText("Erst Home Assistant verbinden");
+
+        section("VERBINDUNGEN");
+        connections();
 
         section("SYSTEM");
         final Row upd = add("Nach Updates suchen");
@@ -240,30 +252,160 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    /** Anzeige, womit der Fernseher verbunden ist. */
+    // ------------------------------------------------------------ Verbindungen
+    Row haState, haUrl, haTok, emState, emUrl, emKey, emUser;
+    final List<String> haFound = new ArrayList<>();
+    final List<String> embyFound = new ArrayList<>();
+    final List<String[]> embyUsers = new ArrayList<>();   // {Id, Name}
+    final Handler ui = new Handler(Looper.getMainLooper());
+
+    interface Done { void value(String v); }
+
+    JSONObject cfg() { JSONObject c = Style.loadConfig(this); return c == null ? new JSONObject() : c; }
+    JSONObject embyCfg(JSONObject c) {
+        JSONObject e = c.optJSONObject("emby");
+        if (e == null) { e = new JSONObject(); try { c.put("emby", e); } catch (Exception ignored) {} }
+        return e;
+    }
+    void store(JSONObject c) {
+        try { Style.saveConfig(this, c); SetupActivity.changed = true; } catch (Exception e) { Toast.makeText(this, "Speichern fehlgeschlagen: " + e.getMessage(), Toast.LENGTH_LONG).show(); }
+        refreshConnections();
+    }
+    static String mask(String t) { return t == null || t.isEmpty() ? "fehlt" : "gespeichert  \u2022\u2022\u2022\u2022" + t.substring(Math.max(0, t.length() - 4)); }
+
+    /** Eingabefeld mit Bildschirmtastatur. */
+    void ask(String title, String hint, String current, final Done done) {
+        final EditText et = new EditText(this);
+        et.setSingleLine(true);
+        et.setText(current == null ? "" : current);
+        et.setHint(hint);
+        et.setSelection(et.getText().length());
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        FrameLayout box = new FrameLayout(this);
+        box.setPadding(Style.px(20), Style.px(8), Style.px(20), 0);
+        box.addView(et);
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+            .setTitle(title).setView(box)
+            .setPositiveButton("Speichern", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) { done.value(et.getText().toString().trim()); } })
+            .setNegativeButton("Abbrechen", null)
+            .show();
+        et.requestFocus();
+    }
+
+    /** Adresse aendern: OK = eintippen, links/rechts = gefundene Server durchschalten. */
+    void urlRow(final Row r, final String title, final List<String> found, final boolean emby) {
+        r.onOk = new Runnable() { public void run() {
+            JSONObject c = cfg();
+            String cur = emby ? embyCfg(c).optString("url") : c.optString("url");
+            if (cur.isEmpty() && !found.isEmpty()) cur = found.get(0);
+            ask(title, emby ? "http://192.168.x.x:8096" : "http://192.168.x.x:8123", cur, new Done() { public void value(String v) { setUrl(emby, v); } });
+        }};
+        final int[] dir = {1};
+        final Runnable cyc = new Runnable() { public void run() {
+            if (found.isEmpty()) { r.value.setText("keine Server gefunden \u2013 OK zum Eintippen"); return; }
+            JSONObject c = cfg();
+            String cur = emby ? embyCfg(c).optString("url") : c.optString("url");
+            int i = (found.indexOf(cur) + dir[0] + found.size()) % found.size();
+            setUrl(emby, found.get(i));
+        }};
+        r.onRight = cyc;
+        r.onLeft = new Runnable() { public void run() { dir[0] = -1; cyc.run(); dir[0] = 1; } };
+    }
+    void setUrl(boolean emby, String v) {
+        v = v.replaceAll("/+$", "");
+        if (!v.isEmpty() && !v.startsWith("http")) v = "http://" + v;
+        JSONObject c = cfg();
+        try { if (emby) { embyCfg(c).put("url", v).put("server", ""); } else c.put("url", v); } catch (Exception ignored) {}
+        store(c);
+    }
+
     void connections() {
-        final Row ha = add("Home Assistant");
-        final Row em = add("Emby");
-        Row how = add("Mit Handy einrichten");
-        how.value.setText("QR-Code  \u203a");
-        how.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, SetupActivity.class)); } };
-        final JSONObject cfg = Style.loadConfig(this);
-        ha.value.setText(cfg == null ? "nicht eingerichtet" : cfg.optString("url") + "  \u00b7  pr\u00fcfe \u2026");
-        final Emby e = Emby.from(this);
-        em.value.setText(e == null ? "nicht eingerichtet" : e.base + "  \u00b7  pr\u00fcfe \u2026");
-        final Handler h = new Handler(Looper.getMainLooper());
+        Row phone = add("Mit Handy einrichten");
+        phone.value.setText("QR-Code  \u203a");
+        phone.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, SetupActivity.class)); } };
+
+        haState = add("Home Assistant");
+        haUrl = add("    Adresse");
+        haTok = add("    Zugangstoken");
+        emState = add("Emby");
+        emUrl = add("    Server");
+        emKey = add("    API-Schl\u00fcssel");
+        emUser = add("    Benutzer");
+        haState.onOk = emState.onOk = new Runnable() { public void run() { refreshConnections(); } };
+
+        urlRow(haUrl, "Home Assistant \u2013 Adresse", haFound, false);
+        urlRow(emUrl, "Emby \u2013 Server-Adresse", embyFound, true);
+        haTok.onOk = new Runnable() { public void run() {
+            ask("Langlebiger Zugangstoken", "Home Assistant \u2192 Profil \u2192 Sicherheit", "", new Done() { public void value(String v) {
+                if (v.isEmpty()) return;
+                JSONObject c = cfg(); try { c.put("token", v); } catch (Exception ignored) {} store(c);
+            }});
+        }};
+        emKey.onOk = new Runnable() { public void run() {
+            ask("Emby API-Schl\u00fcssel", "Emby \u2192 Einstellungen \u2192 API-Schl\u00fcssel", "", new Done() { public void value(String v) {
+                if (v.isEmpty()) return;
+                JSONObject c = cfg(); try { embyCfg(c).put("key", v); } catch (Exception ignored) {} store(c);
+            }});
+        }};
+        final int[] dir = {1};
+        final Runnable cycUser = new Runnable() { public void run() {
+            if (embyUsers.isEmpty()) { emUser.value.setText("erst Server + Schl\u00fcssel eintragen"); return; }
+            JSONObject c = cfg();
+            String cur = embyCfg(c).optString("user");
+            int i = -1;
+            for (int k = 0; k < embyUsers.size(); k++) if (embyUsers.get(k)[0].equals(cur)) i = k;
+            i = (i + dir[0] + embyUsers.size()) % embyUsers.size();
+            try { embyCfg(c).put("user", embyUsers.get(i)[0]); } catch (Exception ignored) {}
+            store(c);
+        }};
+        emUser.onOk = emUser.onRight = cycUser;
+        emUser.onLeft = new Runnable() { public void run() { dir[0] = -1; cycUser.run(); dir[0] = 1; } };
+
+        refreshConnections();
+        new Thread(new Runnable() { public void run() {   // Server im Netzwerk suchen
+            final List<String> ha = Discovery.homeAssistant(SettingsActivity.this);
+            final List<JSONObject> em = Discovery.emby();
+            ui.post(new Runnable() { public void run() {
+                haFound.clear(); haFound.addAll(ha);
+                embyFound.clear(); for (JSONObject o : em) embyFound.add(o.optString("Address").replaceAll("/+$", ""));
+            }});
+        }}).start();
+    }
+
+    void refreshConnections() {
+        final JSONObject c = cfg();
+        final JSONObject e = embyCfg(c);
+        haUrl.value.setText(c.optString("url").isEmpty() ? "nicht gesetzt  \u2013  OK" : c.optString("url"));
+        haTok.value.setText(mask(c.optString("token")));
+        emUrl.value.setText(e.optString("url").isEmpty() ? "nicht gesetzt  \u2013  OK" : e.optString("url"));
+        emKey.value.setText(mask(e.optString("key")));
+        emUser.value.setText(e.optString("user").isEmpty() ? "nicht gew\u00e4hlt" : "\u2026");
+        haState.value.setText("pr\u00fcfe \u2026");
+        emState.value.setText("pr\u00fcfe \u2026");
         new Thread(new Runnable() { public void run() {
-            String haS = "", emS = "";
-            if (cfg != null) {
-                try { Style.httpGet(cfg.getString("url").replaceAll("/+$", "") + "/api/", cfg.getString("token")); haS = cfg.optString("url") + "  \u00b7  verbunden \u2713"; }
-                catch (Exception x) { haS = cfg.optString("url") + "  \u00b7  nicht erreichbar"; }
-            }
-            if (e != null) {
-                try { String n = e.getObj("/emby/Users/" + e.user).optString("Name"); emS = e.base + "  \u00b7  " + n + "  \u2713"; }
-                catch (Exception x) { emS = e.base + "  \u00b7  nicht erreichbar"; }
-            }
-            final String a = haS, b = emS;
-            h.post(new Runnable() { public void run() { if (!a.isEmpty()) ha.value.setText(a); if (!b.isEmpty()) em.value.setText(b); } });
+            String haS, emS, userS = "nicht gew\u00e4hlt";
+            String url = c.optString("url").replaceAll("/+$", "");
+            if (url.isEmpty()) haS = "nicht eingerichtet";
+            else try { Style.httpGet(url + "/api/", c.optString("token")); haS = "verbunden \u2713"; }
+            catch (Exception x) { haS = String.valueOf(x.getMessage()).contains("401") ? "Token ung\u00fcltig" : "nicht erreichbar"; }
+            String eu = e.optString("url").replaceAll("/+$", ""), key = e.optString("key");
+            final List<String[]> users = new ArrayList<>();
+            if (eu.isEmpty() || key.isEmpty()) emS = "nicht eingerichtet";
+            else try {
+                JSONArray a = new JSONArray(Style.httpGet(eu + "/emby/Users?api_key=" + URLEncoder.encode(key, "UTF-8"), null));
+                for (int i = 0; i < a.length(); i++) users.add(new String[]{a.getJSONObject(i).optString("Id"), a.getJSONObject(i).optString("Name")});
+                emS = "verbunden \u2713";
+                for (String[] u : users) if (u[0].equals(e.optString("user"))) userS = u[1];
+                if (users.isEmpty()) {   // Benutzer-Token sieht ggf. nur sich selbst
+                    JSONObject me = new JSONObject(Style.httpGet(eu + "/emby/Users/" + e.optString("user") + "?api_key=" + URLEncoder.encode(key, "UTF-8"), null));
+                    users.add(new String[]{me.optString("Id"), me.optString("Name")}); userS = me.optString("Name");
+                }
+            } catch (Exception x) { emS = String.valueOf(x.getMessage()).contains("401") ? "Schl\u00fcssel ung\u00fcltig" : "nicht erreichbar"; }
+            final String a1 = haS, b1 = emS, u1 = userS;
+            ui.post(new Runnable() { public void run() {
+                haState.value.setText(a1); emState.value.setText(b1); emUser.value.setText(u1);
+                embyUsers.clear(); embyUsers.addAll(users);
+            }});
         }}).start();
     }
 

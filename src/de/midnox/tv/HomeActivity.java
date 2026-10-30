@@ -113,6 +113,8 @@ public class HomeActivity extends Activity {
         clock.setTypeface(Typeface.create("sans-serif-thin", Typeface.NORMAL));
         date = Style.text(this, "", 14, Style.MUTED);
         date.setLetterSpacing(0.15f);
+        clock.setShadowLayer(Style.px(10), 0, 0, 0xCC000000);
+        date.setShadowLayer(Style.px(6), 0, 0, 0xCC000000);
         time.addView(clock); time.addView(date);
         time.setPadding(0, Style.px(40), Style.px(64), 0);
         FrameLayout headFrame = new FrameLayout(this);
@@ -135,7 +137,9 @@ public class HomeActivity extends Activity {
         // Scrollende Seite: Kopf, Apps, Weiterschauen, Zuhause, Neu in ...
         vscroll = new VScroll(this);
         vscroll.setVerticalScrollBarEnabled(false);
-        vscroll.setClipChildren(false);
+        vscroll.setClipChildren(true);    // Reihen nicht in den Kopfbereich zeichnen
+        vscroll.setVerticalFadingEdgeEnabled(true);
+        vscroll.setFadingEdgeLength(Style.px(28));
         vscroll.setFillViewport(true);
         content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);

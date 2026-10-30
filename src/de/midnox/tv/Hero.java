@@ -30,14 +30,14 @@ public class Hero {
             int save = c.saveLayer(r, null);
             float s = Math.max(bw / bmp.getWidth(), bh / bmp.getHeight());
             float iw = bmp.getWidth() * s, ih = bmp.getHeight() * s;
-            p.setAlpha((int) (255 * alpha * 0.85f));
+            p.setAlpha((int) (255 * alpha * 0.6f));
             c.drawBitmap(bmp, null, new RectF(r.centerX() - iw / 2, r.centerY() - ih / 2, r.centerX() + iw / 2, r.centerY() + ih / 2), p);
             // Ausblenden nach links und unten (Maske)
             Paint m = new Paint();
             m.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN));
             m.setShader(new LinearGradient(r.left, 0, r.left + bw * 0.55f, 0, 0x00000000, 0xFF000000, Shader.TileMode.CLAMP));
             c.drawRect(r, m);
-            m.setShader(new LinearGradient(0, bh * 0.45f, 0, bh, 0xFF000000, 0x00000000, Shader.TileMode.CLAMP));
+            m.setShader(new LinearGradient(0, bh * 0.3f, 0, bh * 0.85f, 0xFF000000, 0x00000000, Shader.TileMode.CLAMP));
             c.drawRect(r, m);
             c.restoreToCount(save);
         }

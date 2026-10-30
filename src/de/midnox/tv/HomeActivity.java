@@ -71,7 +71,7 @@ public class HomeActivity extends Activity {
         new Thread(new Runnable() { public void run() {
             try {
                 final Radio.State st = Radio.fetch(HomeActivity.this);
-                final Bitmap bm = st.now.art == null ? null : Emby.fetch(st.now.art);
+                final Bitmap bm = RadioNet.bitmap(st.now.art);
                 h.post(new Runnable() { public void run() {
                     radioBanner.title = st.now.title; radioBanner.artist = st.now.artist;
                     if (bm != null) radioBanner.cover = bm;

@@ -60,6 +60,7 @@ public class RadioActivity extends Activity {
         static String fmt(long s) { s = Math.max(0, s); return (s / 60) + ":" + String.format(Locale.ROOT, "%02d", s % 60); }
         @Override protected void onDraw(Canvas c) {
             float dp = Style.dp, w = getWidth();
+            if (start <= 0) { postInvalidateDelayed(500); return; }
             long el = Math.max(0, System.currentTimeMillis() / 1000 - start);
             if (dur > 0) el = Math.min(el, dur);
             float f = dur > 0 ? el / (float) dur : 0;
@@ -190,10 +191,10 @@ public class RadioActivity extends Activity {
                 List<String> arts = new ArrayList<>();
                 if (st.now.art != null) arts.add(st.now.art);
                 for (Radio.Song s : st.history) if (s.art != null) arts.add(s.art);
-                for (String a : arts) if (!covers.containsKey(a)) { Bitmap bm = Emby.fetch(a); if (bm != null) synchronized (covers) { covers.put(a, bm); } }
+                for (String a : arts) if (!covers.containsKey(a)) { Bitmap bm = RadioNet.bitmap(a); if (bm != null) synchronized (covers) { covers.put(a, bm); } }
                 h.post(new Runnable() { public void run() { show(st); } });
             } catch (final Exception e) {
-                h.post(new Runnable() { public void run() { if (state == null) { title.setText("Radio nicht erreichbar"); artist.setText(String.valueOf(e.getMessage())); } } });
+                h.post(new Runnable() { public void run() { log("API: " + e); if (state == null) { title.setText("Radio nicht erreichbar"); artist.setText(String.valueOf(e.getMessage())); } } });
             }
         }}).start();
         h.postDelayed(this, 10000);
@@ -252,29 +253,23 @@ public class RadioActivity extends Activity {
     static final String UA = "midnox TV (Fire TV; Android " + Build.VERSION.RELEASE + ")";
 
     /** Erst pruefen, welche Stream-Adresse antwortet (mit Klartext-Fehler), dann abspielen. */
+    RadioNet.Proxy proxy;
+
     void toggle() {
         if (preparing) return;
         if (playing) { stopPlayer(); return; }
         preparing = true; play.setText("Verbinde \u2026");
         final String main = state != null && state.stream != null ? state.stream : "https://radio.midnox.de/listen/midnox/radio.mp3";
         new Thread(new Runnable() { public void run() {
-            List<String> urls = new ArrayList<>();
-            urls.add(main);
-            if (main.startsWith("https://")) urls.add("http://" + main.substring(8));
-            String ok = null, err = "";
-            for (String u : urls) {
-                try {
-                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();
-                    c.setConnectTimeout(6000); c.setReadTimeout(6000);
-                    c.setRequestProperty("User-Agent", UA);
-                    int code = c.getResponseCode();
-                    if (code == 200) { c.getInputStream().read(); c.disconnect(); ok = c.getURL().toString(); break; }
-                    err = "HTTP " + code + (code == 401 || code == 403 ? " \u2013 Server lehnt Zuh\u00f6rer ab" : "");
-                    c.disconnect();
-                } catch (Exception e) { err = e.getClass().getSimpleName() + ": " + e.getMessage(); }
-            }
-            log("Stream " + main + " -> " + (ok != null ? "OK " + ok : err));
-            final String url = ok, msg = err;
+            String err = null, local = null;
+            try {
+                RadioNet.Resp r = RadioNet.open(main);   // Probe: erreichbar?
+                int code = r.code; r.close();
+                if (code != 200) err = "HTTP " + code + (code == 401 || code == 403 ? " \u2013 Server lehnt Zuh\u00f6rer ab" : "");
+                else { proxy = new RadioNet.Proxy(main); local = proxy.start(); }
+            } catch (Exception e) { err = e.getClass().getSimpleName() + ": " + e.getMessage(); }
+            log("Stream " + main + " -> " + (err == null ? "OK" : err) + (RadioNet.lastInfo.isEmpty() ? "" : "  (" + RadioNet.lastInfo + ")"));
+            final String url = local, msg = err;
             h.post(new Runnable() { public void run() {
                 if (url == null) { preparing = false; play.setText("Abspielen"); streamErr = "Stream: " + msg; listeners.setText(streamErr); return; }
                 streamErr = null;
@@ -294,7 +289,7 @@ public class RadioActivity extends Activity {
                 preparing = false; playing = true; mp.start(); play.setText("Pause"); play.active = true; play.invalidate();
             }});
             player.setOnErrorListener(new MediaPlayer.OnErrorListener() { public boolean onError(MediaPlayer mp, int what, int extra) {
-                log("MediaPlayer-Fehler " + what + "/" + extra);
+                log("MediaPlayer-Fehler " + what + "/" + extra + (proxy != null && proxy.error != null ? " (" + proxy.error + ")" : ""));
                 stopPlayer(); play.setText("Nochmal versuchen"); streamErr = "Wiedergabefehler " + what + "/" + extra; listeners.setText(streamErr); return true;
             }});
             player.prepareAsync();
@@ -313,6 +308,7 @@ public class RadioActivity extends Activity {
     void stopPlayer() {
         preparing = false; playing = false;
         if (player != null) { try { player.stop(); } catch (Exception ignored) {} player.release(); player = null; }
+        if (proxy != null) { proxy.stop(); proxy = null; }
         play.setText("Abspielen"); play.active = false; play.invalidate();
     }
 

@@ -41,7 +41,7 @@ public class Radio {
     }
 
     public static State fetch(Context c) throws Exception {
-        JSONObject o = new JSONObject(Style.httpGet(api(c), null));
+        JSONObject o = new JSONObject(RadioNet.get(api(c)));
         State st = new State();
         JSONObject sta = o.optJSONObject("station");
         if (sta != null) { st.name = sta.optString("name", st.name); st.stream = sta.optString("listen_url", null); }

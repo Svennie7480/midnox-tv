@@ -1,6 +1,6 @@
 {
-  "versionCode": 27,
-  "versionName": "6.3",
+  "versionCode": 28,
+  "versionName": "6.4",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Infobereich dezent abgedunkelt, Radio mit Stream-Prüfung und Fehleranzeige"
+  "notes": "Radio funktioniert auch, wenn der DNS im Heimnetz radio.midnox.de blockiert"
 }

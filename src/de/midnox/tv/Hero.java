@@ -43,6 +43,25 @@ public class Hero {
         }
     }
 
+    /** Abdunklung: links kraeftig, nach rechts und unten weich auslaufend. */
+    static class Scrim extends android.graphics.drawable.Drawable {
+        final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG), m = new Paint();
+        Scrim() { m.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_IN)); }
+        @Override public void draw(Canvas c) {
+            Rect r = getBounds();
+            float w = r.width(), h = r.height();
+            int save = c.saveLayer(r.left, r.top, r.right, r.bottom, null);
+            p.setShader(new LinearGradient(r.left, 0, r.left + w * 0.62f, 0, new int[]{0xB8050409, 0x8C050409, 0x00050409}, new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP));
+            c.drawRect(r, p);
+            m.setShader(new LinearGradient(0, r.top + h * 0.7f, 0, r.bottom, 0xFF000000, 0x00000000, Shader.TileMode.CLAMP));
+            c.drawRect(r, m);
+            c.restoreToCount(save);
+        }
+        @Override public void setAlpha(int a) {}
+        @Override public void setColorFilter(ColorFilter f) {}
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
     final HomeActivity act;
     final Backdrop backdrop;
     final LinearLayout info;
@@ -82,6 +101,7 @@ public class Hero {
         logo.setVisibility(View.GONE);
         info.addView(kind); info.addView(logo); info.addView(title); info.addView(meta); info.addView(overview);
         info.setAlpha(0f);
+        info.setBackground(new Scrim());   // dezente Abdunklung hinter Titel und Beschreibung
         int maxW = (int) (a.getResources().getDisplayMetrics().widthPixels * 0.5f);
         title.setMaxWidth(maxW); overview.setMaxWidth(maxW); meta.setMaxWidth(maxW);
     }

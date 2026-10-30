@@ -28,6 +28,7 @@ public class RadioActivity extends Activity {
     LinearLayout recent;
     ScrollView lyricsBox;
     String shownId = "";
+    String streamErr;
 
     /** Grosses Cover mit Leuchten im Verlauf. */
     static class Cover extends View {
@@ -248,23 +249,65 @@ public class RadioActivity extends Activity {
         return super.dispatchKeyEvent(e);
     }
 
+    static final String UA = "midnox TV (Fire TV; Android " + Build.VERSION.RELEASE + ")";
+
+    /** Erst pruefen, welche Stream-Adresse antwortet (mit Klartext-Fehler), dann abspielen. */
     void toggle() {
         if (preparing) return;
         if (playing) { stopPlayer(); return; }
-        String url = state != null && state.stream != null ? state.stream : "https://radio.midnox.de/listen/midnox/radio.mp3";
+        preparing = true; play.setText("Verbinde \u2026");
+        final String main = state != null && state.stream != null ? state.stream : "https://radio.midnox.de/listen/midnox/radio.mp3";
+        new Thread(new Runnable() { public void run() {
+            List<String> urls = new ArrayList<>();
+            urls.add(main);
+            if (main.startsWith("https://")) urls.add("http://" + main.substring(8));
+            String ok = null, err = "";
+            for (String u : urls) {
+                try {
+                    java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(u).openConnection();
+                    c.setConnectTimeout(6000); c.setReadTimeout(6000);
+                    c.setRequestProperty("User-Agent", UA);
+                    int code = c.getResponseCode();
+                    if (code == 200) { c.getInputStream().read(); c.disconnect(); ok = c.getURL().toString(); break; }
+                    err = "HTTP " + code + (code == 401 || code == 403 ? " \u2013 Server lehnt Zuh\u00f6rer ab" : "");
+                    c.disconnect();
+                } catch (Exception e) { err = e.getClass().getSimpleName() + ": " + e.getMessage(); }
+            }
+            log("Stream " + main + " -> " + (ok != null ? "OK " + ok : err));
+            final String url = ok, msg = err;
+            h.post(new Runnable() { public void run() {
+                if (url == null) { preparing = false; play.setText("Abspielen"); streamErr = "Stream: " + msg; listeners.setText(streamErr); return; }
+                streamErr = null;
+                start(url);
+            }});
+        }}).start();
+    }
+
+    void start(String url) {
         try {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
-            player.setDataSource(url);
+            Map<String, String> hd = new HashMap<>();
+            hd.put("User-Agent", UA);
+            player.setDataSource(this, android.net.Uri.parse(url), hd);
             player.setOnPreparedListener(new MediaPlayer.OnPreparedListener() { public void onPrepared(MediaPlayer mp) {
                 preparing = false; playing = true; mp.start(); play.setText("Pause"); play.active = true; play.invalidate();
             }});
             player.setOnErrorListener(new MediaPlayer.OnErrorListener() { public boolean onError(MediaPlayer mp, int what, int extra) {
-                stopPlayer(); play.setText("Fehler – nochmal"); return true;
+                log("MediaPlayer-Fehler " + what + "/" + extra);
+                stopPlayer(); play.setText("Nochmal versuchen"); streamErr = "Wiedergabefehler " + what + "/" + extra; listeners.setText(streamErr); return true;
             }});
-            preparing = true; play.setText("Verbinde …");
             player.prepareAsync();
-        } catch (Exception ex) { stopPlayer(); play.setText("Fehler – nochmal"); }
+        } catch (Exception ex) { log("start: " + ex); stopPlayer(); play.setText("Nochmal versuchen"); }
+    }
+
+    void log(String s) {
+        try {
+            java.io.File f = new java.io.File(getExternalFilesDir(null), "radio_status.txt");
+            java.io.FileWriter w = new java.io.FileWriter(f, true);
+            w.write(new SimpleDateFormat("dd.MM. HH:mm:ss", Locale.GERMANY).format(new Date()) + "  " + s + "\n");
+            w.close();
+        } catch (Exception ignored) {}
     }
 
     void stopPlayer() {

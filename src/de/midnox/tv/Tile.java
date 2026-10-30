@@ -61,20 +61,17 @@ public class Tile extends View {
         }
         fill.setShader(new LinearGradient(0, card.top, 0, card.bottom, focused ? 0xFF262439 : 0xFF1A1928, focused ? 0xFF1A1928 : 0xFF121120, Shader.TileMode.CLAMP));
         c.drawRoundRect(card, rad, rad, fill);
-        Drawable d = icon != null ? icon : banner;
+        Drawable d = banner != null ? banner : icon;
         if (d != null) {
-            float s = Math.min(card.height() * 0.62f, 72 * dp);
-            float cx = card.centerX(), cy = card.centerY();
-            RectF ir = new RectF(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2);
-            if (d == banner) {   // nur Banner vorhanden: eingepasst statt randlos
-                float bw = card.width() * 0.8f, bh = bw * 9f / 16f;
-                if (bh > card.height() * 0.8f) { bh = card.height() * 0.8f; bw = bh * 16f / 9f; }
-                ir = new RectF(cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2);
-            }
             int save = c.save();
-            Path clip = new Path(); clip.addRoundRect(ir, 14 * dp, 14 * dp, Path.Direction.CW);
+            Path clip = new Path(); clip.addRoundRect(card, rad, rad, Path.Direction.CW);
             c.clipPath(clip);
-            d.setBounds((int) ir.left, (int) ir.top, (int) ir.right, (int) ir.bottom);
+            if (banner != null) {   // Banner randlos ueber die ganze Karte
+                d.setBounds((int) card.left, (int) card.top, (int) card.right, (int) card.bottom);
+            } else {                // nur Icon: gross und mittig
+                int sz = (int) (card.height() * 0.78f); int cx = (int) card.centerX(), cy = (int) card.centerY();
+                d.setBounds(cx - sz / 2, cy - sz / 2, cx + sz / 2, cy + sz / 2);
+            }
             d.draw(c);
             c.restoreToCount(save);
         } else if (glyph != GLYPH_NONE) {
@@ -83,7 +80,7 @@ public class Tile extends View {
         if (focused) {
             stroke.setShader(Style.brand(card.left, card.right)); stroke.setStrokeWidth(3 * dp);
         } else {
-            stroke.setShader(null); stroke.setColor(0x22FFFFFF); stroke.setStrokeWidth(1 * dp);
+            stroke.setShader(null); stroke.setColor(banner != null ? 0x00000000 : 0x14FFFFFF); stroke.setStrokeWidth(1 * dp);
         }
         c.drawRoundRect(card, rad, rad, stroke);
         if (pinned) { // kleiner Punkt: liegt auf der Startseite

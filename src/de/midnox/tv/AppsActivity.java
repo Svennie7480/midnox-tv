@@ -74,7 +74,7 @@ public class AppsActivity extends Activity {
             Drawable banner = null, icon = null;
             try { banner = ri.activityInfo.loadBanner(pm); } catch (Exception ignored) {}
             if (banner == null) try { banner = pm.getApplicationBanner(p); } catch (Exception ignored) {}
-            icon = ri.loadIcon(pm);
+            if (banner == null) icon = ri.loadIcon(pm);
             final Tile[] self = new Tile[1];
             final Intent li = Style.launchIntent(pm, p);
             Tile t = new Tile(this, labels.get(p), banner, icon, Tile.GLYPH_NONE,

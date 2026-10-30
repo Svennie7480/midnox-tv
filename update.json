@@ -1,6 +1,6 @@
 {
-  "versionCode": 22,
-  "versionName": "5.9",
+  "versionCode": 23,
+  "versionName": "5.9.1",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Titel-Logos, Fortschrittsbalken, Cover ohne Text, einheitliche App-Kacheln, saubere Titel"
+  "notes": "App-Kacheln wieder mit großen Bannern"
 }

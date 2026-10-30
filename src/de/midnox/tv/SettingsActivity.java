@@ -148,6 +148,12 @@ public class SettingsActivity extends Activity {
         theme.onOk = next; theme.onRight = next;
         theme.onLeft = new Runnable() { public void run() { cycleTheme(-1); showTheme.run(); } };
 
+        final Row fx = add("Animierte Deko");
+        final String[] fxN = {"Aus", "Dezent", "Voll"};
+        final Runnable fxShow = new Runnable() { public void run() { fx.value.setText("\u25C0  " + fxN[pr.getInt("fx_level", 2)] + "  \u25B6"); } };
+        fxShow.run();
+        fx.onOk = fx.onRight = new Runnable() { public void run() { pr.edit().putInt("fx_level", (pr.getInt("fx_level", 2) + 1) % 3).apply(); fxShow.run(); SetupActivity.changed = true; } };
+        fx.onLeft = new Runnable() { public void run() { pr.edit().putInt("fx_level", (pr.getInt("fx_level", 2) + 2) % 3).apply(); fxShow.run(); SetupActivity.changed = true; } };
         toggle("Beschreibung im Kopfbereich", "hero_text", true, false);
 
         section("WETTER");

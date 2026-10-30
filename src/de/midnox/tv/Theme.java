@@ -26,6 +26,10 @@ public class Theme {
     final boolean fireworks;
     final Layer[] layers;
     int[] bands;
+    // Atmosphaere (grossflaechig, ruhig) hinter den Partikeln
+    static final int AMB_NONE = 0, AMB_MOON_FOG = 1, AMB_BOKEH = 2, AMB_FROST = 3, AMB_GLOW = 4;
+    int amb = AMB_GLOW;
+    Theme amb(int a) { amb = a; return this; }
 
     Theme(String id, String greeting, int c1, int c2, int c3, int bg1, int bg2, int glow1, int glow2, boolean fireworks, Layer... layers) {
         this.id = id; this.greeting = greeting; this.c1 = c1; this.c2 = c2; this.c3 = c3;
@@ -39,7 +43,7 @@ public class Theme {
         switch (id) {
             case "halloween":
                 return new Theme(id, "Happy Halloween", 0xFFFF7A00, 0xFFB5179E, 0xFF7CFF4F, 0xFF120A12, 0xFF050307, 0x40FF7A00, 0x307CFF4F, false,
-                        L(BAT, FLY, 6, 22, 40, 45), L(ORB, DRIFT, 10, 30, 90, 8));
+                        L(BAT, FLY, 4, 14, 30, 34), L(DOT, RISE, 26, 1, 2.6f, 10)).amb(AMB_MOON_FOG);
             case "einheit": {
                 Theme th = new Theme(id, "Tag der Deutschen Einheit", 0xFF8A8A8A, 0xFFDD0000, 0xFFFFCE00, 0xFF0E0B0B, 0xFF050404, 0x38DD0000, 0x34FFCE00, false,
                         L(ORB, RISE, 12, 20, 60, 12), L(DOT, RISE, 22, 1.5f, 3.2f, 20));
@@ -53,35 +57,35 @@ public class Theme {
                 int days = xmas.get(Calendar.DAY_OF_YEAR) - now.get(Calendar.DAY_OF_YEAR);
                 String g = now.get(Calendar.DAY_OF_MONTH) == 6 ? "Frohen Nikolaus" : "Noch " + days + (days == 1 ? " Tag" : " Tage") + " bis Heiligabend";
                 return new Theme(id, g, 0xFFE63946, 0xFFF4C27A, 0xFF2A9D8F, 0xFF0F0A0C, 0xFF040506, 0x38E63946, 0x302A9D8F, false,
-                        L(DOT, FALL, 55, 1.2f, 3.2f, 30), L(FLAKE, FALL, 8, 10, 20, 22), L(STAR, TWINKLE, 6, 6, 12, 0));
+                        L(DOT, FALL, 70, 1, 3.4f, 26), L(ORB, DRIFT, 9, 26, 70, 5), L(STAR, TWINKLE, 5, 5, 10, 0)).amb(AMB_BOKEH);
             }
             case "weihnachten":
                 return new Theme(id, "Frohe Weihnachten", 0xFFE63946, 0xFFF4C27A, 0xFF2A9D8F, 0xFF0F0A0C, 0xFF040506, 0x40E63946, 0x382A9D8F, false,
-                        L(DOT, FALL, 80, 1.2f, 3.4f, 30), L(FLAKE, FALL, 12, 10, 22, 22), L(STAR, TWINKLE, 9, 6, 14, 0));
+                        L(DOT, FALL, 90, 1, 3.6f, 26), L(ORB, DRIFT, 11, 26, 76, 5), L(STAR, TWINKLE, 7, 5, 11, 0)).amb(AMB_BOKEH);
             case "silvester":
                 return new Theme(id, "Guten Rutsch", 0xFFFFD166, 0xFFE0E0F0, 0xFF4CC9F0, 0xFF080A18, 0xFF030308, 0x30FFD166, 0x304CC9F0, true,
-                        L(STAR, TWINKLE, 10, 5, 11, 0));
+                        L(STAR, TWINKLE, 14, 3, 8, 0)).amb(AMB_NONE);
             case "neujahr":
                 return new Theme(id, "Frohes neues Jahr " + now.get(Calendar.YEAR), 0xFFFFD166, 0xFFE0E0F0, 0xFF4CC9F0, 0xFF080A18, 0xFF030308, 0x30FFD166, 0x304CC9F0, true,
-                        L(STAR, TWINKLE, 10, 5, 11, 0));
+                        L(STAR, TWINKLE, 14, 3, 8, 0)).amb(AMB_NONE);
             case "winter":
                 return new Theme(id, "", 0xFF7DD3FC, 0xFF60A5FA, 0xFFE0F2FE, 0xFF0A1020, 0xFF04060C, 0x2660A5FA, 0x267DD3FC, false,
-                        L(DOT, FALL, 40, 1, 2.6f, 24), L(FLAKE, FALL, 4, 9, 16, 18));
+                        L(DOT, FALL, 70, 0.8f, 3, 22), L(FLAKE, FALL, 3, 8, 14, 14)).amb(AMB_FROST);
             case "valentin":
                 return new Theme(id, "Happy Valentine's Day", 0xFFFF4D8D, 0xFFFF8FAB, 0xFFC77DFF, 0xFF16080F, 0xFF060306, 0x40FF4D8D, 0x30C77DFF, false,
-                        L(HEART, RISE, 12, 10, 24, 18), L(ORB, DRIFT, 8, 30, 80, 6));
+                        L(HEART, RISE, 6, 8, 18, 12), L(ORB, DRIFT, 10, 26, 80, 5)).amb(AMB_BOKEH);
             case "muttertag":
                 return new Theme(id, "Alles Liebe zum Muttertag", 0xFFFF8FAB, 0xFFFFB4A2, 0xFFC77DFF, 0xFF140A10, 0xFF060306, 0x38FF8FAB, 0x30C77DFF, false,
-                        L(HEART, RISE, 9, 10, 20, 14), L(PETAL, FALL, 10, 8, 14, 16));
+                        L(HEART, RISE, 5, 8, 16, 10), L(PETAL, FALL, 10, 7, 13, 12), L(ORB, DRIFT, 6, 26, 70, 5)).amb(AMB_BOKEH);
             case "fasching":
                 return new Theme(id, "Helau & Alaaf", 0xFFFF4D6D, 0xFFFFD60A, 0xFF4CC9F0, 0xFF0C0A14, 0xFF040308, 0x34FF4D6D, 0x344CC9F0, false,
-                        L(CONFETTI, FALL, 45, 4, 8, 40));
+                        L(CONFETTI, FALL, 34, 3, 7, 32));
             case "ostern":
                 return new Theme(id, "Frohe Ostern", 0xFFA7F3D0, 0xFFFDE68A, 0xFFF9A8D4, 0xFF0C1210, 0xFF050706, 0x30A7F3D0, 0x30F9A8D4, false,
-                        L(PETAL, FALL, 16, 8, 16, 16), L(ORB, DRIFT, 8, 30, 80, 6));
+                        L(PETAL, FALL, 14, 7, 14, 12), L(ORB, DRIFT, 8, 26, 76, 5)).amb(AMB_BOKEH);
             case "maifeiertag":
                 return new Theme(id, "Schönen 1. Mai", 0xFF84CC16, 0xFF22C55E, 0xFFFDE047, 0xFF0A100A, 0xFF040604, 0x3084CC16, 0x30FDE047, false,
-                        L(PETAL, FALL, 16, 8, 15, 16), L(ORB, DRIFT, 6, 30, 80, 6));
+                        L(PETAL, FALL, 14, 7, 13, 12), L(ORB, DRIFT, 6, 26, 70, 5)).amb(AMB_BOKEH);
             case "vatertag":
                 return new Theme(id, "Schönen Vatertag", 0xFF38BDF8, 0xFF6366F1, 0xFFFBBF24, 0xFF080C16, 0xFF030408, 0x3038BDF8, 0x30FBBF24, false,
                         L(ORB, RISE, 14, 18, 60, 12));
@@ -148,7 +152,7 @@ public class Theme {
     // =====================================================================
     /** Animierte Deko hinter den Kacheln: Vektorformen im Themen-Verlauf. */
     static class Overlay extends View {
-        static class P { int shape, motion, col; float x, y, vx, vy, size, phase, rot, vrot, alpha; }
+        static class P { int shape, motion, col; float x, y, vx, vy, size, phase, rot, vrot, alpha, z; }
         static class Spark { float x, y, vx, vy, life; int col; }
 
         final Theme t;
@@ -160,12 +164,15 @@ public class Theme {
         final Path bat = new Path(), batBody = new Path(), heart = new Path(), star = new Path();
         boolean running, seeded;
         long last;
+        final long born = System.nanoTime();
+        final float level;   // 0 = aus, 0.5 = dezent, 1 = voll
 
         Overlay(Context c, Theme t) {
             super(c);
             this.t = t;
             setFocusable(false); setClickable(false);
             counts = new int[t.layers.length];
+            level = Style.prefs(c).getInt("fx_level", 2) / 2f;
             // Fledermaus (Einheitsgroesse ~ 1 breit), Fluegel werden beim Zeichnen bewegt
             bat.moveTo(0f, 0f);
             bat.cubicTo(-0.12f, -0.18f, -0.3f, -0.22f, -0.5f, -0.1f);
@@ -202,13 +209,15 @@ public class Theme {
             float w = getWidth(), h = getHeight(), dp = Style.dp;
             P q = new P();
             q.shape = l.shape; q.motion = l.motion; q.col = pal();
-            q.size = (l.minSize + rnd.nextFloat() * (l.maxSize - l.minSize)) * dp;
+            // Tiefe: die meisten Teilchen weit hinten (klein, blass, langsam), wenige vorne
+            q.z = (float) Math.pow(rnd.nextFloat(), 1.6);
+            q.size = (l.minSize + q.z * (l.maxSize - l.minSize)) * dp;
             q.phase = rnd.nextFloat() * 6.28f;
             q.rot = rnd.nextFloat() * 360; q.vrot = (rnd.nextFloat() - 0.5f) * 120;
-            float sp = l.speed * (0.6f + rnd.nextFloat() * 0.8f) * dp;
-            q.alpha = 0.25f + rnd.nextFloat() * 0.45f;
+            float sp = l.speed * (0.35f + 0.65f * q.z) * (0.85f + rnd.nextFloat() * 0.3f) * dp;
+            q.alpha = 0.18f + 0.5f * q.z;
             switch (l.motion) {
-                case FLY:  q.x = anywhere ? rnd.nextFloat() * w : -q.size * 2; q.y = h * (0.1f + rnd.nextFloat() * 0.75f); q.vx = sp; break;
+                case FLY:  q.x = anywhere ? rnd.nextFloat() * w : -q.size * 2; q.y = h * (0.05f + rnd.nextFloat() * 0.28f); q.vx = sp; break;
                 case FALL: q.x = rnd.nextFloat() * w; q.y = anywhere ? rnd.nextFloat() * h : -q.size * 2; q.vy = sp; break;
                 case RISE: q.x = rnd.nextFloat() * w; q.y = anywhere ? rnd.nextFloat() * h : h + q.size * 2; q.vy = -sp; break;
                 case TWINKLE: q.x = rnd.nextFloat() * w; q.y = rnd.nextFloat() * h * 0.6f; break;
@@ -218,15 +227,16 @@ public class Theme {
         }
 
         @Override protected void onDraw(Canvas c) {
-            if (t.layers.length == 0 && !t.fireworks) return;
+            if (level <= 0) return;
             long now = System.nanoTime();
             float dt = last == 0 ? 0.016f : Math.min(0.05f, (now - last) / 1e9f);
             last = now;
             float w = getWidth(), h = getHeight(), dp = Style.dp;
             if (w <= 0) { if (running) postInvalidateOnAnimation(); return; }
+            ambient(c, w, h, (now - born) / 1e9f);
             boolean init = !seeded;
             for (int i = 0; i < t.layers.length; i++) {
-                while (counts[i] < t.layers[i].count) { P q = spawn(t.layers[i], init); q.phase += i * 100; parts.add(q); counts[i]++; }
+                while (counts[i] < Math.round(t.layers[i].count * level)) { P q = spawn(t.layers[i], init); q.phase += i * 100; parts.add(q); counts[i]++; }
             }
             seeded = true;
             Iterator<P> it = parts.iterator();
@@ -249,10 +259,64 @@ public class Theme {
                 }
                 float a = q.alpha;
                 if (q.motion == TWINKLE) a = q.alpha * (0.35f + 0.65f * (0.5f + 0.5f * (float) Math.sin(q.phase * 1.7f)));
-                drawShape(c, q, x, y, a);
+                drawShape(c, q, x, y, a * calm(x, y, w, h));
             }
             if (t.fireworks) fireworks(c, dt, w, h);
             if (running) postInvalidateOnAnimation();
+        }
+
+        /** Ueber den Kachelreihen (Mitte/unten) deutlich zuruecknehmen, an Raendern und oben voll. */
+        float calm(float x, float y, float w, float h) {
+            float top = Math.max(0f, 1f - y / (h * 0.32f));
+            float edge = Math.max(0f, 1f - Math.min(x, w - x) / (w * 0.08f));
+            return 0.35f + 0.65f * Math.min(1f, Math.max(top, edge));
+        }
+
+        /** Grossflaechige, ruhige Lichtstimmung je Thema. */
+        void ambient(Canvas c, float w, float h, float tt) {
+            float dp = Style.dp;
+            p.setStyle(Paint.Style.FILL);
+            switch (t.amb) {
+                case AMB_MOON_FOG: {
+                    // Mond: weicher Halo + Scheibe im Verlauf, sehr zurueckhaltend
+                    float mx = w * 0.64f, my = h * 0.14f, r = 46 * dp;
+                    p.setShader(new RadialGradient(mx, my, r * 4.5f, (t.c1 & 0x00FFFFFF) | 0x2E000000, t.c1 & 0x00FFFFFF, Shader.TileMode.CLAMP));
+                    c.drawCircle(mx, my, r * 4.5f, p);
+                    p.setShader(new RadialGradient(mx - r * 0.3f, my - r * 0.3f, r * 1.3f, 0x55FFE7C2, (t.c1 & 0x00FFFFFF) | 0x33000000, Shader.TileMode.CLAMP));
+                    c.drawCircle(mx, my, r, p);
+                    // Bodennebel: langsam ziehende, flache Schwaden
+                    for (int i = 0; i < 4; i++) {
+                        float cx = w * (0.1f + 0.3f * i) + (float) Math.sin(tt * 0.04f + i * 1.9f) * w * 0.12f;
+                        float cy = h * (1.02f - 0.05f * (i % 2));
+                        float rx = w * 0.42f;
+                        int col = (i % 2 == 0 ? t.c2 : t.c1) & 0x00FFFFFF;
+                        c.save(); c.scale(1f, 0.22f, cx, cy);
+                        p.setShader(new RadialGradient(cx, cy, rx, col | 0x30000000, col, Shader.TileMode.CLAMP));
+                        c.drawCircle(cx, cy, rx, p);
+                        c.restore();
+                    }
+                    break;
+                }
+                case AMB_FROST: {
+                    // Raureif in den Ecken
+                    float r = w * 0.35f;
+                    float[][] pts = {{0, 0}, {w, 0}, {0, h}, {w, h}};
+                    for (float[] q : pts) {
+                        p.setShader(new RadialGradient(q[0], q[1], r, 0x22E0F2FE, 0x00E0F2FE, Shader.TileMode.CLAMP));
+                        c.drawCircle(q[0], q[1], r, p);
+                    }
+                    break;
+                }
+                case AMB_BOKEH: {
+                    // warmes Licht von oben, sehr weich
+                    float cx = w * (0.5f + 0.2f * (float) Math.sin(tt * 0.02f));
+                    p.setShader(new RadialGradient(cx, -h * 0.1f, w * 0.6f, (t.c2 & 0x00FFFFFF) | 0x1C000000, t.c2 & 0x00FFFFFF, Shader.TileMode.CLAMP));
+                    c.drawRect(0, 0, w, h * 0.7f, p);
+                    break;
+                }
+                default: break;
+            }
+            p.setShader(null);
         }
 
         void drawShape(Canvas c, P q, float x, float y, float a) {
@@ -261,14 +325,23 @@ public class Theme {
             switch (q.shape) {
                 case ORB: { // weicher Lichtpunkt
                     int col = q.col;
-                    p.setShader(new RadialGradient(x, y, s, (col & 0x00FFFFFF) | ((int) (a * 110) << 24), col & 0x00FFFFFF, Shader.TileMode.CLAMP));
-                    c.drawCircle(x, y, s, p);
+                    if (t.amb == AMB_BOKEH) {   // Bokeh: flache Scheibe mit hellerem Rand
+                        p.setColor(col); p.setAlpha((int) (a * 46));
+                        c.drawCircle(x, y, s * 0.6f, p);
+                        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.2f * dp); p.setAlpha((int) (a * 70));
+                        c.drawCircle(x, y, s * 0.6f, p);
+                        p.setStyle(Paint.Style.FILL);
+                    } else {
+                        p.setShader(new RadialGradient(x, y, s, (col & 0x00FFFFFF) | ((int) (a * 110) << 24), col & 0x00FFFFFF, Shader.TileMode.CLAMP));
+                        c.drawCircle(x, y, s, p);
+                    }
                     break;
                 }
                 case DOT:
                     p.setColor(Color.WHITE); p.setAlpha((int) (255 * a));
                     if (t.id.equals("einheit") || t.id.equals("pfingsten")) { p.setColor(q.col); p.setAlpha((int) (255 * a)); }
                     c.drawCircle(x, y, s, p);
+                    if (q.z > 0.75f) { p.setAlpha((int) (40 * a)); c.drawCircle(x, y, s * 2.4f, p); }
                     break;
                 case FLAKE: { // feine Schneeflocke aus Linien
                     p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.2f * dp); p.setStrokeCap(Paint.Cap.ROUND);
@@ -285,9 +358,13 @@ public class Theme {
                     break;
                 }
                 case BAT: {
-                    float flap = 0.55f + 0.45f * (float) Math.abs(Math.sin(q.phase * 9));
-                    c.save(); c.translate(x, y); c.scale(s * 2, s * 2 * flap);
-                    p.setShader(Style.brand(-0.5f, 0.5f)); p.setAlpha((int) (255 * Math.min(1, a + 0.2f)));
+                    // abwechselnd ein paar Fluegelschlaege und Gleiten
+                    boolean glide = Math.sin(q.phase * 0.7f) > 0.2f;
+                    float flap = glide ? 0.85f + 0.05f * (float) Math.sin(q.phase * 2) : 0.5f + 0.5f * (float) Math.abs(Math.sin(q.phase * 7));
+                    c.save(); c.translate(x, y); c.rotate((float) Math.sin(q.phase * 1.1f) * 6); c.scale(s * 2, s * 2 * flap);
+                    // dunkle Silhouette mit leichtem Farbschimmer (wirkt vor dem Mond am besten)
+                    p.setShader(new LinearGradient(0, -0.2f, 0, 0.12f, 0xFF0A060C, (t.c1 & 0x00FFFFFF) | 0xFF000000, Shader.TileMode.CLAMP));
+                    p.setAlpha((int) (255 * Math.min(0.9f, a + 0.35f)));
                     c.drawPath(bat, p);
                     c.restore();
                     c.save(); c.translate(x, y); c.scale(s * 2, s * 2);   // Koerper flattert nicht mit

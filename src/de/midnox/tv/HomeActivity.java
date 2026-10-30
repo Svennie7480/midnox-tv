@@ -438,32 +438,20 @@ public class HomeActivity extends Activity {
 
     /** Startbild: midnox.de im Verlauf, blendet weich in die Startseite. */
     void splash(final FrameLayout root) {
+        // gleiches Bild wie das Startfenster des Systems -> nahtloser Uebergang
         final FrameLayout sp = new FrameLayout(this);
         sp.setBackgroundColor(0xFF0B0A14);
-        LinearLayout col = new LinearLayout(this);
-        col.setOrientation(LinearLayout.VERTICAL);
-        col.setGravity(Gravity.CENTER_HORIZONTAL);
-        col.addView(new Style.GradientText(this, "midnox.de", 64));
-        TextView tv = Style.text(this, "T V", 14, 0xB3FFFFFF);
-        tv.setLetterSpacing(0.6f);
-        tv.setPadding(0, Style.px(4), 0, 0);
-        col.addView(tv);
-        View line = new View(this) {
-            final Paint lp = new Paint(Paint.ANTI_ALIAS_FLAG);
-            @Override protected void onDraw(Canvas c) { lp.setShader(Style.brand(0, getWidth())); c.drawRoundRect(new RectF(0, 0, getWidth(), getHeight()), getHeight(), getHeight(), lp); }
-        };
-        LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(Style.px(120), Style.px(3));
-        ll.topMargin = Style.px(22);
-        col.addView(line, ll);
-        sp.addView(col, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(getResources().getIdentifier("splash_logo", "drawable", getPackageName()));
+        sp.addView(logo, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
         root.addView(sp, new FrameLayout.LayoutParams(-1, -1));
-        col.setAlpha(0f); col.setScaleX(0.94f); col.setScaleY(0.94f);
-        col.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(600).start();
-        line.setScaleX(0f);
-        line.animate().scaleX(1f).setStartDelay(250).setDuration(900).start();
+        logo.animate().scaleX(1.03f).scaleY(1.03f).setDuration(1700).start();
         h.postDelayed(new Runnable() { public void run() {
-            sp.animate().alpha(0f).setDuration(450).withEndAction(new Runnable() { public void run() { root.removeView(sp); } }).start();
-        }}, 1700);
+            sp.animate().alpha(0f).setDuration(450).withEndAction(new Runnable() { public void run() {
+                root.removeView(sp);
+                getWindow().setBackgroundDrawableResource(android.R.color.black);
+            } }).start();
+        }}, 1500);
     }
 
     void updateClock() {

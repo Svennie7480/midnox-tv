@@ -1,6 +1,6 @@
 {
-  "versionCode": 23,
-  "versionName": "5.9.1",
+  "versionCode": 24,
+  "versionName": "6.0",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "App-Kacheln wieder mit großen Bannern"
+  "notes": "Startbild, Wetter unter der Uhr, midnox.de-Bildschirmschoner, aufklappbare Einstellungen"
 }

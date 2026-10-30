@@ -62,8 +62,36 @@ public class HomeActivity extends Activity {
     LinearLayout content;
     String tileSig = "";
     final Handler h = new Handler(Looper.getMainLooper());
-    final Runnable tick = new Runnable() { public void run() { updateClock(); h.postDelayed(this, 15000); } };
+    final Runnable tick = new Runnable() { public void run() { updateClock(); weatherTick(); idleTick(); h.postDelayed(this, 15000); } };
 
+    void weatherTick() {
+        boolean on = Style.prefs(this).getBoolean("weather_on", true) && Style.loadConfig(this) != null;
+        if (!on) { weatherRow.setVisibility(View.GONE); return; }
+        if (System.currentTimeMillis() - lastWeather < 10 * 60000) return;
+        lastWeather = System.currentTimeMillis();
+        new Thread(new Runnable() { public void run() {
+            final Weather.Now n = Weather.fetch(HomeActivity.this);
+            h.post(new Runnable() { public void run() {
+                if (n == null) { weatherRow.setVisibility(View.GONE); lastWeather = 0; return; }
+                weatherIcon.set(n.cond);
+                weatherText.setText(Weather.line(n));
+                weatherRow.setVisibility(View.VISIBLE);
+            }});
+        }}).start();
+    }
+
+    /** Bildschirmschoner nach x Minuten ohne Tastendruck auf der Startseite. */
+    void idleTick() {
+        int min = Style.prefs(this).getInt("ss_idle", 4);
+        if (min > 0 && System.currentTimeMillis() - lastInput > min * 60000L) {
+            lastInput = System.currentTimeMillis();
+            startActivity(new Intent(this, ScreensaverActivity.class));
+        }
+    }
+    @Override public boolean dispatchKeyEvent(KeyEvent e) { lastInput = System.currentTimeMillis(); return super.dispatchKeyEvent(e); }
+
+    LinearLayout weatherRow; Weather.Icon weatherIcon; TextView weatherText;
+    long lastWeather, lastInput = System.currentTimeMillis();
     volatile String message;   // Live-Nachricht aus Home Assistant
     Theme theme;
     Theme.Overlay overlay;
@@ -116,6 +144,17 @@ public class HomeActivity extends Activity {
         clock.setShadowLayer(Style.px(10), 0, 0, 0xCC000000);
         date.setShadowLayer(Style.px(6), 0, 0, 0xCC000000);
         time.addView(clock); time.addView(date);
+        weatherRow = new LinearLayout(this);
+        weatherRow.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
+        weatherRow.setPadding(0, Style.px(6), 0, 0);
+        weatherIcon = new Weather.Icon(this);
+        weatherRow.addView(weatherIcon, new LinearLayout.LayoutParams(Style.px(20), Style.px(20)));
+        weatherText = Style.text(this, "", 13, 0xCCFFFFFF);
+        weatherText.setShadowLayer(Style.px(6), 0, 0, 0xCC000000);
+        weatherText.setPadding(Style.px(8), 0, 0, 0);
+        weatherRow.addView(weatherText);
+        weatherRow.setVisibility(View.GONE);
+        time.addView(weatherRow);
         time.setPadding(0, Style.px(40), Style.px(64), 0);
         FrameLayout headFrame = new FrameLayout(this);
         headFrame.setClipChildren(false);
@@ -206,6 +245,7 @@ public class HomeActivity extends Activity {
         verLp.setMargins(0, 0, Style.px(18), Style.px(10));
         root.addView(ver, verLp);
 
+        if (b == null) splash(root);
         startService(new Intent(this, KinoService.class));
 
         setContentView(root);
@@ -367,6 +407,36 @@ public class HomeActivity extends Activity {
         }
     }
 
+    /** Startbild: midnox.de im Verlauf, blendet weich in die Startseite. */
+    void splash(final FrameLayout root) {
+        final FrameLayout sp = new FrameLayout(this);
+        sp.setBackgroundColor(0xFF0B0A14);
+        LinearLayout col = new LinearLayout(this);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER_HORIZONTAL);
+        col.addView(new Style.GradientText(this, "midnox.de", 64));
+        TextView tv = Style.text(this, "T V", 14, 0xB3FFFFFF);
+        tv.setLetterSpacing(0.6f);
+        tv.setPadding(0, Style.px(4), 0, 0);
+        col.addView(tv);
+        View line = new View(this) {
+            final Paint lp = new Paint(Paint.ANTI_ALIAS_FLAG);
+            @Override protected void onDraw(Canvas c) { lp.setShader(Style.brand(0, getWidth())); c.drawRoundRect(new RectF(0, 0, getWidth(), getHeight()), getHeight(), getHeight(), lp); }
+        };
+        LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(Style.px(120), Style.px(3));
+        ll.topMargin = Style.px(22);
+        col.addView(line, ll);
+        sp.addView(col, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER));
+        root.addView(sp, new FrameLayout.LayoutParams(-1, -1));
+        col.setAlpha(0f); col.setScaleX(0.94f); col.setScaleY(0.94f);
+        col.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(600).start();
+        line.setScaleX(0f);
+        line.animate().scaleX(1f).setStartDelay(250).setDuration(900).start();
+        h.postDelayed(new Runnable() { public void run() {
+            sp.animate().alpha(0f).setDuration(450).withEndAction(new Runnable() { public void run() { root.removeView(sp); } }).start();
+        }}, 1700);
+    }
+
     void updateClock() {
         Date now = new Date();
         clock.setText(new SimpleDateFormat("HH:mm", Locale.GERMANY).format(now));
@@ -388,6 +458,8 @@ public class HomeActivity extends Activity {
                 if (u != null) { update = u; buildTiles(false); }
             }});
         }
+        lastInput = System.currentTimeMillis();
+        lastWeather = 0;
         h.post(tick); ha.start(); emby.start();
     }
     @Override protected void onPause() { super.onPause(); h.removeCallbacks(tick); ha.stop(); emby.stop(); overlay.stop(); }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.tv" android:versionCode="23" android:versionName="5.9.1">
+    package="de.midnox.tv" android:versionCode="24" android:versionName="6.0">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
@@ -23,8 +23,16 @@
     <activity android:name=".AppsActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".DetailActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".SetupActivity" android:screenOrientation="landscape"/>
-        <activity android:name=".SettingsActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
+    <activity android:name=".SettingsActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
+    <activity android:name=".ScreensaverActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:theme="@style/Midnox"/>
     <service android:name=".KinoService" android:exported="false"/>
+    <service android:name=".MidnoxDream" android:exported="true" android:label="midnox.de"
+        android:permission="android.permission.BIND_DREAM_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.dreams.DreamService"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </service>
     <provider android:name=".ApkProvider" android:authorities="de.midnox.tv.apk" android:exported="false" android:grantUriPermissions="true"/>
   </application>
 </manifest>

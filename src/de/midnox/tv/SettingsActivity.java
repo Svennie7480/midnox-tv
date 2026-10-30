@@ -85,17 +85,37 @@ public class SettingsActivity extends Activity {
 
     @Override protected void onRestart() { super.onRestart(); if (haState != null) refreshConnections(); }
 
-    void section(String t) {
-        TextView v = Style.text(this, t, 11, Style.MUTED);
-        v.setLetterSpacing(0.3f);
-        v.setPadding(Style.px(4), Style.px(16), 0, Style.px(6));
-        list.addView(v);
+    LinearLayout cur;   // aktuelle (aufklappbare) Rubrik
+
+    /** Rubrik-Kopf: OK klappt auf und zu; der Zustand bleibt gespeichert. */
+    void section(final String t) {
+        final Row head = new Row(t);
+        head.name.setLetterSpacing(0.22f);
+        head.name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13);
+        final LinearLayout group = new LinearLayout(this);
+        group.setOrientation(LinearLayout.VERTICAL);
+        group.setPadding(Style.px(18), Style.px(2), 0, Style.px(8));
+        final String key = "sec_open_" + t;
+        final Runnable show = new Runnable() { public void run() {
+            boolean open = pr.getBoolean(key, false);
+            group.setVisibility(open ? View.VISIBLE : View.GONE);
+            head.value.setText(open ? "\u25BE" : "\u25B8");
+        }};
+        head.onOk = new Runnable() { public void run() { pr.edit().putBoolean(key, !pr.getBoolean(key, false)).apply(); show.run(); } };
+        head.onRight = new Runnable() { public void run() { pr.edit().putBoolean(key, true).apply(); show.run(); } };
+        head.onLeft = new Runnable() { public void run() { pr.edit().putBoolean(key, false).apply(); show.run(); } };
+        show.run();
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
+        lp.topMargin = Style.px(list.getChildCount() == 0 ? 0 : 6);
+        list.addView(head, lp);
+        list.addView(group, new LinearLayout.LayoutParams(-1, -2));
+        cur = group;
     }
     Row add(String label) {
         Row r = new Row(label);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.bottomMargin = Style.px(6);
-        list.addView(r, lp);
+        (cur != null ? cur : list).addView(r, lp);
         return r;
     }
     void toggle(String label, final String key, final boolean def, final boolean inverted) {
@@ -129,6 +149,13 @@ public class SettingsActivity extends Activity {
         theme.onLeft = new Runnable() { public void run() { cycleTheme(-1); showTheme.run(); } };
 
         toggle("Beschreibung im Kopfbereich", "hero_text", true, false);
+
+        section("WETTER");
+        toggle("Wetter unter der Uhr anzeigen", "weather_on", true, false);
+        weatherSource();
+
+        section("BILDSCHIRMSCHONER");
+        screensaver();
 
         section("REIHEN AUF DER STARTSEITE");
         toggle("Weiterschauen", "hide_resume", false, true);
@@ -177,7 +204,7 @@ public class SettingsActivity extends Activity {
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             Style.start(SettingsActivity.this, i);
         }};
-        if (list.getChildCount() > 1) list.getChildAt(1).requestFocus();
+        if (list.getChildCount() > 0) list.getChildAt(0).requestFocus();
     }
 
     int lampSection;
@@ -223,8 +250,9 @@ public class SettingsActivity extends Activity {
             } catch (Exception ignored) {}
         }
         modes = m;
-        int pos = list.indexOfChild(lampLoading);
-        list.removeView(lampLoading);
+        ViewGroup parent = (ViewGroup) lampLoading.getParent();
+        int pos = parent.indexOfChild(lampLoading);
+        parent.removeView(lampLoading);
         final String[] keys = {"off", "ambient", ""};
         final String[] names = {"Ausschalten", "Ambient", "Nicht \u00e4ndern"};
         for (final JSONArray l : lamps) {
@@ -250,8 +278,73 @@ public class SettingsActivity extends Activity {
             r.onLeft = new Runnable() { public void run() { dir[0] = -1; back.run(); dir[0] = 1; } };
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
             lp.bottomMargin = Style.px(6);
-            list.addView(r, pos++, lp);
+            parent.addView(r, pos++, lp);
         }
+    }
+
+    // ------------------------------------------------------------ Wetter
+    void weatherSource() {
+        final Row r = add("Quelle");
+        final Row now = add("Aktuell");
+        now.value.setText("\u2026");
+        final List<String[]> list = new ArrayList<>();
+        final Runnable show = new Runnable() { public void run() {
+            String id = pr.getString("weather_entity", "");
+            String name = list.isEmpty() ? "" : list.get(0)[1];
+            for (String[] e : list) if (e[0].equals(id)) name = e[1];
+            r.value.setText(list.isEmpty() ? "keine Wetter-Entit\u00e4t gefunden" : name + (list.size() > 1 ? "   \u25C0 \u25B6" : ""));
+            new Thread(new Runnable() { public void run() {
+                final Weather.Now n = Weather.fetch(SettingsActivity.this);
+                ui.post(new Runnable() { public void run() { now.value.setText(n == null ? "\u2013" : Weather.line(n)); } });
+            }}).start();
+        }};
+        final int[] dir = {1};
+        final Runnable cyc = new Runnable() { public void run() {
+            if (list.isEmpty()) return;
+            int i = -1;
+            for (int k = 0; k < list.size(); k++) if (list.get(k)[0].equals(pr.getString("weather_entity", ""))) i = k;
+            if (i < 0) i = 0;
+            i = (i + dir[0] + list.size()) % list.size();
+            pr.edit().putString("weather_entity", list.get(i)[0]).apply();
+            show.run();
+        }};
+        r.onOk = r.onRight = cyc;
+        r.onLeft = new Runnable() { public void run() { dir[0] = -1; cyc.run(); dir[0] = 1; } };
+        r.value.setText("lade \u2026");
+        if (Style.loadConfig(this) == null) { r.value.setText("erst Home Assistant verbinden"); now.value.setText("\u2013"); return; }
+        new Thread(new Runnable() { public void run() {
+            List<String[]> l;
+            try { l = Weather.entities(SettingsActivity.this); } catch (Exception e) { l = new ArrayList<>(); }
+            final List<String[]> f = l;
+            ui.post(new Runnable() { public void run() { list.addAll(f); show.run(); } });
+        }}).start();
+    }
+
+    // ------------------------------------------------------------ Bildschirmschoner
+    void screensaver() {
+        final int[] steps = {0, 2, 4, 5, 10, 15, 30};
+        final Row after = add("Starten nach");
+        final Runnable show = new Runnable() { public void run() {
+            int m = pr.getInt("ss_idle", 4);
+            after.value.setText(m == 0 ? "Aus" : "\u25C0  " + m + " Min.  \u25B6");
+        }};
+        show.run();
+        final int[] dir = {1};
+        final Runnable cyc = new Runnable() { public void run() {
+            int m = pr.getInt("ss_idle", 4), i = 0;
+            for (int k = 0; k < steps.length; k++) if (steps[k] == m) i = k;
+            i = (i + dir[0] + steps.length) % steps.length;
+            pr.edit().putInt("ss_idle", steps[i]).apply();
+            show.run();
+        }};
+        after.onOk = after.onRight = cyc;
+        after.onLeft = new Runnable() { public void run() { dir[0] = -1; cyc.run(); dir[0] = 1; } };
+        toggle("Nur midnox.de (ohne Filmbilder)", "ss_midnox_only", false, false);
+        Row test = add("Jetzt ansehen");
+        test.value.setText("\u203a");
+        test.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, ScreensaverActivity.class)); } };
+        Row sys = add("Auch in anderen Apps");
+        sys.value.setText("am PC: 11_bildschirmschoner.bat");
     }
 
     // ------------------------------------------------------------ Verbindungen

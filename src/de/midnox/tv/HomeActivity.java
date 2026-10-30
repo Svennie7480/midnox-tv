@@ -185,6 +185,15 @@ public class HomeActivity extends Activity {
         vlp.topMargin = Style.px(HERO_H - 14);
         root.addView(vscroll, vlp);
 
+        // dezente Versionsanzeige unten rechts
+        String vn = "?";
+        try { vn = getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception ignored) {}
+        TextView ver = Style.text(this, "midnox TV  \u00b7  v" + vn, 10, 0x806B6F86);
+        ver.setLetterSpacing(0.12f);
+        FrameLayout.LayoutParams verLp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+        verLp.setMargins(0, 0, Style.px(18), Style.px(10));
+        root.addView(ver, verLp);
+
         startService(new Intent(this, KinoService.class));
 
         setContentView(root);

@@ -18,6 +18,18 @@ public class Updater {
 
     public interface Callback { void result(JSONObject update); }
 
+    /** Letztes Ergebnis der Suche (fuer Einstellungen + Protokoll). */
+    public static volatile String lastStatus = "";
+
+    static void log(Context c, String msg) {
+        lastStatus = msg;
+        try {
+            FileOutputStream o = new FileOutputStream(new File(c.getExternalFilesDir(null), "updater_status.txt"));
+            o.write((new java.util.Date() + "  " + msg).getBytes("UTF-8"));
+            o.close();
+        } catch (Exception ignored) {}
+    }
+
     static String url(Context c) {
         JSONObject cfg = Style.loadConfig(c);
         String u = cfg == null ? "" : cfg.optString("update_url", "");
@@ -33,10 +45,20 @@ public class Updater {
         final Handler h = new Handler(Looper.getMainLooper());
         new Thread(new Runnable() { public void run() {
             JSONObject res = null;
+            String target = url(c) + "?t=" + System.currentTimeMillis();
             try {
-                JSONObject u = new JSONObject(Style.httpGet(url(c) + "?t=" + System.currentTimeMillis(), null));
-                if (u.optInt("versionCode", 0) > ownCode(c) && !u.optString("apk").isEmpty()) res = u;
-            } catch (Exception ignored) {}
+                HttpURLConnection con = (HttpURLConnection) new URL(target).openConnection();
+                con.setConnectTimeout(8000); con.setReadTimeout(10000);
+                con.setInstanceFollowRedirects(true);
+                int code = con.getResponseCode();
+                if (code != 200) throw new IOException("HTTP " + code);
+                JSONObject u = new JSONObject(Style.read(con.getInputStream()));
+                int remote = u.optInt("versionCode", 0), own = ownCode(c);
+                if (remote > own && !u.optString("apk").isEmpty()) { res = u; log(c, "Update gefunden: " + u.optString("versionName") + " (" + remote + " > " + own + ")"); }
+                else log(c, "Aktuell: online " + u.optString("versionName") + " (" + remote + "), installiert " + own);
+            } catch (Exception e) {
+                log(c, "Fehler bei " + target + " -> " + e);
+            }
             final JSONObject r = res;
             h.post(new Runnable() { public void run() { cb.result(r); } });
         }}, "update-check").start();

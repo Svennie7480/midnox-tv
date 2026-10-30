@@ -149,7 +149,7 @@ public class SettingsActivity extends Activity {
         upd.onOk = new Runnable() { public void run() {
             upd.value.setText("Suche …");
             Updater.check(SettingsActivity.this, new Updater.Callback() { public void result(JSONObject u) {
-                if (u == null) upd.value.setText("Aktuell (" + version() + ")");
+                if (u == null) upd.value.setText(Updater.lastStatus.startsWith("Fehler") ? "Fehler \u2013 siehe Protokoll" : "Aktuell (" + version() + ")");
                 else { upd.value.setText("Installiere " + u.optString("versionName") + " …"); Updater.install(SettingsActivity.this, u); }
             }});
         }};

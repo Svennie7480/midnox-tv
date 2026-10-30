@@ -65,21 +65,34 @@ public class MediaCard extends View {
             float bw = e.bmp.getWidth() * s, bh = e.bmp.getHeight() * s;
             c.drawBitmap(e.bmp, null, new RectF((w - bw) / 2, (h - bh) / 2, (w + bw) / 2, (h + bh) / 2), p);
         }
-        p.setShader(new LinearGradient(0, h * 0.35f, 0, h, 0x00000000, 0xE6050508, Shader.TileMode.CLAMP));
-        c.drawRect(r, p);
-        p.setShader(null);
-        t.setColor(Color.WHITE); t.setTextSize(12 * dp);
-        String sub = e.sub == null ? "" : e.sub;
-        c.drawText(TextUtils.ellipsize(e.title, t, w - 18 * dp, TextUtils.TruncateAt.END).toString(), 9 * dp, h - (sub.isEmpty() ? 10 : 22) * dp, t);
-        if (!sub.isEmpty()) {
-            t.setColor(0xFFB4B8CC); t.setTextSize(9 * dp);
-            c.drawText(TextUtils.ellipsize(sub, t, w - 18 * dp, TextUtils.TruncateAt.END).toString(), 9 * dp, h - 9 * dp, t);
+        boolean text = e.forceText || e.bmp == null || (!e.imgHasTitle && e.logoBmp == null);
+        boolean bar = e.progress > 0;
+        if (text || bar || e.logoBmp != null) {   // dezente Abdunklung unten nur wenn noetig
+            p.setShader(new LinearGradient(0, h * (text ? 0.35f : 0.55f), 0, h, 0x00000000, text ? 0xE6050508 : 0xB3050508, Shader.TileMode.CLAMP));
+            c.drawRect(r, p);
+            p.setShader(null);
         }
-        if (e.progress > 0) {
-            p.setColor(0x55FFFFFF);
-            c.drawRect(0, h - 3 * dp, w, h, p);
-            p.setShader(Style.brand(0, w));
-            c.drawRect(0, h - 3 * dp, (float) (w * Math.min(100, e.progress) / 100.0), h, p);
+        float bottom = h - (bar ? 16 : 9) * dp;
+        if (e.logoBmp != null && !e.forceText) {
+            float maxW = w * 0.55f, maxH = h * 0.30f;
+            float s = Math.min(maxW / e.logoBmp.getWidth(), maxH / e.logoBmp.getHeight());
+            float lw = e.logoBmp.getWidth() * s, lh = e.logoBmp.getHeight() * s;
+            c.drawBitmap(e.logoBmp, null, new RectF(10 * dp, bottom - lh, 10 * dp + lw, bottom), p);
+        } else if (text) {
+            t.setColor(Color.WHITE); t.setTextSize(12 * dp);
+            String sub = e.sub == null ? "" : e.sub;
+            c.drawText(TextUtils.ellipsize(e.title, t, w - 18 * dp, TextUtils.TruncateAt.END).toString(), 9 * dp, bottom - (sub.isEmpty() ? 1 : 13) * dp, t);
+            if (!sub.isEmpty()) {
+                t.setColor(0xFFB4B8CC); t.setTextSize(9 * dp);
+                c.drawText(TextUtils.ellipsize(sub, t, w - 18 * dp, TextUtils.TruncateAt.END).toString(), 9 * dp, bottom, t);
+            }
+        }
+        if (bar) {   // Fortschritt als Pille im Verlauf
+            float x0 = 10 * dp, x1 = w - 10 * dp, y0 = h - 9 * dp, y1 = h - 5 * dp, rr = 2 * dp;
+            p.setColor(0x40FFFFFF);
+            c.drawRoundRect(new RectF(x0, y0, x1, y1), rr, rr, p);
+            p.setShader(Style.brand(x0, x1));
+            c.drawRoundRect(new RectF(x0, y0, x0 + (float) ((x1 - x0) * Math.max(4, Math.min(100, e.progress)) / 100.0), y1), rr, rr, p);
             p.setShader(null);
         }
         c.restoreToCount(save);

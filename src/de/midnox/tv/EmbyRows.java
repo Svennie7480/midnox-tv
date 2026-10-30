@@ -131,7 +131,7 @@ public class EmbyRows implements MediaCard.Listener {
                 known.put(new JSONObject().put("id", id).put("name", name));
                 if (pr.getBoolean("hide_" + id, false)) continue;
                 List<Emby.Entry> l = e.entries(e.getArr("/emby/Users/" + e.user + "/Items/Latest?Limit=16&ParentId=" + id + Emby.FIELDS), 16);
-                if (!l.isEmpty()) { titles.put(id, "NEU IN " + name.toUpperCase(Locale.GERMANY)); lists.put(id, l); }
+                if (!l.isEmpty()) { titles.put(id, name.toUpperCase(Locale.GERMANY) + "  \u00b7  NEU"); lists.put(id, l); }
             }
             pr.edit().putString("emby_libs", known.toString()).apply(); // fuer das Einstellungsmenue
 
@@ -145,6 +145,13 @@ public class EmbyRows implements MediaCard.Listener {
                 if (b == null) b = Emby.fetch(en.img);
                 if (b != null) next.put(en.img, b);
                 en.bmp = b;
+                if (en.logoUrl != null && !en.imgHasTitle) {
+                    Bitmap lb = next.get(en.logoUrl);
+                    if (lb == null) lb = cache.get(en.logoUrl);
+                    if (lb == null) lb = Emby.fetchAlpha(en.logoUrl);
+                    if (lb != null) next.put(en.logoUrl, lb);
+                    en.logoBmp = lb;
+                }
             }
             cache = next;
             status("ok: " + rl.size() + " weiterschauen, " + lists.size() + " Bibliotheks-Reihen");

@@ -59,18 +59,22 @@ public class Tile extends View {
             glow.setAlpha(150);
             c.drawRoundRect(card, rad, rad, glow);
         }
+        fill.setShader(new LinearGradient(0, card.top, 0, card.bottom, focused ? 0xFF262439 : 0xFF1A1928, focused ? 0xFF1A1928 : 0xFF121120, Shader.TileMode.CLAMP));
         c.drawRoundRect(card, rad, rad, fill);
-        Drawable d = banner != null ? banner : icon;
+        Drawable d = icon != null ? icon : banner;
         if (d != null) {
-            int save = c.save();
-            Path clip = new Path(); clip.addRoundRect(card, rad, rad, Path.Direction.CW);
-            c.clipPath(clip);
-            if (banner != null) {
-                d.setBounds((int) card.left, (int) card.top, (int) card.right, (int) card.bottom);
-            } else {
-                int s = (int) Math.min(card.height() * 0.75f, 96 * dp); int cx = (int) card.centerX(), cy = (int) card.centerY();
-                d.setBounds(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2);
+            float s = Math.min(card.height() * 0.62f, 72 * dp);
+            float cx = card.centerX(), cy = card.centerY();
+            RectF ir = new RectF(cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2);
+            if (d == banner) {   // nur Banner vorhanden: eingepasst statt randlos
+                float bw = card.width() * 0.8f, bh = bw * 9f / 16f;
+                if (bh > card.height() * 0.8f) { bh = card.height() * 0.8f; bw = bh * 16f / 9f; }
+                ir = new RectF(cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2);
             }
+            int save = c.save();
+            Path clip = new Path(); clip.addRoundRect(ir, 14 * dp, 14 * dp, Path.Direction.CW);
+            c.clipPath(clip);
+            d.setBounds((int) ir.left, (int) ir.top, (int) ir.right, (int) ir.bottom);
             d.draw(c);
             c.restoreToCount(save);
         } else if (glyph != GLYPH_NONE) {
@@ -86,7 +90,8 @@ public class Tile extends View {
             g.setShader(Style.brand(card.right - 22 * dp, card.right - 10 * dp));
             c.drawCircle(card.right - 14 * dp, card.top + 14 * dp, 6 * dp, g);
         }
-        txt.setColor(focused ? Color.WHITE : Style.MUTED);
+        if (!focused) return;   // Name nur beim ausgewaehlten Element
+        txt.setColor(Color.WHITE);
         String l = label;
         float maxW = w - 8 * dp;
         if (txt.measureText(l) > maxW) l = android.text.TextUtils.ellipsize(l, new android.text.TextPaint(txt), maxW, android.text.TextUtils.TruncateAt.END).toString();

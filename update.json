@@ -1,6 +1,6 @@
 {
-  "versionCode": 21,
-  "versionName": "5.8",
+  "versionCode": 22,
+  "versionName": "5.9",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Reihen werden am Kopfbereich sauber abgeschnitten; Beschreibung abschaltbar"
+  "notes": "Titel-Logos, Fortschrittsbalken, Cover ohne Text, einheitliche App-Kacheln, saubere Titel"
 }

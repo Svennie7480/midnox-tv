@@ -235,7 +235,7 @@ public class HomeActivity extends Activity {
             try {
                 ApplicationInfo ai = pm.getApplicationInfo(p, 0);
                 banner = pm.getApplicationBanner(ai);
-                if (banner == null) icon = pm.getApplicationIcon(ai);
+                icon = pm.getApplicationIcon(ai);
             } catch (Exception ignored) {}
             final Intent li = Style.launchIntent(pm, p);
             Tile t = new Tile(this, label(pm, p), banner, icon, Tile.GLYPH_NONE,

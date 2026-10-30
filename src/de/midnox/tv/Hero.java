@@ -47,10 +47,11 @@ public class Hero {
     final Backdrop backdrop;
     final LinearLayout info;
     final TextView kind, title, meta, overview;
+    final ImageView logo;
     final View normal;              // Logo-Kopf (wird beim Medien-Fokus ausgeblendet)
     final Handler h = new Handler(Looper.getMainLooper());
     final LinkedHashMap<String, Bitmap> cache = new LinkedHashMap<String, Bitmap>(8, 0.75f, true) {
-        protected boolean removeEldestEntry(Map.Entry<String, Bitmap> e) { return size() > 4; }
+        protected boolean removeEldestEntry(Map.Entry<String, Bitmap> e) { return size() > 12; }
     };
     Emby.Entry current;
     Runnable pending;
@@ -72,10 +73,24 @@ public class Hero {
         overview.setMaxLines(2); overview.setEllipsize(TextUtils.TruncateAt.END);
         overview.setLineSpacing(Style.px(3), 1f);
         overview.setPadding(0, Style.px(6), 0, 0);
-        info.addView(kind); info.addView(title); info.addView(meta); info.addView(overview);
+        logo = new ImageView(a);
+        logo.setAdjustViewBounds(true);
+        logo.setScaleType(ImageView.ScaleType.FIT_START);
+        logo.setMaxHeight(Style.px(64));
+        logo.setMaxWidth((int) (a.getResources().getDisplayMetrics().widthPixels * 0.36f));
+        logo.setPadding(0, Style.px(6), 0, Style.px(6));
+        logo.setVisibility(View.GONE);
+        info.addView(kind); info.addView(logo); info.addView(title); info.addView(meta); info.addView(overview);
         info.setAlpha(0f);
         int maxW = (int) (a.getResources().getDisplayMetrics().widthPixels * 0.5f);
         title.setMaxWidth(maxW); overview.setMaxWidth(maxW); meta.setMaxWidth(maxW);
+    }
+
+    void showLogo(Bitmap b) {
+        if (b == null) { logo.setVisibility(View.GONE); title.setVisibility(View.VISIBLE); return; }
+        logo.setImageBitmap(b);
+        logo.setVisibility(View.VISIBLE);
+        title.setVisibility(View.GONE);
     }
 
     /** null = normaler Kopf (Logo, Gruss); sonst Infos zum fokussierten Titel. */
@@ -91,6 +106,8 @@ public class Hero {
         current = e;
         kind.setText(e.kind == null ? "" : e.kind);
         title.setText(e.title);
+        final Bitmap lc = e.heroLogo == null ? null : cache.get(e.heroLogo);
+        showLogo(lc);
         meta.setText(e.meta == null ? "" : e.meta);
         overview.setText(e.overview == null ? "" : e.overview);
         overview.setVisibility(Style.prefs(act).getBoolean("hero_text", true) ? View.VISIBLE : View.GONE);
@@ -98,6 +115,12 @@ public class Hero {
         info.animate().alpha(1f).setDuration(220).start();
         // Bild leicht verzoegert laden, damit schnelles Durchscrollen fluessig bleibt
         pending = new Runnable() { public void run() {
+            if (e.heroLogo != null && cache.get(e.heroLogo) == null) {
+                new Thread(new Runnable() { public void run() {
+                    final Bitmap lb = Emby.fetchAlpha(e.heroLogo);
+                    h.post(new Runnable() { public void run() { if (lb != null) cache.put(e.heroLogo, lb); if (current == e) showLogo(lb); } });
+                }}).start();
+            }
             final String url = e.backdrop;
             Bitmap b = url == null ? null : cache.get(url);
             if (b != null || url == null) { if (current == e) backdrop.set(b); return; }

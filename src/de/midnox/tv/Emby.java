@@ -9,14 +9,15 @@ import java.util.*;
 
 /** Zugriff auf den Emby-Server + Datenmodell fuer Vorschaukarten. */
 public class Emby {
-    public static final String FIELDS = "&Fields=Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,PrimaryImageAspectRatio,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,SeriesId,SeasonId";
+    public static final String FIELDS = "&Fields=Overview,Genres,CommunityRating,OfficialRating,RunTimeTicks,ProductionYear,PrimaryImageAspectRatio,BackdropImageTags,ParentBackdropItemId,ParentBackdropImageTags,ParentThumbItemId,SeriesId,SeasonId,ParentLogoItemId,ParentLogoImageTag";
 
     /** Ein Film / eine Folge / eine Serie. */
     public static class Entry {
         public String id, linkId, type, title, sub, img, backdrop, kind, meta, overview, seriesId, seasonId;
         public double progress;
-        public boolean logo;
-        public Bitmap bmp;
+        public boolean logo, imgHasTitle, forceText;
+        public String logoUrl, heroLogo;
+        public Bitmap bmp, logoBmp;
     }
 
     public final String base, key, user, q;
@@ -62,6 +63,27 @@ public class Emby {
         } catch (Exception e) { return null; }
     }
 
+    /** Bild mit Transparenz (fuer Logos). */
+    public static Bitmap fetchAlpha(String url) {
+        if (url == null) return null;
+        try {
+            InputStream in = new URL(url).openStream();
+            Bitmap b = BitmapFactory.decodeStream(in);
+            in.close();
+            return b;
+        } catch (Exception e) { return null; }
+    }
+
+    /** Dateinamen wie "Lady.Gaga.My.Songs" in lesbaren Text verwandeln. */
+    public static String clean(String t) {
+        if (t == null) return null;
+        int dots = t.length() - t.replace(".", "").length() + t.length() - t.replace("_", "").length();
+        if (dots >= 2 && t.trim().indexOf(' ') < 0) {
+            t = t.replaceAll("[._]+", " ").replaceAll("\\s*-\\s*", " \u2013 ").replaceAll("\\s+", " ").trim();
+        }
+        return t;
+    }
+
     /** JSON-Objekt aus der Emby-API in eine Vorschaukarte umwandeln. */
     public Entry entry(JSONObject o) throws JSONException {
         Entry en = new Entry();
@@ -103,6 +125,8 @@ public class Emby {
             meta.add(sb.toString());
         }
         en.meta = android.text.TextUtils.join("   ·   ", meta);
+        en.title = clean(en.title);
+        en.sub = clean(en.sub);
         en.overview = o.optString("Overview", "");
         JSONObject ud = o.optJSONObject("UserData");
         en.progress = ud == null ? 0 : ud.optDouble("PlayedPercentage", 0);
@@ -110,8 +134,9 @@ public class Emby {
         JSONObject tags = o.optJSONObject("ImageTags");
         JSONArray bd = o.optJSONArray("BackdropImageTags");
         // Vorschaubild (16:9)
-        if (tags != null && tags.has("Thumb")) en.img = img(id, "Thumb", 360);
-        else if (o.has("ParentThumbItemId")) en.img = img(o.getString("ParentThumbItemId"), "Thumb", 360);
+        // Thumb-Bilder enthalten meist schon den Titel; dann kein Text/Logo darueber
+        if (tags != null && tags.has("Thumb")) { en.img = img(id, "Thumb", 360); en.imgHasTitle = true; }
+        else if (o.has("ParentThumbItemId") && !"Episode".equals(en.type)) { en.img = img(o.getString("ParentThumbItemId"), "Thumb", 360); en.imgHasTitle = true; }
         else if (bd != null && bd.length() > 0) en.img = img(id, "Backdrop/0", 360);
         else if (o.has("ParentBackdropItemId")) en.img = img(o.getString("ParentBackdropItemId"), "Backdrop/0", 360);
         else if (tags != null && tags.has("Primary")) en.img = img(id, "Primary", 360);
@@ -120,6 +145,14 @@ public class Emby {
         else if (o.has("ParentBackdropItemId")) en.backdrop = img(o.getString("ParentBackdropItemId"), "Backdrop/0", 1280);
         else if (en.seriesId != null) en.backdrop = img(en.seriesId, "Backdrop/0", 1280);
         else en.backdrop = en.img;
+        // Titel-Logo (Schriftzug) fuer Karte und Kopfbereich
+        String logoId = null;
+        if (tags != null && tags.has("Logo")) logoId = id;
+        else if (o.has("ParentLogoItemId")) logoId = o.optString("ParentLogoItemId");
+        if (logoId != null) {
+            en.logoUrl = base + "/emby/Items/" + logoId + "/Images/Logo?maxWidth=240&maxHeight=90" + q;
+            en.heroLogo = base + "/emby/Items/" + logoId + "/Images/Logo?maxWidth=520&maxHeight=160" + q;
+        }
         return en;
     }
 

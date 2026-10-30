@@ -181,6 +181,7 @@ public class DetailActivity extends Activity implements MediaCard.Listener {
                     Bitmap b = imgs.get(en.img);
                     if (b == null) { b = Emby.fetch(en.img); if (b != null) imgs.put(en.img, b); }
                     en.bmp = b;
+                    en.forceText = true;
                 }
                 h.post(new Runnable() { public void run() {
                     episodeRow.removeAllViews();

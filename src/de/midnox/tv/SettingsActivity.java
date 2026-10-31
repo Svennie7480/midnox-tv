@@ -223,6 +223,15 @@ public class SettingsActivity extends Activity {
                 else { upd.value.setText("Installiere " + u.optString("versionName") + " …"); Updater.install(SettingsActivity.this, u); }
             }});
         }};
+        final Row tvg = add("TV-Programm pr\u00fcfen (MagentaTV)");
+        tvg.value.setText("\u203a");
+        tvg.onOk = new Runnable() { public void run() {
+            tvg.value.setText("pr\u00fcfe \u2026");
+            new Thread(new Runnable() { public void run() {
+                final String r = TvGuide.diagnose(SettingsActivity.this);
+                ui.post(new Runnable() { public void run() { tvg.value.setText(r); } });
+            }}).start();
+        }};
         Row ip = add("Gerät");
         ip.value.setText(ownIp() + "  ·  " + Build.MODEL);
         Row fire = add("Fire TV-Einstellungen öffnen");

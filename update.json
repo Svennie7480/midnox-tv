@@ -1,6 +1,6 @@
 {
-  "versionCode": 33,
-  "versionName": "7.1",
+  "versionCode": 34,
+  "versionName": "7.2",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Kino-Modus: Farbe für die Ambient-Lampen wählbar, mit Vorschau"
+  "notes": "Prüfung: TV-Programm von MagentaTV lesbar?"
 }

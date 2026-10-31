@@ -34,6 +34,13 @@ public class Remote {
         if (server != null) return;
         final Context c = ctx.getApplicationContext();
         server = new MiniServer(new MiniServer.Handler() { public String[] handle(String m, String path, String body) { return Remote.handle(c, path, body); } });
+        server.up = new MiniServer.Upload() { public String handle(String path, java.io.InputStream in, long len) throws Exception {
+            if (!path.contains("k=" + key(c))) return "{\"ok\":false,\"msg\":\"Bitte den QR-Code neu scannen\"}";
+            String name = "app.apk";
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("[?&]name=([^&]*)").matcher(path);
+            if (m.find()) name = java.net.URLDecoder.decode(m.group(1), "UTF-8");
+            return Installer.receive(c, in, len, name);
+        }};
         try { port = server.start(8130); } catch (Exception e) { server = null; port = 0; }
     }
 
@@ -118,6 +125,8 @@ public class Remote {
             case "sleep":
                 Sleep.set(c, in.optInt("min"));
                 return "{\"ok\":true}";
+            case "apkurl":
+                return Installer.fromUrl(c, in.optString("url").trim());
             case "morning":
                 ui(new Runnable() { public void run() { Morning.show(c); } });
                 return "{\"ok\":true}";
@@ -152,13 +161,16 @@ public class Remote {
             + "<h3>APPS</h3><div class=l id=apps></div>"
             + "<h3>RADIO</h3><div class=g><button onclick=\"a('radio',{})\">⏯</button></div><div class=l id=radio></div>"
             + "<h3>TV</h3><div class=l id=tv></div>"
-            + "<h3>EINSCHLAF-TIMER</h3><div class=g><button onclick=\"a('sleep',{min:15})\">15</button><button onclick=\"a('sleep',{min:30})\">30</button><button onclick=\"a('sleep',{min:60})\">60</button><button onclick=\"a('sleep',{min:0})\">Aus</button></div>"
+            + "" + "<h3>APP INSTALLIEREN</h3><p class=sub style='margin:0 0 10px'>APK vom Handy w\u00e4hlen \u2013 sie wird auf den Fire TV geladen und installiert. Auch App-Bundles (.apks, .xapk).</p><input type=file id=apk accept='.apk,.apks,.xapk,application/vnd.android.package-archive,application/octet-stream' onchange='up()'><div style='height:8px;border-radius:4px;background:#15141f;overflow:hidden;margin:2px 0 8px'><div id=bar style='height:100%;width:0;background:var(--g);transition:width .2s'></div></div><div class=l id=inst></div><input id=aurl placeholder='oder Download-Link (https://\u2026/app.apk)' onkeydown=\"if(event.key=='Enter')au()\"><button onclick='au()'>Link am Fernseher installieren</button>" + "<h3>EINSCHLAF-TIMER</h3><div class=g><button onclick=\"a('sleep',{min:15})\">15</button><button onclick=\"a('sleep',{min:30})\">30</button><button onclick=\"a('sleep',{min:60})\">60</button><button onclick=\"a('sleep',{min:0})\">Aus</button></div>"
             + "<div class=g><button onclick=\"a('morning',{})\" style='grid-column:span 2'>Mein Tag</button><button onclick=\"a('home',{})\" style='grid-column:span 2'>Startseite</button></div>",
             "var key='" + k + "';"
             + "function k(code){try{navigator.vibrate(12)}catch(e){}fetch('/api/key?k='+key,{method:'POST',body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(j){if(!j.ok)st(j.msg||'Keine Verbindung')})}"
             + "(function(){var p=document.getElementById('pad'),x0,y0;p.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});"
             + "p.addEventListener('touchend',function(e){var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Math.abs(dx)<40&&Math.abs(dy)<40)return;e.preventDefault();"
             + "k(Math.abs(dx)>Math.abs(dy)?(dx>0?22:21):(dy>0?20:19))})})();"
+            + "function ist(m){document.getElementById('inst').textContent=m}"
+            + "function up(){var f=document.getElementById('apk').files[0];if(!f)return;var x=new XMLHttpRequest(),b=document.getElementById('bar');x.open('POST','/upload?k='+key+'&name='+encodeURIComponent(f.name));x.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded*100/e.total);b.style.width=p+'%';ist(p<100?'Lade hoch \u2026 '+p+' %':'Installiere \u2026')}};x.onload=function(){try{var r=JSON.parse(x.responseText);ist(r.msg);b.style.width=r.ok?'100%':'0'}catch(e){ist('Unerwartete Antwort')}document.getElementById('apk').value=''};x.onerror=function(){ist('Upload abgebrochen \u2013 im selben WLAN?');b.style.width='0'};ist('Lade hoch \u2026');x.send(f)}"
+            + "function au(){var u=document.getElementById('aurl').value.trim();if(!u)return;ist('Fernseher l\u00e4dt \u2026');fetch('/api/apkurl?k='+key,{method:'POST',body:JSON.stringify({url:u})}).then(function(r){return r.json()}).then(function(r){ist(r.msg)}).catch(function(){ist('Keine Antwort')})}"
             + "function a(c,o){return fetch('/api/'+c+'?k='+key,{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.json()}).then(function(j){setTimeout(load,800);return j})}"
             + "function e(c){a('emby',{c:c}).then(function(j){if(!j.ok)st('Gerade läuft nichts in Emby')})}"
             + "function st(s){document.getElementById('st').textContent=s}"

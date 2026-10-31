@@ -1,6 +1,6 @@
 {
-  "versionCode": 43,
-  "versionName": "8.0",
+  "versionCode": 44,
+  "versionName": "8.1",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neu: Guten-Morgen-Bildschirm mit Wetter, Dienst, Terminen, Müll, Auto, Warnungen und Nachrichten"
+  "notes": "Neu: Apps vom Handy installieren (APK hochladen oder Link) – ohne Downloader, auch App-Bundles"
 }

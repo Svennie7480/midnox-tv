@@ -7,6 +7,8 @@ import java.util.*;
 /** Kleiner HTTP-Server fuers Handy (Suche tippen, Musikwuensche). */
 public class MiniServer {
     public interface Handler { String[] handle(String method, String path, String body); }   // {contentType, body}
+    public interface Upload { String handle(String path, InputStream in, long len) throws Exception; }   // -> JSON
+    Upload up;
 
     ServerSocket server; volatile boolean running; int port;
     final Handler h;
@@ -33,9 +35,19 @@ public class MiniServer {
             String req = SetupServer.line(in);
             if (req == null) return;
             String[] parts = req.split(" ");
-            int len = 0; String l;
-            while ((l = SetupServer.line(in)) != null && !l.isEmpty()) if (l.toLowerCase(Locale.ROOT).startsWith("content-length:")) len = Integer.parseInt(l.substring(15).trim());
-            byte[] b = new byte[Math.min(len, 65536)]; int r = 0;
+            long len = 0; String l;
+            while ((l = SetupServer.line(in)) != null && !l.isEmpty()) if (l.toLowerCase(Locale.ROOT).startsWith("content-length:")) len = Long.parseLong(l.substring(15).trim());
+            if (up != null && parts.length > 1 && parts[1].startsWith("/upload")) {
+                s.setSoTimeout(120000);
+                String r;
+                try { r = up.handle(parts[1], in, len); } catch (Exception e) { r = "{\"ok\":false,\"msg\":\"Fehler: " + String.valueOf(e.getMessage()).replace("\"", "'") + "\"}"; }
+                byte[] out = r.getBytes("UTF-8");
+                OutputStream o = s.getOutputStream();
+                o.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: " + out.length + "\r\nConnection: close\r\n\r\n").getBytes("UTF-8"));
+                o.write(out); o.flush();
+                return;
+            }
+            byte[] b = new byte[(int) Math.min(len, 65536)]; int r = 0;
             while (r < b.length) { int n = in.read(b, r, b.length - r); if (n < 0) break; r += n; }
             String[] res = h.handle(parts[0], parts.length > 1 ? parts[1] : "/", new String(b, 0, r, "UTF-8"));
             byte[] out = res[1].getBytes("UTF-8");

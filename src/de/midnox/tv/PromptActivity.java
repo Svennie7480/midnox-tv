@@ -70,6 +70,13 @@ public class PromptActivity extends Activity {
                 LinearLayout.LayoutParams ql = (LinearLayout.LayoutParams) q.getLayoutParams(); ql.bottomMargin = Style.px(20);
             }
             first = pill(btns, "Schlie\u00dfen", new Runnable() { public void run() { finish(); } });
+        } else if ("installed".equals(kind)) {
+            final String pkg = in.getStringExtra("pkg");
+            first = pill(btns, "Jetzt öffnen", new Runnable() { public void run() {
+                Intent li = Style.launchIntent(getPackageManager(), pkg);
+                if (li != null) Style.start(PromptActivity.this, li); else Style.toast(PromptActivity.this, "Die App hat kein Startsymbol");
+                finish(); } });
+            pill(btns, "Schließen", new Runnable() { public void run() { SetupActivity.changed = true; finish(); } });
         } else if ("reminder".equals(kind)) {
             final String ch = in.getStringExtra("channel");
             first = pill(btns, "Jetzt umschalten", new Runnable() { public void run() { TvRows.openTv(PromptActivity.this, ch); finish(); } });

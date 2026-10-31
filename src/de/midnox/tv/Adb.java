@@ -39,6 +39,18 @@ public class Adb {
         try { return get(c).run(cmd); }
         catch (Exception e) { close(); return get(c).run(cmd); }   // einmal neu verbinden
     }
+    /** Langer Befehl (z. B. pm install): eigenes Zeitlimit, bei Zeitueberschreitung KEIN zweiter Versuch. */
+    static synchronized String shellLong(Context c, String cmd, int ms) throws Exception {
+        Adb a;
+        try { a = get(c); } catch (Exception e) { close(); a = get(c); }
+        for (int attempt = 0; ; attempt++) {
+            try {
+                a.s.setSoTimeout(ms);
+                try { return a.run(cmd); } finally { try { a.s.setSoTimeout(15000); } catch (Exception ignored) {} }
+            } catch (java.net.SocketTimeoutException t) { close(); throw t;
+            } catch (Exception e) { if (attempt > 0) throw e; close(); a = get(c); }
+        }
+    }
     static synchronized void close() { if (inst != null) try { inst.s.close(); } catch (Exception ignored) {} inst = null; }
 
     // ------------------------------------------------------------ Schluessel

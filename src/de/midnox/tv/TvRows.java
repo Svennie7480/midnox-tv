@@ -21,14 +21,15 @@ import java.util.zip.GZIPInputStream;
 public class TvRows implements MediaCard.Listener {
     static final String DEFAULT_EPG = "https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz";
     static final String TV_APP = "de.telekom.magentatv.firetv";
+    // Senderplaetze laut MagentaTV-Senderliste (gueltig ab 07.10.2026); NDR = Schleswig-Holstein
     static final String[][] CHANNELS = {
         {"Das.Erste.de", "Das Erste", "1"}, {"ZDF.de", "ZDF", "2"}, {"RTL.de", "RTL", "3"}, {"SAT.1.de", "SAT.1", "4"}, {"ProSieben.de", "ProSieben", "5"},
-        {"VOX.de", "VOX", "6"}, {"kabel.eins.de", "kabel eins", "7"}, {"RTLZWEI.de", "RTLZWEI", "8"}, {"NDR.de", "NDR", "0"}, {"ZDFneo.de", "ZDFneo", "0"},
-        {"ONE.de", "ONE", "0"}, {"3sat.de", "3sat", "0"}, {"ARTE.de", "ARTE", "0"}, {"DMAX.de", "DMAX", "0"}, {"Tele.5.de", "Tele 5", "0"},
-        {"sixx.de", "sixx", "0"}, {"NITRO.de", "NITRO", "0"}, {"ProSieben.MAXX.de", "ProSieben MAXX", "0"}, {"SUPER.RTL.de", "Super RTL", "0"},
-        {"Comedy.Central.de", "Comedy Central", "0"}, {"RTLup.de", "RTLup", "0"}, {"kabel.eins.Doku.de", "kabel eins Doku", "0"},
-        {"ZDFinfo.de", "ZDFinfo", "0"}, {"ntv.de", "n-tv", "0"}, {"WELT.de", "WELT", "0"}, {"tagesschau24.de", "tagesschau24", "0"},
-        {"SPORT1.de", "SPORT1", "0"}, {"Eurosport.1.de", "Eurosport 1", "0"}, {"KIKA.de", "KiKA", "0"}, {"Hamburg.1.de", "Hamburg 1", "0"},
+        {"VOX.de", "VOX", "6"}, {"kabel.eins.de", "kabel eins", "7"}, {"RTLZWEI.de", "RTLZWEI", "8"}, {"NDR.de", "NDR", "467"}, {"ZDFneo.de", "ZDFneo", "17"},
+        {"ONE.de", "ONE", "58"}, {"3sat.de", "3sat", "12"}, {"ARTE.de", "ARTE", "57"}, {"DMAX.de", "DMAX", "64"}, {"Tele.5.de", "Tele 5", "16"},
+        {"sixx.de", "sixx", "75"}, {"NITRO.de", "NITRO", "70"}, {"ProSieben.MAXX.de", "ProSieben MAXX", "69"}, {"SUPER.RTL.de", "Super RTL", "9"},
+        {"Comedy.Central.de", "Comedy Central", "61"}, {"RTLup.de", "RTLup", "71"}, {"kabel.eins.Doku.de", "kabel eins Doku", "89"},
+        {"ZDFinfo.de", "ZDFinfo", "81"}, {"ntv.de", "n-tv", "14"}, {"WELT.de", "WELT", "13"}, {"tagesschau24.de", "tagesschau24", "82"}, {"PHOENIX.de", "phoenix", "15"},
+        {"SPORT1.de", "SPORT1", "56"}, {"Eurosport.1.de", "Eurosport 1", "53"}, {"KIKA.de", "KiKA", "10"}, {"Hamburg.1.de", "Hamburg 1", "0"},
     };
 
     static class Prog { long start, stop; String title, sub = "", cat = "", icon, desc = ""; }

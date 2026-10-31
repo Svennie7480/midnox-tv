@@ -49,9 +49,11 @@ public class RadioNet {
     }
 
     /** Antwort mit offenem Datenstrom (HTTP/1.0, folgt Weiterleitungen). */
-    static class Resp { int code; String type = ""; InputStream in; Socket s; void close() { try { s.close(); } catch (Exception ignored) {} } }
+    static class Resp { int code, metaint; String type = ""; InputStream in; Socket s; void close() { try { s.close(); } catch (Exception ignored) {} } }
 
-    static Resp open(String url) throws IOException {
+    static Resp open(String url) throws IOException { return open(url, false); }
+
+    static Resp open(String url, boolean icy) throws IOException {
         for (int hop = 0; hop < 4; hop++) {
             URL u = new URL(url);
             boolean tls = u.getProtocol().equals("https");
@@ -68,7 +70,7 @@ public class RadioNet {
             }
             String path = u.getFile().isEmpty() ? "/" : u.getFile();
             OutputStream o = s.getOutputStream();
-            o.write(("GET " + path + " HTTP/1.0\r\nHost: " + u.getHost() + "\r\nUser-Agent: " + UA + "\r\nAccept: */*\r\nConnection: close\r\n\r\n").getBytes("UTF-8"));
+            o.write(("GET " + path + " HTTP/1.0\r\nHost: " + u.getHost() + "\r\nUser-Agent: " + UA + "\r\nAccept: */*\r\n" + (icy ? "Icy-MetaData: 1\r\n" : "") + "Connection: close\r\n\r\n").getBytes("UTF-8"));
             o.flush();
             InputStream in = new BufferedInputStream(s.getInputStream());
             String status = SetupServer.line(in);
@@ -81,6 +83,7 @@ public class RadioNet {
                 String lo = l.toLowerCase(Locale.ROOT);
                 if (lo.startsWith("location:")) loc = l.substring(9).trim();
                 if (lo.startsWith("content-type:")) r.type = l.substring(13).trim();
+                if (lo.startsWith("icy-metaint:")) try { r.metaint = Integer.parseInt(l.substring(12).trim()); } catch (Exception ignored) {}
             }
             if ((r.code == 301 || r.code == 302 || r.code == 307 || r.code == 308) && loc != null) {
                 r.close(); url = new URL(u, loc).toString(); continue;
@@ -111,9 +114,23 @@ public class RadioNet {
         } catch (Exception e) { return null; }
     }
 
+    /** Cover zu "Interpret - Titel" ueber die iTunes-Suche (600 px). */
+    static String coverUrl(String artist, String title) {
+        try {
+            String q = URLEncoder.encode((artist + " " + title).replaceAll("\\(.*?\\)|\\[.*?\\]", "").trim(), "UTF-8");
+            JSONObject o = new JSONObject(get("https://itunes.apple.com/search?term=" + q + "&entity=song&limit=1&country=DE"));
+            JSONArray r = o.optJSONArray("results");
+            if (r == null || r.length() == 0) return null;
+            String u = r.getJSONObject(0).optString("artworkUrl100", null);
+            return u == null ? null : u.replace("100x100bb", "600x600bb");
+        } catch (Exception e) { return null; }
+    }
+
     /** Lokaler Proxy: MediaPlayer spielt http://127.0.0.1:PORT/, wir holen den echten Stream. */
     static class Proxy {
+        public interface TitleListener { void title(String t); }
         ServerSocket server; volatile boolean running; final String url; volatile String error;
+        TitleListener listener;
         Proxy(String url) { this.url = url; }
         String start() throws IOException {
             server = new ServerSocket(0, 4, InetAddress.getByName("127.0.0.1"));
@@ -131,12 +148,37 @@ public class RadioNet {
             try {
                 InputStream ci = c.getInputStream();
                 String l; while ((l = SetupServer.line(ci)) != null && !l.isEmpty()) {}
-                r = open(url);
+                r = open(url, listener != null);
                 OutputStream o = c.getOutputStream();
                 if (r.code != 200) { error = "HTTP " + r.code; o.write(("HTTP/1.0 " + r.code + " Fehler\r\n\r\n").getBytes()); return; }
                 o.write(("HTTP/1.0 200 OK\r\nContent-Type: " + (r.type.isEmpty() ? "audio/mpeg" : r.type) + "\r\nConnection: close\r\n\r\n").getBytes());
                 byte[] buf = new byte[16384]; int n;
-                while (running && (n = r.in.read(buf)) > 0) o.write(buf, 0, n);
+                if (r.metaint <= 0) { while (running && (n = r.in.read(buf)) > 0) o.write(buf, 0, n); return; }
+                // ICY: nach je metaint Bytes Audio folgt ein Metadatenblock (Laenge*16)
+                int left = r.metaint;
+                while (running) {
+                    n = r.in.read(buf, 0, Math.min(buf.length, left));
+                    if (n <= 0) break;
+                    o.write(buf, 0, n);
+                    left -= n;
+                    if (left == 0) {
+                        int len = r.in.read() * 16;
+                        if (len < 0) break;
+                        if (len > 0) {
+                            byte[] m = new byte[len]; int got = 0;
+                            while (got < len) { int k = r.in.read(m, got, len - got); if (k < 0) break; got += k; }
+                            String meta = new String(m, 0, got, "UTF-8");
+                            if (meta.indexOf('\uFFFD') >= 0) meta = new String(m, 0, got, "ISO-8859-1");
+                            int a = meta.indexOf("StreamTitle='");
+                            if (a >= 0) {
+                                int b = meta.indexOf("';", a + 13);
+                                String t = meta.substring(a + 13, b < 0 ? meta.length() : b).trim();
+                                if (listener != null) listener.title(t);
+                            }
+                        }
+                        left = r.metaint;
+                    }
+                }
             } catch (Exception e) { if (running) error = e.getClass().getSimpleName() + ": " + e.getMessage(); }
             finally { if (r != null) r.close(); try { c.close(); } catch (Exception ignored) {} }
         }

@@ -1,6 +1,6 @@
 {
-  "versionCode": 29,
-  "versionName": "6.5",
+  "versionCode": 30,
+  "versionName": "6.6",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Startbild komplett und nahtlos ab dem ersten Moment"
+  "notes": "Radio: 21 weitere Sender mit Live-Titel und Cover"
 }

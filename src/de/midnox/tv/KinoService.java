@@ -57,6 +57,7 @@ public class KinoService extends Service {
     void loop() {
         String ip = SettingsActivity.ownIp();
         while (running) {
+            try { sleepTimer(); } catch (Exception ignored) {}
             try {
                 SharedPreferences pr = Style.prefs(this);
                 JSONObject cfg = Style.loadConfig(this);
@@ -70,6 +71,28 @@ public class KinoService extends Service {
                 }
             } catch (Exception e) { status("Fehler: " + e.getClass().getSimpleName()); }
             try { Thread.sleep(4000); } catch (InterruptedException e) { return; }
+        }
+    }
+
+    /** Einschlaf-Timer: in der letzten Minute leiser werden, dann "Gute Nacht" zeigen. */
+    void sleepTimer() {
+        SharedPreferences pr = Style.prefs(this);
+        long at = pr.getLong("sleep_at", 0);
+        if (at <= 0) return;
+        long left = at - System.currentTimeMillis();
+        android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+        if (left <= 90000 && pr.getBoolean("sleep_fade", true)) {
+            int cur = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
+            if (pr.getInt("sleep_vol", -1) < 0) pr.edit().putInt("sleep_vol", cur).apply();
+            int orig = pr.getInt("sleep_vol", cur);
+            int target = (int) Math.round(orig * Math.max(0.3, (left - 20000) / 70000.0));
+            if (target < cur) try { am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, target, 0); } catch (Exception ignored) {}
+        }
+        if (left <= 20000) {   // 20 s Countdown im Gute-Nacht-Bildschirm
+            pr.edit().putLong("sleep_at", 0).apply();
+            Intent i = new Intent(this, SleepActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
         }
     }
 

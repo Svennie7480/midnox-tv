@@ -62,10 +62,33 @@ public class HomeActivity extends Activity {
     LinearLayout content;
     String tileSig = "";
     final Handler h = new Handler(Looper.getMainLooper());
-    final Runnable tick = new Runnable() { public void run() { updateClock(); weatherTick(); idleTick(); radioTick(); h.postDelayed(this, 15000); } };
+    final Runnable tick = new Runnable() { public void run() { updateClock(); weatherTick(); idleTick(); radioTick(); sleepTick(); h.postDelayed(this, 15000); } };
+
+    void sleepTick() {
+        int m = Sleep.remainingMin(this);
+        sleepInfo.setVisibility(m > 0 ? View.VISIBLE : View.GONE);
+        sleepInfo.setText("\u263E  Einschlaf-Timer  \u00b7  " + m + " Min.");
+    }
+
+    /** Laeuft das Radio im Hintergrund: Mini-Anzeige im Kopf + Live-Kachel mit dem aktuellen Sender. */
+    void showRadio() {
+        RadioService s = RadioService.inst;
+        boolean on = s != null && (s.playing || s.preparing);
+        if (!on) { nowPlaying.setVisibility(View.GONE); lastRadio = 0; return; }
+        Radio.Song c = s.current;
+        nowPlaying.setText("\u266A  " + s.station.name + (c == null || c.title.isEmpty() ? "" : "  \u00b7  " + (c.artist.isEmpty() ? "" : c.artist + " \u2013 ") + c.title));
+        nowPlaying.setVisibility(View.VISIBLE);
+        radioBanner.title = c == null ? s.station.name : c.title;
+        radioBanner.artist = c == null ? "" : (c.artist.isEmpty() ? s.station.name : c.artist);
+        Bitmap bm = c == null || c.art == null ? null : s.covers.get(c.art);
+        if (bm != null) radioBanner.cover = bm;
+        if (radioTile != null) radioTile.invalidate();
+    }
 
     /** Live-Kachel des Radios: aktuelles Cover und Titel. */
     void radioTick() {
+        RadioService rs = RadioService.inst;
+        if (rs != null && (rs.playing || rs.preparing)) return;   // Kachel folgt dem laufenden Sender
         if (radioTile == null || System.currentTimeMillis() - lastRadio < 30000) return;
         lastRadio = System.currentTimeMillis();
         new Thread(new Runnable() { public void run() {
@@ -99,17 +122,29 @@ public class HomeActivity extends Activity {
 
     /** Bildschirmschoner nach x Minuten ohne Tastendruck auf der Startseite. */
     void idleTick() {
+        if (Style.prefs(this).getBoolean("sleep_mode", false)) return;
         int min = Style.prefs(this).getInt("ss_idle", 4);
         if (min > 0 && System.currentTimeMillis() - lastInput > min * 60000L) {
             lastInput = System.currentTimeMillis();
             startActivity(new Intent(this, ScreensaverActivity.class));
         }
     }
-    @Override public boolean dispatchKeyEvent(KeyEvent e) { lastInput = System.currentTimeMillis(); return super.dispatchKeyEvent(e); }
+    @Override public boolean dispatchKeyEvent(KeyEvent e) {
+        lastInput = System.currentTimeMillis();
+        if (Style.prefs(this).getBoolean("sleep_mode", false)) Style.prefs(this).edit().putBoolean("sleep_mode", false).apply();
+        if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+            if (e.getKeyCode() == KeyEvent.KEYCODE_MENU) { startActivity(new Intent(this, SmartHomeActivity.class)); return true; }
+            if (e.getKeyCode() == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE && RadioService.inst != null) { RadioService.start(this, "toggle"); return true; }
+        }
+        if (e.getKeyCode() == KeyEvent.KEYCODE_MENU) return true;
+        return super.dispatchKeyEvent(e);
+    }
 
     final Radio.Banner radioBanner = new Radio.Banner();
     Tile radioTile;
     long lastRadio;
+    TextView nowPlaying, sleepInfo;
+    final Runnable radioChanged = new Runnable() { public void run() { showRadio(); } };
     LinearLayout weatherRow; Weather.Icon weatherIcon; TextView weatherText;
     long lastWeather, lastInput = System.currentTimeMillis();
     volatile String message;   // Live-Nachricht aus Home Assistant
@@ -175,6 +210,18 @@ public class HomeActivity extends Activity {
         weatherRow.addView(weatherText);
         weatherRow.setVisibility(View.GONE);
         time.addView(weatherRow);
+        nowPlaying = Style.text(this, "", 12, 0xE6FFFFFF);
+        nowPlaying.setShadowLayer(Style.px(6), 0, 0, 0xCC000000);
+        nowPlaying.setGravity(Gravity.END);
+        nowPlaying.setSingleLine(true); nowPlaying.setMaxWidth(Style.px(330)); nowPlaying.setEllipsize(TextUtils.TruncateAt.END);
+        nowPlaying.setPadding(0, Style.px(5), 0, 0);
+        nowPlaying.setVisibility(View.GONE);
+        time.addView(nowPlaying);
+        sleepInfo = Style.text(this, "", 12, 0xCCFFFFFF);
+        sleepInfo.setShadowLayer(Style.px(6), 0, 0, 0xCC000000);
+        sleepInfo.setPadding(0, Style.px(4), 0, 0);
+        sleepInfo.setVisibility(View.GONE);
+        time.addView(sleepInfo);
         time.setPadding(0, Style.px(40), Style.px(64), 0);
         FrameLayout headFrame = new FrameLayout(this);
         headFrame.setClipChildren(false);
@@ -319,6 +366,13 @@ public class HomeActivity extends Activity {
             radioTile = radio;
             addTile(radio, Style.px(tileW), tileH);
             if ("#radio".equals(focusedTag)) toFocus = radio;
+        }
+        if (Style.loadConfig(this) != null) {
+            Tile home = new Tile(this, "Zuhause", null, null, Tile.GLYPH_HOME,
+                    new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, SmartHomeActivity.class)); } }, null);
+            home.tag = "#home";
+            addTile(home, small, tileH);
+            if ("#home".equals(focusedTag)) toFocus = home;
         }
         Tile all = new Tile(this, "Alle Apps", null, null, Tile.GLYPH_GRID,
                 new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, AppsActivity.class)); } }, null);
@@ -477,9 +531,10 @@ public class HomeActivity extends Activity {
         }
         lastInput = System.currentTimeMillis();
         lastWeather = 0; lastRadio = 0;
+        RadioService.listen(radioChanged); showRadio(); sleepTick();
         h.post(tick); ha.start(); emby.start();
     }
-    @Override protected void onPause() { super.onPause(); h.removeCallbacks(tick); ha.stop(); emby.stop(); overlay.stop(); }
+    @Override protected void onPause() { super.onPause(); RadioService.unlisten(radioChanged); h.removeCallbacks(tick); ha.stop(); emby.stop(); overlay.stop(); }
     @Override public void onBackPressed() {
         // Startbildschirm bleibt; Zurueck springt nach oben zu den Apps
         if (vscroll.getScrollY() > 0) {

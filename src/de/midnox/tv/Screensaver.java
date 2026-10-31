@@ -86,6 +86,7 @@ public class Screensaver extends View {
     }
 
     @Override protected void onDraw(Canvas c) {
+        if (Style.prefs(getContext()).getBoolean("sleep_mode", false)) return;   // nach dem Einschlaf-Timer: dunkel bleiben
         float w = getWidth(), hh = getHeight(), dp = Style.dp;
         long now = SystemClock.uptimeMillis();
         boolean pictures = cur != null;

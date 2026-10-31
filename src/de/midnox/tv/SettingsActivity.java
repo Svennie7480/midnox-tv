@@ -161,6 +161,9 @@ public class SettingsActivity extends Activity {
         toggle("Wetter unter der Uhr anzeigen", "weather_on", true, false);
         weatherSource();
 
+        section("EINSCHLAF-TIMER");
+        sleepSection();
+
         section("BILDSCHIRMSCHONER");
         screensaver();
 
@@ -324,6 +327,54 @@ public class SettingsActivity extends Activity {
             try { l = Weather.entities(SettingsActivity.this); } catch (Exception e) { l = new ArrayList<>(); }
             final List<String[]> f = l;
             ui.post(new Runnable() { public void run() { list.addAll(f); show.run(); } });
+        }}).start();
+    }
+
+    // ------------------------------------------------------------ Einschlaf-Timer
+    void sleepSection() {
+        final Row t = add("Timer");
+        final Runnable show = new Runnable() { public void run() { t.value.setText("\u25C0  " + Sleep.label(SettingsActivity.this) + "  \u25B6"); } };
+        show.run();
+        t.onOk = t.onRight = new Runnable() { public void run() { Sleep.cycle(SettingsActivity.this, 1); show.run(); } };
+        t.onLeft = new Runnable() { public void run() { Sleep.cycle(SettingsActivity.this, -1); show.run(); } };
+        toggle("In der letzten Minute leiser werden", "sleep_fade", true, false);
+        toggle("Licht ausschalten (Lampen vom Kino-Modus)", "sleep_lights", true, false);
+        final Row tv = add("Fernseher ausschalten \u00fcber");
+        final List<String[]> players = new ArrayList<>();
+        players.add(new String[]{"", "nicht ausschalten"});
+        final Runnable showTv = new Runnable() { public void run() {
+            String id = pr.getString("sleep_tv", "");
+            String n = id;
+            for (String[] p : players) if (p[0].equals(id)) n = p[1];
+            tv.value.setText("\u25C0  " + n + "  \u25B6");
+        }};
+        showTv.run();
+        final int[] dir = {1};
+        final Runnable cyc = new Runnable() { public void run() {
+            int i = 0;
+            for (int k = 0; k < players.size(); k++) if (players.get(k)[0].equals(pr.getString("sleep_tv", ""))) i = k;
+            i = (i + dir[0] + players.size()) % players.size();
+            pr.edit().putString("sleep_tv", players.get(i)[0]).apply();
+            showTv.run();
+        }};
+        tv.onOk = tv.onRight = cyc;
+        tv.onLeft = new Runnable() { public void run() { dir[0] = -1; cyc.run(); dir[0] = 1; } };
+        final JSONObject cfg = Style.loadConfig(this);
+        if (cfg == null) return;
+        new Thread(new Runnable() { public void run() {
+            try {
+                JSONArray a = new JSONArray(Style.httpGet(cfg.getString("url").replaceAll("/+$", "") + "/api/states", cfg.getString("token")));
+                final List<String[]> tvs = new ArrayList<>(), rest = new ArrayList<>();
+                for (int i = 0; i < a.length(); i++) {
+                    JSONObject o = a.getJSONObject(i);
+                    String id = o.getString("entity_id");
+                    if (!id.startsWith("media_player.") || id.contains("browser_mod")) continue;
+                    JSONObject at = o.optJSONObject("attributes");
+                    String[] e = {id, at.optString("friendly_name", id)};
+                    if ("tv".equals(at.optString("device_class"))) tvs.add(e); else rest.add(e);
+                }
+                ui.post(new Runnable() { public void run() { players.addAll(tvs); players.addAll(rest); showTv.run(); } });
+            } catch (Exception ignored) {}
         }}).start();
     }
 

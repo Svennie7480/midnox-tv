@@ -8,7 +8,7 @@ import android.widget.HorizontalScrollView;
 
 /** App-Kachel mit Banner/Icon oder gezeichnetem Symbol; leuchtet beim Fokus im Verlauf. */
 public class Tile extends View {
-    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3;
+    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4;
     final String label; final Drawable banner, icon; final int glyph;
     final Runnable action, longAction;
     HorizontalScrollView scroller;
@@ -112,6 +112,14 @@ public class Tile extends View {
             c.drawPath(a, g);
             c.drawLine(cx - 16 * dp, cy + 18 * dp, cx + 16 * dp, cy + 18 * dp, g);
             g.setStyle(Paint.Style.FILL);
+        } else if (glyph == GLYPH_HOME) {   // Haus mit Licht-Punkt
+            g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);
+            Path house = new Path();
+            house.moveTo(cx - 22 * dp, cy - 2 * dp); house.lineTo(cx, cy - 22 * dp); house.lineTo(cx + 22 * dp, cy - 2 * dp);
+            house.moveTo(cx - 16 * dp, cy - 7 * dp); house.lineTo(cx - 16 * dp, cy + 20 * dp); house.lineTo(cx + 16 * dp, cy + 20 * dp); house.lineTo(cx + 16 * dp, cy - 7 * dp);
+            c.drawPath(house, g);
+            g.setStyle(Paint.Style.FILL);
+            c.drawCircle(cx, cy + 6 * dp, 5 * dp, g);
         } else if (glyph == GLYPH_GEAR) {
             g.setStyle(Paint.Style.FILL);
             for (int i = 0; i < 8; i++) {

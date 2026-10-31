@@ -9,4 +9,9 @@
   <style name="Midnox.Launch" parent="Midnox">
     <item name="android:windowBackground">@drawable/launch</item>
   </style>
+  <!-- halbtransparent ueber der Startseite -->
+  <style name="Midnox.Overlay" parent="Midnox">
+    <item name="android:windowIsTranslucent">true</item>
+    <item name="android:windowBackground">@android:color/transparent</item>
+  </style>
 </resources>

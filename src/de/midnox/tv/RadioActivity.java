@@ -33,10 +33,39 @@ public class RadioActivity extends Activity {
     FrameLayout root, picker;
 
     RadioService svc() { return RadioService.inst; }
+    LinearLayout wishBox;
+    String wishShown;
+
+    void showWishQr(RadioService s) {
+        boolean on = station.midnox() && s.wishUrl != null;
+        wishBox.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (!on || s.wishUrl.equals(wishShown)) return;
+        wishShown = s.wishUrl;
+        wishBox.removeAllViews();
+        wishBox.addView(new SetupActivity.QrView(this, s.wishUrl), new LinearLayout.LayoutParams(Style.px(96), Style.px(96)));
+        TextView t = Style.text(this, "Musikwunsch?\nQR scannen", 11, 0xCCFFFFFF);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(0, Style.px(6), 0, 0);
+        wishBox.addView(t);
+    }
 
     // ------------------------------------------------------------ Ansichten
     /** Senderlogo als Grafik: Name auf Verlauf in Senderfarbe. */
     static void stationArt(Canvas c, RectF r, Stations.Station st, Paint p, TextPaint t, float rad) {
+        Bitmap lg = Stations.logo(st);
+        if (lg != null) {   // echtes Logo: quadratisch mittig, Rest in der Hintergrundfarbe des Logos
+            int bgc = lg.getPixel(2, 2);
+            p.setShader(null); p.setColor(bgc | 0xFF000000);
+            c.drawRoundRect(r, rad, rad, p);
+            float s = Math.min(r.width(), r.height());
+            RectF q = new RectF(r.centerX() - s / 2, r.centerY() - s / 2, r.centerX() + s / 2, r.centerY() + s / 2);
+            int save = c.save();
+            Path clip = new Path(); clip.addRoundRect(r, rad, rad, Path.Direction.CW); c.clipPath(clip);
+            p.setFilterBitmap(true);
+            c.drawBitmap(lg, null, q, p);
+            c.restoreToCount(save);
+            return;
+        }
         if (st.midnox()) p.setShader(Style.brand(r.left, r.right));
         else p.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom, st.color, darker(st.color), Shader.TileMode.CLAMP));
         c.drawRoundRect(r, rad, rad, p);
@@ -67,7 +96,6 @@ public class RadioActivity extends Activity {
             int save = c.save();
             Path clip = new Path(); clip.addRoundRect(r, rad, rad, Path.Direction.CW); c.clipPath(clip);
             if (bmp != null) c.drawBitmap(bmp, null, r, p);
-            else if (station.midnox()) { p.setColor(Style.CARD); c.drawRect(r, p); Radio.waves(c, r.centerX(), r.centerY(), w * 0.22f, p); }
             else stationArt(c, r, station, p, t, 0);
             c.restoreToCount(save);
         }
@@ -107,7 +135,6 @@ public class RadioActivity extends Activity {
             Path clip = new Path(); clip.addRoundRect(r, rad, rad, Path.Direction.CW); c.clipPath(clip);
             Bitmap b = s.art == null ? null : covers.get(s.art);
             if (b != null) c.drawBitmap(b, null, r, p);
-            else if (station.midnox()) { p.setColor(Style.CARD); c.drawRect(r, p); Radio.waves(c, r.centerX(), r.centerY(), w * 0.2f, p); }
             else stationArt(c, r, station, p, t, 0);
             c.restoreToCount(save);
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1 * dp); p.setColor(0x22FFFFFF);
@@ -156,6 +183,7 @@ public class RadioActivity extends Activity {
         super.onCreate(b);
         Style.init(this);
         Theme.current(this).apply();
+        Stations.init(this);
         station = Stations.byId(Style.prefs(this).getString("radio_station", "midnox"));
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
         root = new FrameLayout(this);
@@ -230,6 +258,14 @@ public class RadioActivity extends Activity {
         lyricsBox.setVisibility(View.GONE);
         root.addView(lyricsBox, new FrameLayout.LayoutParams(Style.px(460), -1, Gravity.END));
 
+        // Musikwunsch per Handy (nur bei midnox Radio)
+        wishBox = new LinearLayout(this);
+        wishBox.setOrientation(LinearLayout.VERTICAL);
+        wishBox.setGravity(Gravity.CENTER_HORIZONTAL);
+        wishBox.setVisibility(View.GONE);
+        FrameLayout.LayoutParams wl = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
+        wl.setMargins(0, 0, Style.px(44), Style.px(30));
+        root.addView(wishBox, wl);
         setContentView(root);
         play.requestFocus();
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -252,6 +288,7 @@ public class RadioActivity extends Activity {
         RadioService s = svc();
         if (s == null) return;
         covers = s.covers;
+        showWishQr(s);
         if (s.station != station || shownId.isEmpty() && title.getText().length() <= 1) { station = s.station; applyStation(); }
         play.setText(s.preparing ? "Verbinde \u2026" : s.playing ? "Pause" : "Abspielen");
         play.active = s.playing; play.invalidate();
@@ -353,7 +390,7 @@ public class RadioActivity extends Activity {
         if (sig.toString().equals(shownHist)) return;
         shownHist = sig.toString();
         recent.removeAllViews();
-        for (int i = 0; i < Math.min(6, list.size()); i++) {
+        for (int i = 0; i < Math.min(station.midnox() ? 5 : 6, list.size()); i++) {
             RecentCard rc = new RecentCard(this, list.get(i));
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(Style.px(118), Style.px(118 + 54));
             lp.rightMargin = Style.px(22);

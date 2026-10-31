@@ -6,6 +6,7 @@ import android.graphics.*;
 import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.Gravity;
 import android.widget.*;
 import org.json.JSONObject;
 import java.io.*;
@@ -103,6 +104,32 @@ public final class Style {
         int code = c.getResponseCode();
         if (code < 200 || code >= 300) throw new IOException("HTTP " + code);
         return read(c.getInputStream());
+    }
+
+    /** Kurze Einblendung im midnox-Stil (auch ueber anderen Apps). */
+    public static void toast(Context c, String text) {
+        init(c);
+        TextView t = new TextView(c) {
+            final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+            @Override protected void onDraw(Canvas cv) {
+                RectF r = new RectF(0, 0, getWidth(), getHeight());
+                p.setStyle(Paint.Style.FILL); p.setShader(null); p.setColor(0xF2121120);
+                cv.drawRoundRect(r, getHeight() / 2f, getHeight() / 2f, p);
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2 * dp); p.setShader(brand(0, getWidth()));
+                cv.drawRoundRect(new RectF(dp, dp, getWidth() - dp, getHeight() - dp), getHeight() / 2f, getHeight() / 2f, p);
+                super.onDraw(cv);
+            }
+        };
+        t.setText(text);
+        t.setTextColor(Color.WHITE);
+        t.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+        t.setTypeface(POP);
+        t.setPadding(px(26), px(14), px(26), px(14));
+        android.widget.Toast to = new android.widget.Toast(c.getApplicationContext());
+        to.setView(t);
+        to.setDuration(android.widget.Toast.LENGTH_LONG);
+        to.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, px(40));
+        to.show();
     }
 
     public static android.content.SharedPreferences prefs(Context c) {

@@ -81,6 +81,7 @@ public class HomeActivity extends Activity {
         radioBanner.title = c == null ? s.station.name : c.title;
         radioBanner.artist = c == null ? "" : (c.artist.isEmpty() ? s.station.name : c.artist);
         Bitmap bm = c == null || c.art == null ? null : s.covers.get(c.art);
+        if (bm == null) bm = Stations.logo(s.station);   // kein Cover: Senderlogo
         if (bm != null) radioBanner.cover = bm;
         if (radioTile != null) radioTile.invalidate();
     }
@@ -155,6 +156,7 @@ public class HomeActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         Style.init(this);
+        Stations.init(this);
         theme = Theme.current(this);
         theme.apply();
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
@@ -370,6 +372,11 @@ public class HomeActivity extends Activity {
             addTile(radio, Style.px(tileW), tileH);
             if ("#radio".equals(focusedTag)) toFocus = radio;
         }
+        Tile search = new Tile(this, "Suche", null, null, Tile.GLYPH_SEARCH,
+                new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, SearchActivity.class)); } }, null);
+        search.tag = "#search";
+        addTile(search, small, tileH);
+        if ("#search".equals(focusedTag)) toFocus = search;
         if (Style.loadConfig(this) != null) {
             Tile home = new Tile(this, "Zuhause", null, null, Tile.GLYPH_HOME,
                     new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, SmartHomeActivity.class)); } }, null);

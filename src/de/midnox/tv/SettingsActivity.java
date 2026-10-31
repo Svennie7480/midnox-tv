@@ -161,6 +161,15 @@ public class SettingsActivity extends Activity {
         toggle("Wetter unter der Uhr anzeigen", "weather_on", true, false);
         weatherSource();
 
+        section("DIENSTPLAN");
+        shiftSection();
+
+        section("ANRUF AUF DEM HANDY");
+        toggle("Film und Radio pausieren, wenn das Handy klingelt", "call_on", true, false);
+        final Row ce = add("Telefon-Sensor");
+        ce.value.setText(pr.getString("call_entity", "").isEmpty() ? "wird automatisch gesucht" : pr.getString("call_entity", ""));
+        ce.onOk = new Runnable() { public void run() { pr.edit().remove("call_entity").apply(); ce.value.setText("wird neu gesucht"); } };
+
         section("EINSCHLAF-TIMER");
         sleepSection();
 
@@ -408,6 +417,41 @@ public class SettingsActivity extends Activity {
             r.onLeft = new Runnable() { public void run() { pr.edit().putInt("mtv_" + ch[0], Math.max(0, TvRows.number(SettingsActivity.this, ch[0]) - 1)).apply(); show.run(); } };
             r.onOk = new Runnable() { public void run() { TvRows.openTv(SettingsActivity.this, ch[0]); } };
         }
+    }
+
+    // ------------------------------------------------------------ Dienstplan
+    void shiftSection() {
+        toggle("Vor dem Dienst ans Schlafen erinnern", "shift_on", true, false);
+        final Row lead = add("Aufstehen vor Dienstbeginn");
+        final Row sleep = add("Gew\u00fcnschter Schlaf");
+        final Row prev = add("N\u00e4chster Dienst");
+        final Runnable show = new Runnable() { public void run() {
+            int l = pr.getInt("shift_lead", 75);
+            lead.value.setText("\u25C0  " + (l / 60) + ":" + String.format(Locale.ROOT, "%02d", l % 60) + " Std.  \u25B6");
+            sleep.value.setText("\u25C0  " + Daily.fmtH(pr.getFloat("shift_sleep", 7.5f)) + "  \u25B6");
+            prev.value.setText("berechne \u2026");
+            new Thread(new Runnable() { public void run() {
+                String t;
+                try {
+                    Object[] n = Daily.nextShift(SettingsActivity.this);
+                    if (n == null) t = "kein Dienst gefunden";
+                    else {
+                        long[] p = Daily.plan(SettingsActivity.this, ((Date) n[0]).getTime());
+                        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat("EE HH:mm", Locale.GERMANY), hm = new java.text.SimpleDateFormat("HH:mm", Locale.GERMANY);
+                        t = f.format((Date) n[0]) + "  \u00b7  Hinweis " + hm.format(new Date(p[0])) + ", schlafen " + hm.format(new Date(p[1])) + ", aufstehen " + hm.format(new Date(p[2]));
+                    }
+                } catch (Exception e) { t = "Home Assistant nicht erreichbar"; }
+                final String ft = t;
+                ui.post(new Runnable() { public void run() { prev.value.setText(ft); } });
+            }}).start();
+        }};
+        show.run();
+        lead.onRight = lead.onOk = new Runnable() { public void run() { pr.edit().putInt("shift_lead", Math.min(240, pr.getInt("shift_lead", 75) + 15)).apply(); show.run(); } };
+        lead.onLeft = new Runnable() { public void run() { pr.edit().putInt("shift_lead", Math.max(15, pr.getInt("shift_lead", 75) - 15)).apply(); show.run(); } };
+        sleep.onRight = sleep.onOk = new Runnable() { public void run() { pr.edit().putFloat("shift_sleep", Math.min(10f, pr.getFloat("shift_sleep", 7.5f) + 0.5f)).apply(); show.run(); } };
+        sleep.onLeft = new Runnable() { public void run() { pr.edit().putFloat("shift_sleep", Math.max(4f, pr.getFloat("shift_sleep", 7.5f) - 0.5f)).apply(); show.run(); } };
+        prev.value.setMaxWidth(Style.px(420));
+        prev.name.setMaxWidth(Style.px(150));
     }
 
     // ------------------------------------------------------------ Einschlaf-Timer

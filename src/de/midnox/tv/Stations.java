@@ -35,5 +35,18 @@ public class Stations {
         new Station("klassik", "Klassik Radio", 0xFFB8975A, "https://live.streams.klassikradio.de/klassikradio-deutschland/stream/mp3")
     );
 
+    static android.content.res.AssetManager assets;
+    static final Map<String, android.graphics.Bitmap> logos = new HashMap<>();
+    static void init(android.content.Context c) { if (assets == null) assets = c.getApplicationContext().getAssets(); }
+
+    /** Senderlogo aus der App (assets/logos/<id>.jpg), null wenn keins vorhanden. */
+    public static synchronized android.graphics.Bitmap logo(Station s) {
+        if (logos.containsKey(s.id)) return logos.get(s.id);
+        android.graphics.Bitmap b = null;
+        if (assets != null) try (java.io.InputStream in = assets.open("logos/" + s.id + ".jpg")) { b = android.graphics.BitmapFactory.decodeStream(in); } catch (Exception ignored) {}
+        logos.put(s.id, b);
+        return b;
+    }
+
     public static Station byId(String id) { for (Station s : ALL) if (s.id.equals(id)) return s; return ALL.get(0); }
 }

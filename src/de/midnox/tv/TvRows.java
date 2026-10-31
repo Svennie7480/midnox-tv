@@ -66,7 +66,12 @@ public class TvRows implements MediaCard.Listener {
     // ---------------- Karten
     @Override public void onFocus(MediaCard card) { act.reveal(card); act.showHero(card.e); }
     @Override public void onClick(MediaCard card) { openTv(act, card.e.id.substring(0, card.e.id.indexOf('@'))); }
-    @Override public void onLongClick(MediaCard card) { onClick(card); }
+    @Override public void onLongClick(MediaCard card) {   // Programm des Senders, Erinnerungen setzen
+        Intent i = new Intent(act, ChannelActivity.class);
+        i.putExtra("channel", card.e.id.substring(0, card.e.id.indexOf('@')));
+        act.startActivity(i);
+    }
+    static String name(String channel) { for (String[] c : CHANNELS) if (c[0].equals(channel)) return c[1]; return channel; }
 
     /** Senderplatz in MagentaTV (eigene Einstellung oder Standard), 0 = unbekannt. */
     static int number(Context c, String channel) {
@@ -182,7 +187,7 @@ public class TvRows implements MediaCard.Listener {
         w.write(o.toString().getBytes("UTF-8"));
         w.close();
     }
-    Map<String, List<Prog>> readCache(File f) {
+    static Map<String, List<Prog>> readCache(File f) {
         try {
             JSONObject o = new JSONObject(Style.read(new FileInputStream(f)));
             Map<String, List<Prog>> d = new HashMap<>();

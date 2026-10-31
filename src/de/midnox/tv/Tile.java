@@ -8,7 +8,7 @@ import android.widget.HorizontalScrollView;
 
 /** App-Kachel mit Banner/Icon oder gezeichnetem Symbol; leuchtet beim Fokus im Verlauf. */
 public class Tile extends View {
-    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4;
+    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4, GLYPH_SEARCH = 5;
     final String label; final Drawable banner, icon; final int glyph;
     final Runnable action, longAction;
     HorizontalScrollView scroller;
@@ -111,6 +111,11 @@ public class Tile extends View {
             Path a = new Path(); a.moveTo(cx - 11 * dp, cy - 3 * dp); a.lineTo(cx, cy + 8 * dp); a.lineTo(cx + 11 * dp, cy - 3 * dp);
             c.drawPath(a, g);
             c.drawLine(cx - 16 * dp, cy + 18 * dp, cx + 16 * dp, cy + 18 * dp, g);
+            g.setStyle(Paint.Style.FILL);
+        } else if (glyph == GLYPH_SEARCH) {   // Lupe
+            g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND);
+            c.drawCircle(cx - 5 * dp, cy - 5 * dp, 14 * dp, g);
+            c.drawLine(cx + 6 * dp, cy + 6 * dp, cx + 18 * dp, cy + 18 * dp, g);
             g.setStyle(Paint.Style.FILL);
         } else if (glyph == GLYPH_HOME) {   // Haus mit Licht-Punkt
             g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);

@@ -1,6 +1,6 @@
 {
-  "versionCode": 37,
-  "versionName": "7.4.1",
+  "versionCode": 38,
+  "versionName": "7.5",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Jetzt im TV: alle Senderplätze laut MagentaTV-Senderliste"
+  "notes": "Senderlogos, Musikwünsche per QR, Anruf pausiert, TV-Erinnerungen, Suche, Dienstplan-Schlafhinweis"
 }

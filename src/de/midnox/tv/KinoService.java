@@ -58,6 +58,7 @@ public class KinoService extends Service {
         String ip = SettingsActivity.ownIp();
         while (running) {
             try { sleepTimer(); } catch (Exception ignored) {}
+            try { Daily.tick(this); } catch (Exception ignored) {}
             try {
                 SharedPreferences pr = Style.prefs(this);
                 JSONObject cfg = Style.loadConfig(this);

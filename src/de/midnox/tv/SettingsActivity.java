@@ -173,7 +173,7 @@ public class SettingsActivity extends Activity {
         section("EINSCHLAF-TIMER");
         sleepSection();
 
-        section("MAGENTATV-SENDERPL\u00c4TZE");
+        section("JETZT IM TV  \u00b7  TV-APP & SENDERPL\u00c4TZE");
         magentaNumbers();
 
         section("BILDSCHIRMSCHONER");
@@ -404,6 +404,28 @@ public class SettingsActivity extends Activity {
     // ------------------------------------------------------------ MagentaTV
     /** Je Sender der Platz in deiner MagentaTV-Liste; OK schaltet zum Test direkt um. */
     void magentaNumbers() {
+        final Row app = add("TV-App f\u00fcr \u201eJetzt im TV\u201c");
+        final List<String[]> apps = new ArrayList<>();
+        apps.add(new String[]{"", "automatisch"});
+        for (String[] a : TvRows.TV_APPS) if (Style.launchIntent(getPackageManager(), a[0]) != null) apps.add(a);
+        apps.add(new String[]{"-", "keine"});
+        final Runnable showA = new Runnable() { public void run() {
+            String cur = pr.getString("tv_app", ""), n = cur;
+            for (String[] a : apps) if (a[0].equals(cur)) n = a[1];
+            String eff = TvRows.tvApp(SettingsActivity.this);
+            app.value.setText("\u25C0  " + n + (cur.isEmpty() ? " (" + (eff == null ? "keine gefunden" : TvRows.tvAppName(eff)) + ")" : "") + "  \u25B6");
+        }};
+        showA.run();
+        final int[] ad = {1};
+        final Runnable cycA = new Runnable() { public void run() {
+            int i = 0;
+            for (int k = 0; k < apps.size(); k++) if (apps.get(k)[0].equals(pr.getString("tv_app", ""))) i = k;
+            i = (i + ad[0] + apps.size()) % apps.size();
+            pr.edit().putString("tv_app", apps.get(i)[0]).apply();
+            showA.run();
+        }};
+        app.onOk = app.onRight = cycA;
+        app.onLeft = new Runnable() { public void run() { ad[0] = -1; cycA.run(); ad[0] = 1; } };
         Row info = add("\u25C0 \u25B6 Platz \u00e4ndern  \u00b7  OK testet in MagentaTV");
         info.setFocusable(false);
         for (final String[] ch : TvRows.CHANNELS) {

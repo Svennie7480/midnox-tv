@@ -1,6 +1,6 @@
 {
-  "versionCode": 38,
-  "versionName": "7.5",
+  "versionCode": 39,
+  "versionName": "7.6",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Senderlogos, Musikwünsche per QR, Anruf pausiert, TV-Erinnerungen, Suche, Dienstplan-Schlafhinweis"
+  "notes": "Auch ohne Home Assistant/MagentaTV sauber: Zuhause-Reihe automatisch, TV-App wählbar"
 }

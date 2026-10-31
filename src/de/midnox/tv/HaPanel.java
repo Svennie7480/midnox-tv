@@ -64,6 +64,7 @@ public class HaPanel extends LinearLayout {
                 if (at != null && at.has("friendly_name")) byName.put(at.getString("friendly_name").toLowerCase(Locale.ROOT), s);
             }
             JSONArray tiles = cfg.optJSONArray("tiles");
+            if (tiles == null || tiles.length() == 0) tiles = autoTiles(states);   // ohne eigene Auswahl: Temperaturen automatisch
             for (int i = 0; tiles != null && i < tiles.length(); i++) {
                 JSONObject t = tiles.getJSONObject(i);
                 if ("dienst".equals(t.optString("format"))) {
@@ -172,6 +173,27 @@ public class HaPanel extends LinearLayout {
             }
         }
         return null;
+    }
+
+    /** Standard-Kacheln fuer neue Nutzer: bis zu 6 Temperatur-Sensoren (mit Luftfeuchte, falls im selben Geraet). */
+    static JSONArray autoTiles(JSONArray states) throws JSONException {
+        JSONArray out = new JSONArray();
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < states.length() && out.length() < 6; i++) {
+            JSONObject s = states.getJSONObject(i);
+            String id = s.getString("entity_id");
+            JSONObject a = s.optJSONObject("attributes");
+            if (!id.startsWith("sensor.") || a == null) continue;
+            if (!"temperature".equals(a.optString("device_class")) || !"measurement".equals(a.optString("state_class"))) continue;
+            String st = s.optString("state");
+            try { Double.parseDouble(st); } catch (Exception e) { continue; }
+            String name = a.optString("friendly_name", id).replaceAll("(?i)\\s*(temperatur|temperature|temp)\\s*$", "").trim();
+            if (name.isEmpty() || !seen.add(name.toLowerCase(Locale.ROOT))) continue;
+            String hum = id.replaceAll("(?i)temperature|temperatur|_temp$", "humidity");
+            out.put(new JSONObject().put("label", name).put("main", new JSONArray().put(id)).put("main_unit", "\u00b0").put("decimals", 1)
+                    .put("sub", new JSONArray().put(hum)).put("sub_unit", " %").put("sub_decimals", 0));
+        }
+        return out;
     }
 
     /** Naechster Dienst: "Morgen · 03:45–11:53" und darunter die Dienstbezeichnung. */

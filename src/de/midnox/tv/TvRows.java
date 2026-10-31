@@ -21,6 +21,23 @@ import java.util.zip.GZIPInputStream;
 public class TvRows implements MediaCard.Listener {
     static final String DEFAULT_EPG = "https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz";
     static final String TV_APP = "de.telekom.magentatv.firetv";
+    /** Bekannte TV-Apps: {Paket, Name}. Nur MagentaTV kann direkt auf einen Sender springen. */
+    static final String[][] TV_APPS = {
+        {"de.telekom.magentatv.firetv", "MagentaTV"}, {"de.exaring.waipu.firetv.live", "waipu.tv"}, {"de.exaring.waipu", "waipu.tv"},
+        {"com.zattoo.player", "Zattoo"}, {"com.zattoo.android", "Zattoo"}, {"de.prosiebensat1digital.seventv", "Joyn"},
+        {"ar.tvplayer.tv", "TiviMate"}, {"studio.scillarium.ottnavigator", "OTT Navigator"},
+    };
+
+    /** Gewaehlte bzw. erste installierte TV-App; null = keine. */
+    static String tvApp(Context c) {
+        android.content.pm.PackageManager pm = c.getPackageManager();
+        String chosen = Style.prefs(c).getString("tv_app", "");
+        if (chosen.equals("-")) return null;
+        if (!chosen.isEmpty() && Style.launchIntent(pm, chosen) != null) return chosen;
+        for (String[] a : TV_APPS) if (Style.launchIntent(pm, a[0]) != null) return a[0];
+        return null;
+    }
+    static String tvAppName(String pkg) { for (String[] a : TV_APPS) if (a[0].equals(pkg)) return a[1]; return pkg; }
     // Senderplaetze laut MagentaTV-Senderliste (gueltig ab 07.10.2026); NDR = Schleswig-Holstein
     static final String[][] CHANNELS = {
         {"Das.Erste.de", "Das Erste", "1"}, {"ZDF.de", "ZDF", "2"}, {"RTL.de", "RTL", "3"}, {"SAT.1.de", "SAT.1", "4"}, {"ProSieben.de", "ProSieben", "5"},
@@ -81,8 +98,10 @@ public class TvRows implements MediaCard.Listener {
 
     /** MagentaTV direkt auf dem Sender starten (eigener Befehl der App), sonst nur die App oeffnen. */
     static void openTv(Context c, String channel) {
+        String app = tvApp(c);
+        if (app == null) { Style.toast(c, "Keine TV-App installiert (z. B. MagentaTV, waipu.tv, Zattoo)"); return; }
         int nr = number(c, channel);
-        if (nr > 0) {
+        if (nr > 0 && app.equals(TV_APP)) {
             try {
                 Intent i = new Intent("de.telekom.magentatv.androidtv.action.SWITCH_CHANNEL", android.net.Uri.parse("content://de.telekom.magentatv.androidtv/SWITCH_CHANNEL/"));
                 i.setPackage(TV_APP);
@@ -92,9 +111,7 @@ public class TvRows implements MediaCard.Listener {
                 return;
             } catch (Exception ignored) {}
         }
-        Intent i = Style.launchIntent(c.getPackageManager(), TV_APP);
-        if (i == null) { Toast.makeText(c, "MagentaTV ist nicht installiert", Toast.LENGTH_SHORT).show(); return; }
-        Style.start(c, i);
+        Style.start(c, Style.launchIntent(c.getPackageManager(), app));
     }
 
     void start() {

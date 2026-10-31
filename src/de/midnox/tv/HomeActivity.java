@@ -531,7 +531,8 @@ public class HomeActivity extends Activity {
         Theme now = Theme.current(this);
         if (!now.id.equals(theme.id) || !now.greeting.equals(theme.greeting)) { recreate(); return; } // neue Saison / neuer Tag
         overlay.start();
-        home.setVisibility(Style.prefs(this).getBoolean("hide_home", false) ? View.GONE : View.VISIBLE);
+        // ohne Home Assistant keine leere "Zuhause"-Reihe
+        home.setVisibility(Style.prefs(this).getBoolean("hide_home", false) || Style.loadConfig(this) == null || !Style.loadConfig(this).has("url") ? View.GONE : View.VISIBLE);
         buildTiles(false);
         if (System.currentTimeMillis() - lastUpdateCheck > 6 * 3600 * 1000L) {
             lastUpdateCheck = System.currentTimeMillis();

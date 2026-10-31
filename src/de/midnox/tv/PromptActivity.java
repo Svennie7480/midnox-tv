@@ -57,6 +57,19 @@ public class PromptActivity extends Activity {
             pill(btns, "In 30 Min. nochmal", new Runnable() { public void run() {
                 Style.prefs(PromptActivity.this).edit().putLong("shift_snooze", System.currentTimeMillis() + 30 * 60000L).apply(); finish(); } });
             pill(btns, "Heute nicht", new Runnable() { public void run() { finish(); } });
+        } else if ("qr".equals(kind)) {
+            String url = in.getStringExtra("url");
+            if (url != null) {
+                LinearLayout q = new LinearLayout(this);
+                q.setGravity(Gravity.CENTER_VERTICAL);
+                q.addView(new SetupActivity.QrView(this, url), new LinearLayout.LayoutParams(Style.px(200), Style.px(200)));
+                TextView u = Style.text(this, url.replaceAll("\\?k=.*", ""), 13, Style.MUTED);
+                u.setPadding(Style.px(22), 0, 0, 0);
+                q.addView(u);
+                card.addView(q, card.getChildCount() - 1);
+                LinearLayout.LayoutParams ql = (LinearLayout.LayoutParams) q.getLayoutParams(); ql.bottomMargin = Style.px(20);
+            }
+            first = pill(btns, "Schlie\u00dfen", new Runnable() { public void run() { finish(); } });
         } else if ("reminder".equals(kind)) {
             final String ch = in.getStringExtra("channel");
             first = pill(btns, "Jetzt umschalten", new Runnable() { public void run() { TvRows.openTv(PromptActivity.this, ch); finish(); } });

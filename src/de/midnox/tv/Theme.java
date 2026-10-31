@@ -27,7 +27,7 @@ public class Theme {
     final Layer[] layers;
     int[] bands;
     // Atmosphaere (grossflaechig, ruhig) hinter den Partikeln
-    static final int AMB_NONE = 0, AMB_MOON_FOG = 1, AMB_BOKEH = 2, AMB_FROST = 3, AMB_GLOW = 4;
+    static final int AMB_NONE = 0, AMB_MOON_FOG = 1, AMB_BOKEH = 2, AMB_FROST = 3, AMB_GLOW = 4, AMB_HALLOWEEN = 5;
     int amb = AMB_GLOW;
     Theme amb(int a) { amb = a; return this; }
 
@@ -43,7 +43,7 @@ public class Theme {
         switch (id) {
             case "halloween":
                 return new Theme(id, "Happy Halloween", 0xFFFF7A00, 0xFFB5179E, 0xFF7CFF4F, 0xFF120A12, 0xFF050307, 0x40FF7A00, 0x307CFF4F, false,
-                        L(BAT, FLY, 4, 14, 30, 34), L(DOT, RISE, 26, 1, 2.6f, 10)).amb(AMB_MOON_FOG);
+                        L(BAT, FLY, 3, 10, 20, 30)).amb(AMB_HALLOWEEN);
             case "einheit": {
                 Theme th = new Theme(id, "Tag der Deutschen Einheit", 0xFF8A8A8A, 0xFFDD0000, 0xFFFFCE00, 0xFF0E0B0B, 0xFF050404, 0x38DD0000, 0x34FFCE00, false,
                         L(ORB, RISE, 12, 20, 60, 12), L(DOT, RISE, 22, 1.5f, 3.2f, 20));
@@ -259,7 +259,7 @@ public class Theme {
                 }
                 float a = q.alpha;
                 if (q.motion == TWINKLE) a = q.alpha * (0.35f + 0.65f * (0.5f + 0.5f * (float) Math.sin(q.phase * 1.7f)));
-                drawShape(c, q, x, y, a * calm(x, y, w, h));
+                drawShape(c, q, x, y, t.amb == AMB_HALLOWEEN ? Math.min(1f, a + 0.3f) : a * calm(x, y, w, h));
             }
             if (t.fireworks) fireworks(c, dt, w, h);
             if (running) postInvalidateOnAnimation();
@@ -273,10 +273,15 @@ public class Theme {
         }
 
         /** Grossflaechige, ruhige Lichtstimmung je Thema. */
+        HalloweenScene halloween;
         void ambient(Canvas c, float w, float h, float tt) {
             float dp = Style.dp;
             p.setStyle(Paint.Style.FILL);
             switch (t.amb) {
+                case AMB_HALLOWEEN:
+                    if (halloween == null) halloween = new HalloweenScene();
+                    halloween.draw(c, (int) w, (int) h, tt);
+                    break;
                 case AMB_MOON_FOG: {
                     // Mond: weicher Halo + Scheibe im Verlauf, sehr zurueckhaltend
                     float mx = w * 0.64f, my = h * 0.14f, r = 46 * dp;

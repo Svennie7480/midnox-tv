@@ -27,6 +27,7 @@ public class KinoService extends Service {
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         foreground();
+        Remote.start(this);   // Handy-Fernbedienung
         if (worker == null || !worker.isAlive()) {
             running = true;
             worker = new Thread(new Runnable() { public void run() { loop(); } }, "kino");

@@ -12,7 +12,8 @@ import java.util.*;
  * Dienstplan-Schlafenszeit, TV-Erinnerungen und Anruf auf dem Handy.
  */
 public class Daily {
-    static long lastShift, lastCall;
+    static long lastShift, lastCall, lastWish;
+    static long wishSeen = -1;
     static String callState = "idle";
     static boolean pausedEmby, duckedRadio;
     static AudioManager.OnAudioFocusChangeListener callFocus = new AudioManager.OnAudioFocusChangeListener() { public void onAudioFocusChange(int f) {} };
@@ -22,6 +23,7 @@ public class Daily {
         long now = System.currentTimeMillis();
         if (now - lastShift > 60000) { lastShift = now; try { shift(c); } catch (Exception ignored) {} }
         if (now - lastCall > 3000) { lastCall = now; try { call(c); } catch (Exception ignored) {} }
+        if (now - lastWish > 15000) { lastWish = now; try { wishes(c); } catch (Exception e) { lastWish = now + 10 * 60000L; } }
     }
 
     static boolean screenOn(Context c) {
@@ -126,6 +128,25 @@ public class Daily {
             } else keep.put(o);
         }
         if (changed) Style.prefs(c).edit().putString("tv_reminders", keep.toString()).apply();
+    }
+
+    // ------------------------------------------------------------ Musikwuensche
+    /** Neue Wuensche von midnox.de holen und einblenden (nur solange das Radio laeuft oder der Fernseher an ist). */
+    static void wishes(final Context c) throws Exception {
+        if (!Style.prefs(c).getBoolean("wish_show", true) || !screenOn(c)) return;
+        JSONObject o = new JSONObject(RadioNet.get(RadioService.wishBase(c) + "?list=1&since=" + Math.max(0, wishSeen)));
+        JSONArray a = o.optJSONArray("wishes");
+        long max = wishSeen;
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JSONObject w = a.getJSONObject(i);
+            long id = w.optLong("id");
+            if (id > max) max = id;
+            if (wishSeen < 0 || id <= wishSeen) continue;   // beim ersten Abruf nichts Altes zeigen
+            final String text = "\u266A  " + (w.optString("name").isEmpty() ? "Jemand" : w.optString("name")) + " w\u00fcnscht sich: " + w.optString("title")
+                    + (w.optString("artist").isEmpty() ? "" : " \u2013 " + w.optString("artist"));
+            new Handler(Looper.getMainLooper()).post(new Runnable() { public void run() { Style.toast(c, text); } });
+        }
+        wishSeen = Math.max(max, 0);
     }
 
     // ------------------------------------------------------------ Anruf

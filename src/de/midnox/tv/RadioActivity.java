@@ -57,7 +57,8 @@ public class RadioActivity extends Activity {
             int bgc = lg.getPixel(2, 2);
             p.setShader(null); p.setColor(bgc | 0xFF000000);
             c.drawRoundRect(r, rad, rad, p);
-            float s = Math.min(r.width(), r.height());
+            // midnox: Schriftzug auf schlichtem Grund -> fuellend und etwas herangezoomt (kein Rand links/rechts)
+            float s = st.midnox() ? Math.max(r.width(), r.height()) * 1.35f : Math.min(r.width(), r.height());
             RectF q = new RectF(r.centerX() - s / 2, r.centerY() - s / 2, r.centerX() + s / 2, r.centerY() + s / 2);
             int save = c.save();
             Path clip = new Path(); clip.addRoundRect(r, rad, rad, Path.Direction.CW); c.clipPath(clip);

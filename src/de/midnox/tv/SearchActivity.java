@@ -103,6 +103,8 @@ public class SearchActivity extends Activity {
             return false;
         }});
         input.requestFocus();
+        String q0 = getIntent().getStringExtra("q");
+        if (q0 != null && !q0.isEmpty()) { input.setText(q0); input.setSelection(q0.length()); }
     }
 
     final Runnable run = new Runnable() { public void run() { search(input.getText().toString().trim()); } };

@@ -236,6 +236,9 @@ public class SettingsActivity extends Activity {
                 else { upd.value.setText("Installiere " + u.optString("versionName") + " …"); Updater.install(SettingsActivity.this, u); }
             }});
         }};
+        Row remote = add("Handy-Fernbedienung");
+        remote.value.setText("QR-Code  \u203a");
+        remote.onOk = new Runnable() { public void run() { showRemoteQr(SettingsActivity.this); } };
         final Row tvg = add("TV-Programm pr\u00fcfen (MagentaTV)");
         tvg.value.setText("\u203a");
         tvg.onOk = new Runnable() { public void run() {
@@ -726,6 +729,14 @@ public class SettingsActivity extends Activity {
 
     String version() {
         try { PackageInfo pi = getPackageManager().getPackageInfo(getPackageName(), 0); return pi.versionName; } catch (Exception e) { return "?"; }
+    }
+
+    static void showRemoteQr(Context c) {
+        c.startService(new Intent(c, KinoService.class));
+        Remote.start(c);
+        String u = Remote.url(c);
+        Bundle x = new Bundle(); x.putString("url", u);
+        PromptActivity.show(c, "qr", "Handy-Fernbedienung", u == null ? "Fernbedienung konnte nicht gestartet werden." : "Mit dem Handy scannen (gleiches WLAN): Wiedergabe, Apps, TV-Sender, Radio, Timer und Suche.", x);
     }
 
     static String ownIp() {

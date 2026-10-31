@@ -120,6 +120,9 @@ public class SmartHomeActivity extends Activity {
         timerRow.onOk = timerRow.onRight = new Runnable() { public void run() { Sleep.cycle(SmartHomeActivity.this, 1); showT.run(); } };
         timerRow.onLeft = new Runnable() { public void run() { Sleep.cycle(SmartHomeActivity.this, -1); showT.run(); } };
         timerRow.requestFocus();
+        Row phone = addRoomRow("\u2630  Handy-Fernbedienung");
+        phone.value.setText("QR \u203a");
+        phone.onOk = new Runnable() { public void run() { SettingsActivity.showRemoteQr(SmartHomeActivity.this); } };
 
         JSONObject cfg = Style.loadConfig(this);
         if (cfg == null) { hint.setText("Home Assistant ist nicht verbunden – Einstellungen → Verbindungen."); return; }
@@ -182,11 +185,11 @@ public class SmartHomeActivity extends Activity {
             if (id.equals(last)) lastRow = row;
         }
         if (lastRow != null) selectRoom(lastRow == null ? null : roomIdOf(lastRow), lastRow.name.getText().toString(), lastRow);
-        else if (!rooms.isEmpty()) selectRoom(rooms.get(0)[0], rooms.get(0)[1], (Row) roomList.getChildAt(1));
+        else if (!rooms.isEmpty()) selectRoom(rooms.get(0)[0], rooms.get(0)[1], (Row) roomList.getChildAt(2));
         h.postDelayed(refresh, 4000);
     }
 
-    String roomIdOf(Row r) { int i = roomList.indexOfChild(r) - 1; return i >= 0 && i < rooms.size() ? rooms.get(i)[0] : null; }
+    String roomIdOf(Row r) { int i = roomList.indexOfChild(r) - 2; return i >= 0 && i < rooms.size() ? rooms.get(i)[0] : null; }
 
     static int order(String id) {
         String d = id.substring(0, id.indexOf('.'));

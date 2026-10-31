@@ -27,8 +27,7 @@ public class RadioService extends Service {
     String error;
     int session;
     AudioManager am;
-    MiniServer wishServer;
-    String wishUrl;   // http://<ip>:<port>/ fuer den QR-Code
+    volatile String wishUrl;   // Ziel des QR-Codes fuer Musikwuensche
     AudioManager.OnAudioFocusChangeListener focus;
 
     static void start(Context c, String action) {
@@ -55,47 +54,24 @@ public class RadioService extends Service {
         changed();
     }
 
-    // ------------------------------------------------------------ Musikwuensche per Handy (midnox Radio)
-    String stationApi() { return Radio.api(this).replace("/api/nowplaying/", "/api/station/"); }
-
-    void startWishes() {
-        wishServer = new MiniServer(new MiniServer.Handler() { public String[] handle(String m, String path, String body) {
-            if (path.startsWith("/wish") && m.equals("POST")) {
-                try {
-                    org.json.JSONObject o = new org.json.JSONObject(body);
-                    final String name = o.optString("name").trim(), t = o.optString("title"), a = o.optString("artist");
-                    h.post(new Runnable() { public void run() {
-                        Style.toast(RadioService.this, "\u266A  " + (name.isEmpty() ? "Jemand" : name) + " w\u00fcnscht sich: " + t + (a.isEmpty() ? "" : " \u2013 " + a));
-                    }});
-                    log("Wunsch: " + name + " -> " + a + " - " + t);
-                } catch (Exception ignored) {}
-                return new String[]{"application/json", "{\"ok\":true}"};
-            }
-            return new String[]{"text/html", wishPage()};
-        }});
-        try { wishUrl = "http://" + SettingsActivity.ownIp() + ":" + wishServer.start(8120) + "/"; } catch (Exception e) { wishServer = null; }
+    // ------------------------------------------------------------ Musikwuensche (oeffentlich, ueber midnox.de)
+    static final String DEFAULT_WISH = "https://midnox.de/radio-wunsch.php";
+    static String wishBase(Context c) {
+        org.json.JSONObject cfg = Style.loadConfig(c);
+        String u = cfg == null ? "" : cfg.optString("wish_url");
+        return u.isEmpty() ? DEFAULT_WISH : u;
     }
 
-    String wishPage() {
-        String api = stationApi();
-        return MiniServer.page("midnox Radio \u2013 Musikwunsch",
-            "<h1>midnox Radio</h1><p class=sub>W\u00fcnsch dir einen Song \u2013 er l\u00e4uft gleich im Radio und dein Wunsch erscheint auf dem Fernseher.</p>"
-            + "<input id=n placeholder=\"Dein Name\" maxlength=24><input id=q placeholder=\"Song oder K\u00fcnstler suchen \u2026\" autocomplete=off>"
-            + "<div id=m class=msg></div><div id=r></div>",
-            "var api='" + api + "',t,n=document.getElementById('n'),q=document.getElementById('q'),r=document.getElementById('r'),m=document.getElementById('m');"
-            + "try{n.value=localStorage.getItem('midnox_name')||''}catch(e){}"
-            + "function esc(s){return String(s||'').replace(/[&<>\"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]})}"
-            + "function msg(s){m.style.display='block';m.textContent=s}"
-            + "function load(){fetch(api+'/requests?rowCount=30&searchPhrase='+encodeURIComponent(q.value)).then(function(x){return x.json()}).then(function(d){"
-            + "r.innerHTML='';(d.rows||d).forEach(function(it){var s=it.song,e=document.createElement('div');e.className='it';"
-            + "e.innerHTML='<img src=\"'+esc(s.art)+'\"><div><b>'+esc(s.title)+'</b><span>'+esc(s.artist)+'</span></div><button>W\u00fcnschen</button>';"
-            + "e.querySelector('button').onclick=function(){wish(it.request_id,s)};r.appendChild(e)})}).catch(function(){msg('Radio gerade nicht erreichbar.')})}"
-            + "function wish(id,s){try{localStorage.setItem('midnox_name',n.value)}catch(e){}"
-            + "fetch(api+'/request/'+id,{method:'POST'}).then(function(x){return x.json().then(function(j){return{ok:x.ok,j:j}})}).then(function(o){"
-            + "if(o.ok&&o.j.success!==false){msg('\u2713 '+(o.j.formatted_message||o.j.message||'Wunsch angenommen!'));"
-            + "fetch('/wish',{method:'POST',body:JSON.stringify({name:n.value,title:s.title,artist:s.artist,art:s.art})})}"
-            + "else msg(o.j.formatted_message||o.j.message||'Wunsch nicht m\u00f6glich.')}).catch(function(){msg('Wunsch nicht m\u00f6glich.')})}"
-            + "q.addEventListener('input',function(){clearTimeout(t);t=setTimeout(load,350)});load();");
+    /** QR-Ziel: eigene Wunschseite auf midnox.de (mit Namen), sonst die oeffentliche AzuraCast-Seite. */
+    void startWishes() {
+        final String pub = Radio.api(this).replace("/api/nowplaying/", "/public/");
+        wishUrl = pub;
+        new Thread(new Runnable() { public void run() {
+            try {
+                String r = RadioNet.get(wishBase(RadioService.this) + "?ping=1");
+                if (r.contains("midnox-wunsch")) { wishUrl = wishBase(RadioService.this); changed(); }
+            } catch (Exception ignored) {}
+        }}).start();
     }
 
     @Override public int onStartCommand(Intent i, int flags, int id) {
@@ -106,7 +82,7 @@ public class RadioService extends Service {
         return START_NOT_STICKY;
     }
 
-    @Override public void onDestroy() { if (wishServer != null) wishServer.stop(); stop(); h.removeCallbacksAndMessages(null); inst = null; super.onDestroy(); }
+    @Override public void onDestroy() { stop(); h.removeCallbacksAndMessages(null); inst = null; super.onDestroy(); }
 
     void changed() {
         h.post(new Runnable() { public void run() {

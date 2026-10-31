@@ -170,6 +170,7 @@ public class SettingsActivity extends Activity {
         section("REIHEN AUF DER STARTSEITE");
         toggle("Weiterschauen", "hide_resume", false, true);
         toggle("Zuhause (Home Assistant)", "hide_home", false, true);
+        toggle("Jetzt im TV", "hide_tv", false, true);
         try {
             JSONArray libs = new JSONArray(pr.getString("emby_libs", "[]"));
             for (int i = 0; i < libs.length(); i++) {

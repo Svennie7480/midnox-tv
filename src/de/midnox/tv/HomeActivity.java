@@ -144,6 +144,7 @@ public class HomeActivity extends Activity {
     Tile radioTile;
     long lastRadio;
     TextView nowPlaying, sleepInfo;
+    TvRows tvRows;
     final Runnable radioChanged = new Runnable() { public void run() { showRadio(); } };
     LinearLayout weatherRow; Weather.Icon weatherIcon; TextView weatherText;
     long lastWeather, lastInput = System.currentTimeMillis();
@@ -289,6 +290,8 @@ public class HomeActivity extends Activity {
         home.addView(hrow, new LinearLayout.LayoutParams(-1, -2));
         content.addView(home, new LinearLayout.LayoutParams(-1, -2));
 
+        tvRows = new TvRows(this);
+        content.addView(tvRows.box, new LinearLayout.LayoutParams(-1, -2));
         content.addView(emby.bottom, new LinearLayout.LayoutParams(-1, -2));
         root.addView(hero.backdrop, new FrameLayout.LayoutParams(-1, -1));
         headFrame.setClipChildren(true);
@@ -532,9 +535,9 @@ public class HomeActivity extends Activity {
         lastInput = System.currentTimeMillis();
         lastWeather = 0; lastRadio = 0;
         RadioService.listen(radioChanged); showRadio(); sleepTick();
-        h.post(tick); ha.start(); emby.start();
+        h.post(tick); ha.start(); emby.start(); tvRows.start();
     }
-    @Override protected void onPause() { super.onPause(); RadioService.unlisten(radioChanged); h.removeCallbacks(tick); ha.stop(); emby.stop(); overlay.stop(); }
+    @Override protected void onPause() { super.onPause(); RadioService.unlisten(radioChanged); h.removeCallbacks(tick); ha.stop(); emby.stop(); tvRows.stop(); overlay.stop(); }
     @Override public void onBackPressed() {
         // Startbildschirm bleibt; Zurueck springt nach oben zu den Apps
         if (vscroll.getScrollY() > 0) {

@@ -103,14 +103,21 @@ public class StoreActivity extends Activity {
 
     void build() {
         grid.removeAllViews(); cards.clear();
-        int cols = 5; LinearLayout row = null;
-        // Updates zuerst, dann installierte, dann der Rest
-        List<Store.App> sorted = new ArrayList<>(apps);
+        int cols = 6;
+        LinkedHashMap<String, List<Store.App>> groups = new LinkedHashMap<>();
+        for (Store.App a : apps) { String k = a.cat.isEmpty() ? "Weitere" : a.cat; if (!groups.containsKey(k)) groups.put(k, new ArrayList<Store.App>()); groups.get(k).add(a); }
+        for (Map.Entry<String, List<Store.App>> g : groups.entrySet()) {
+        TextView gh = Style.text(this, g.getKey().toUpperCase(Locale.GERMANY), 11, Style.MUTED);
+        gh.setLetterSpacing(0.25f);
+        gh.setPadding(Style.px(4), Style.px(4), 0, Style.px(10));
+        grid.addView(gh);
+        LinearLayout row = null;
+        List<Store.App> sorted = g.getValue();
         for (int i = 0; i < sorted.size(); i++) {
             if (i % cols == 0) {
                 row = new LinearLayout(this);
                 row.setClipChildren(false);
-                LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, Style.px(150));
+                LinearLayout.LayoutParams rl = new LinearLayout.LayoutParams(-1, Style.px(140));
                 rl.bottomMargin = Style.px(16);
                 grid.addView(row, rl);
             }
@@ -121,6 +128,7 @@ public class StoreActivity extends Activity {
             cards.add(c);
         }
         if (sorted.size() % cols != 0) for (int i = sorted.size() % cols; i < cols; i++) row.addView(new View(this), new LinearLayout.LayoutParams(0, -1, 1f));
+        }
         if (!cards.isEmpty()) cards.get(0).requestFocus();
     }
 
@@ -135,12 +143,22 @@ public class StoreActivity extends Activity {
         dTitle.setText(a.name + (a.cat.isEmpty() ? "" : "   ·   " + a.cat));
         dDesc.setText(a.desc);
         String v = a.isInstalled() ? "Installiert: " + a.installed + (a.latest != null ? "   ·   Neueste: " + a.latest : "") : a.latest != null ? "Neueste Version: " + a.latest : "";
+        if (a.appstore()) {
+            dHint.setText(a.isInstalled() ? "Installiert: " + a.installed + "      OK: öffnen   \u00b7   Updates über den Amazon Appstore" : "OK: im Amazon Appstore öffnen und dort installieren");
+            return;
+        }
         String act = a.busy ? "" : a.hasUpdate() ? "OK: aktualisieren" : a.isInstalled() ? "OK: öffnen   ·   Menü-Taste: deinstallieren" : a.apk != null ? "OK: installieren" : "";
         dHint.setText(v + (v.isEmpty() || act.isEmpty() ? "" : "      ") + act + (a.error != null && !a.isInstalled() ? a.error : ""));
     }
 
     void act(final Store.App a) {
         if (a.busy) return;
+        if (a.appstore() && !a.isInstalled()) {   // Amazon Appstore uebernimmt Installation und Updates
+            String u = a.amazon != null ? "amzn://apps/android?p=" + a.amazon : "amzn://apps/android?s=" + Uri.encode(a.search);
+            try { Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(u)); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); }
+            catch (Exception e) { Style.toast(this, "Amazon Appstore nicht gefunden"); }
+            return;
+        }
         if (a.isInstalled() && !a.hasUpdate()) {
             Intent li = Style.launchIntent(getPackageManager(), a.pkg);
             if (li != null) Style.start(this, li); else Style.toast(this, a.name + " hat kein Startsymbol");
@@ -226,9 +244,10 @@ public class StoreActivity extends Activity {
             // Status-Pille
             String s; int col;
             if (a.busy) { s = a.status; col = Style.C2; }
+            else if (a.appstore() && !a.isInstalled()) { s = "Appstore"; col = 0xFFFBBF24; }
             else if (a.hasUpdate()) { s = "Update " + a.latest; col = 0xFFF59E0B; }
             else if (a.isInstalled()) { s = "Installiert ✓"; col = 0xFF22C55E; }
-            else if (a.resolving || a.github != null && a.apk == null && a.error == null) { s = "…"; col = Style.MUTED; }
+            else if (a.resolving || (a.github != null || a.page != null) && a.apk == null && a.error == null) { s = "…"; col = Style.MUTED; }
             else if (a.apk == null) { s = "nicht verfügbar"; col = Style.MUTED; }
             else { s = !a.status.isEmpty() ? a.status : "Installieren"; col = Style.C3; }
             t.setTextSize(11 * dp);

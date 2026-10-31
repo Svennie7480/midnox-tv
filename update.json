@@ -1,6 +1,6 @@
 {
-  "versionCode": 45,
-  "versionName": "8.2",
+  "versionCode": 46,
+  "versionName": "8.3",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neu: midnox Store – SmartTube & Co. mit einem Klick installieren und aktuell halten"
+  "notes": "Store: Kodi, Emby, Plex, Mediatheken, Streaming und mehr – nach Kategorien sortiert"
 }

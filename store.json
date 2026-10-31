@@ -1,32 +1,218 @@
 {
-  "info": "midnox Store – Katalog. Neue App: Eintrag hinzufügen. github = owner/repo (neueste Release-APK, passend zum Prozessor), match = Teil des Dateinamens, alternativ url = direkter APK-Link ({abi} wird ersetzt).",
-  "apps": [
-    {"id": "smarttube", "name": "SmartTube", "cat": "Video", "pkg": "com.teamsmart.videomanager.tv",
-     "desc": "YouTube auf dem Fernseher – ohne Werbung, mit SponsorBlock, 4K/HDR und ohne Google-Konto-Zwang.",
-     "github": "yuliskov/SmartTube", "match": "stable"},
-    {"id": "smarttube-beta", "name": "SmartTube Beta", "cat": "Video", "pkg": "com.liskovsoft.smarttubetv.beta",
-     "desc": "Die Beta von SmartTube mit den neuesten Funktionen und Fehlerbehebungen – läuft parallel zur stabilen Version.",
-     "github": "yuliskov/SmartTube", "match": "beta"},
-    {"id": "smarttwitch", "name": "SmartTwitchTV", "cat": "Video", "pkg": "com.fgl27.twitch",
-     "desc": "Twitch für den Fernseher: Livestreams, VODs und Clips mit Fernbedienung, ohne Werbung.",
-     "github": "fgl27/SmartTwitchTV"},
-    {"id": "jellyfin", "name": "Jellyfin", "cat": "Mediathek", "pkg": "org.jellyfin.androidtv",
-     "desc": "Freie Mediathek-App für Jellyfin-Server – Filme, Serien und Musik vom eigenen Server.",
-     "github": "jellyfin/jellyfin-androidtv", "match": "release"},
-    {"id": "justplayer", "name": "Just Player", "cat": "Video", "pkg": "com.brouken.player",
-     "desc": "Schlanker Videoplayer für Dateien und Netzwerkfreigaben, mit Untertiteln und Audiospur-Wahl.",
-     "github": "moneytoo/Player"},
-    {"id": "mpv", "name": "mpv", "cat": "Video", "pkg": "is.xyz.mpv",
-     "desc": "Der Profi-Videoplayer: spielt praktisch jedes Format, auch HDR und hohe Bitraten.",
-     "github": "mpv-android/mpv-android", "match": "default"},
-    {"id": "moonlight", "name": "Moonlight", "cat": "Spiele", "pkg": "com.limelight",
-     "desc": "PC-Spiele vom eigenen Rechner auf den Fernseher streamen (NVIDIA GameStream / Sunshine).",
-     "github": "moonlight-stream/moonlight-android", "match": "nonRoot"},
-    {"id": "localsend", "name": "LocalSend", "cat": "Werkzeuge", "pkg": "org.localsend.localsend_app",
-     "desc": "Dateien und Fotos vom Handy oder PC direkt auf den Fernseher schicken – im WLAN, ohne Cloud.",
-     "github": "localsend/localsend", "match": "android"},
-    {"id": "materialfiles", "name": "Material Files", "cat": "Werkzeuge", "pkg": "me.zhanghai.android.files",
-     "desc": "Dateimanager mit Zugriff auf Netzwerkfreigaben (SMB, FTP, WebDAV) – z. B. für dein NAS.",
-     "github": "zhanghai/MaterialFiles"}
-  ]
+ "info": "midnox Store – Katalog. Quellen: github = owner/repo (neueste Release-APK, passend zum Prozessor; match = Teil des Dateinamens), page + pattern = Dateiliste eines Servers (neueste stabile Version, {abi}/{dir} werden ersetzt), amazon = Paketname im Amazon Appstore, search = Suchbegriff im Amazon Appstore.",
+ "apps": [
+  {
+   "id": "emby",
+   "name": "Emby",
+   "cat": "Mediathek",
+   "amazon": "tv.emby.embyatv",
+   "desc": "Deine Emby-Mediathek – Filme, Serien, Live-TV und Musik vom eigenen Server."
+  },
+  {
+   "id": "plex",
+   "name": "Plex",
+   "cat": "Mediathek",
+   "amazon": "com.plexapp.android",
+   "desc": "Plex-Server, kostenlose Filme und Live-TV – alles in einer App."
+  },
+  {
+   "id": "jellyfin",
+   "name": "Jellyfin",
+   "cat": "Mediathek",
+   "pkg": "org.jellyfin.androidtv",
+   "desc": "Freie Mediathek-App für Jellyfin-Server – Filme, Serien und Musik vom eigenen Server.",
+   "github": "jellyfin/jellyfin-androidtv",
+   "match": "release"
+  },
+  {
+   "id": "kodi",
+   "name": "Kodi",
+   "cat": "Mediathek",
+   "pkg": "org.xbmc.kodi",
+   "desc": "Das Media-Center: lokale Dateien, NAS, Add-ons und Skins. Immer die neueste stabile Version direkt von kodi.tv.",
+   "page": "https://mirrors.mit.edu/kodi/releases/android/{dir}/",
+   "dirs": {
+    "armeabi-v7a": "arm",
+    "arm64-v8a": "arm64-v8a",
+    "x86": "x86"
+   },
+   "pattern": "kodi-(\\d+(?:\\.\\d+)+)-[A-Za-z]+-{abi}\\.apk"
+  },
+  {
+   "id": "smarttube",
+   "name": "SmartTube",
+   "cat": "Video",
+   "pkg": "com.teamsmart.videomanager.tv",
+   "desc": "YouTube auf dem Fernseher – ohne Werbung, mit SponsorBlock, 4K/HDR und ohne Google-Konto-Zwang.",
+   "github": "yuliskov/SmartTube",
+   "match": "stable"
+  },
+  {
+   "id": "smarttube-beta",
+   "name": "SmartTube Beta",
+   "cat": "Video",
+   "pkg": "com.liskovsoft.smarttubetv.beta",
+   "desc": "Die Beta von SmartTube mit den neuesten Funktionen und Fehlerbehebungen – läuft parallel zur stabilen Version.",
+   "github": "yuliskov/SmartTube",
+   "match": "beta"
+  },
+  {
+   "id": "smarttwitch",
+   "name": "SmartTwitchTV",
+   "cat": "Video",
+   "pkg": "com.fgl27.twitch",
+   "desc": "Twitch für den Fernseher: Livestreams, VODs und Clips mit Fernbedienung, ohne Werbung.",
+   "github": "fgl27/SmartTwitchTV"
+  },
+  {
+   "id": "vlc",
+   "name": "VLC",
+   "cat": "Video",
+   "amazon": "org.videolan.vlc",
+   "desc": "Spielt alles: Dateien, Netzwerkfreigaben, Streams."
+  },
+  {
+   "id": "justplayer",
+   "name": "Just Player",
+   "cat": "Video",
+   "pkg": "com.brouken.player",
+   "desc": "Schlanker Videoplayer für Dateien und Netzwerkfreigaben, mit Untertiteln und Audiospur-Wahl.",
+   "github": "moneytoo/Player"
+  },
+  {
+   "id": "mpv",
+   "name": "mpv",
+   "cat": "Video",
+   "pkg": "is.xyz.mpv",
+   "desc": "Der Profi-Videoplayer: spielt praktisch jedes Format, auch HDR und hohe Bitraten.",
+   "github": "mpv-android/mpv-android",
+   "match": "default"
+  },
+  {
+   "id": "ard",
+   "name": "ARD Mediathek",
+   "cat": "TV & Mediatheken",
+   "pkg": "",
+   "search": "ARD Mediathek",
+   "desc": "Live-TV und Sendungen von Das Erste, NDR und allen ARD-Sendern."
+  },
+  {
+   "id": "zdf",
+   "name": "ZDFmediathek",
+   "cat": "TV & Mediatheken",
+   "pkg": "",
+   "search": "ZDFmediathek",
+   "desc": "ZDF, ZDFneo, 3sat und phoenix – live und auf Abruf."
+  },
+  {
+   "id": "joyn",
+   "name": "Joyn",
+   "cat": "TV & Mediatheken",
+   "pkg": "",
+   "search": "Joyn",
+   "desc": "Live-TV von ProSieben, SAT.1, kabel eins und Mediathek – kostenlos."
+  },
+  {
+   "id": "waipu",
+   "name": "waipu.tv",
+   "cat": "TV & Mediatheken",
+   "pkg": "",
+   "search": "waipu.tv",
+   "desc": "Fernsehen übers Internet mit vielen Sendern, Aufnahmen und Pause."
+  },
+  {
+   "id": "zattoo",
+   "name": "Zattoo",
+   "cat": "TV & Mediatheken",
+   "pkg": "",
+   "search": "Zattoo",
+   "desc": "Live-TV-Streaming – öffentlich-rechtliche Sender gratis."
+  },
+  {
+   "id": "netflix",
+   "name": "Netflix",
+   "cat": "Streaming",
+   "amazon": "com.netflix.ninja",
+   "desc": "Serien und Filme von Netflix."
+  },
+  {
+   "id": "disney",
+   "name": "Disney+",
+   "cat": "Streaming",
+   "amazon": "com.disney.disneyplus",
+   "desc": "Disney, Pixar, Marvel, Star Wars und National Geographic."
+  },
+  {
+   "id": "stremio",
+   "name": "Stremio",
+   "cat": "Streaming",
+   "pkg": "",
+   "search": "Stremio",
+   "desc": "Filme und Serien aus vielen Quellen in einer übersichtlichen Oberfläche."
+  },
+  {
+   "id": "spotify",
+   "name": "Spotify",
+   "cat": "Musik",
+   "amazon": "com.spotify.tv.android",
+   "desc": "Musik und Podcasts auf dem Fernseher – auch per Handy steuerbar."
+  },
+  {
+   "id": "aerial",
+   "name": "Aerial Views",
+   "cat": "Werkzeuge",
+   "pkg": "com.neilturner.aerialviews",
+   "github": "theothernt/AerialViews",
+   "desc": "Bildschirmschoner mit atemberaubenden 4K-Luftaufnahmen (Apple TV-Stil) – auch eigene Fotos und Videos vom NAS."
+  },
+  {
+   "id": "localsend",
+   "name": "LocalSend",
+   "cat": "Werkzeuge",
+   "pkg": "org.localsend.localsend_app",
+   "desc": "Dateien und Fotos vom Handy oder PC direkt auf den Fernseher schicken – im WLAN, ohne Cloud.",
+   "github": "localsend/localsend",
+   "match": "android"
+  },
+  {
+   "id": "materialfiles",
+   "name": "Material Files",
+   "cat": "Werkzeuge",
+   "pkg": "me.zhanghai.android.files",
+   "desc": "Dateimanager mit Zugriff auf Netzwerkfreigaben (SMB, FTP, WebDAV) – z. B. für dein NAS.",
+   "github": "zhanghai/MaterialFiles"
+  },
+  {
+   "id": "downloader",
+   "name": "Downloader",
+   "cat": "Werkzeuge",
+   "amazon": "com.esaba.downloader",
+   "desc": "Browser und Datei-Download per Kurzcode – der Klassiker für den Fire TV."
+  },
+  {
+   "id": "sendfiles",
+   "name": "Send Files to TV",
+   "cat": "Werkzeuge",
+   "pkg": "",
+   "search": "Send Files to TV",
+   "desc": "Dateien vom Handy auf den Fernseher und zurück."
+  },
+  {
+   "id": "analiti",
+   "name": "Analiti",
+   "cat": "Werkzeuge",
+   "pkg": "",
+   "search": "Analiti",
+   "desc": "WLAN- und Internet-Geschwindigkeit des Fire TV messen."
+  },
+  {
+   "id": "moonlight",
+   "name": "Moonlight",
+   "cat": "Spiele",
+   "pkg": "com.limelight",
+   "desc": "PC-Spiele vom eigenen Rechner auf den Fernseher streamen (NVIDIA GameStream / Sunshine).",
+   "github": "moonlight-stream/moonlight-android",
+   "match": "nonRoot"
+  }
+ ]
 }

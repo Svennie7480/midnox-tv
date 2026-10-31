@@ -13,7 +13,9 @@ import java.util.regex.*;
  */
 public class Store {
     static class App {
-        String id, name, pkg, desc, cat, github, match, url, version;
+        String id, name, pkg, desc, cat, github, match, url, version, page, pattern, amazon, search;
+        JSONObject dirs;
+        boolean appstore() { return amazon != null || search != null; }
         // Laufzeit
         String latest, apk, error, installed, status = "";
         boolean resolving, busy;
@@ -33,6 +35,9 @@ public class Store {
             x.id = o.optString("id"); x.name = o.optString("name"); x.pkg = o.optString("pkg");
             x.desc = o.optString("desc"); x.cat = o.optString("cat"); x.github = o.optString("github", null);
             x.match = o.optString("match", null); x.url = o.optString("url", null); x.version = o.optString("version", null);
+            x.page = o.optString("page", null); x.pattern = o.optString("pattern", null); x.dirs = o.optJSONObject("dirs");
+            x.amazon = o.optString("amazon", null); x.search = o.optString("search", null);
+            if (x.pkg.isEmpty() && x.amazon != null) x.pkg = x.amazon;
             if (x.url != null) { x.apk = x.url.replace("{abi}", Build.SUPPORTED_ABIS[0]); x.latest = x.version; }
             out.add(x);
         }
@@ -42,8 +47,16 @@ public class Store {
 
     static void refreshInstalled(Context c, List<App> apps) {
         PackageManager pm = c.getPackageManager();
+        Map<String, String> labels = null;
         for (App a : apps) {
             a.installed = null;
+            if (a.pkg.isEmpty()) {   // nur Name bekannt: unter den installierten Apps suchen
+                if (labels == null) labels = labels(pm);
+                String p = labels.get(a.name.toLowerCase(Locale.GERMANY));
+                if (p == null) continue;
+                try { PackageInfo pi = pm.getPackageInfo(p, 0); a.installed = pi.versionName == null ? "?" : pi.versionName; a.pkg = p; } catch (Exception ignored) {}
+                continue;
+            }
             for (String p : a.pkg.split(",")) {
                 try { PackageInfo pi = pm.getPackageInfo(p.trim(), 0); a.installed = pi.versionName == null ? "?" : pi.versionName; a.pkg = p.trim(); break; }
                 catch (Exception ignored) {}
@@ -51,8 +64,38 @@ public class Store {
         }
     }
 
+    static Map<String, String> labels(PackageManager pm) {
+        Map<String, String> m = new HashMap<>();
+        for (String cat : new String[]{"android.intent.category.LEANBACK_LAUNCHER", android.content.Intent.CATEGORY_LAUNCHER}) {
+            android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(cat);
+            for (ResolveInfo r : pm.queryIntentActivities(i, 0))
+                m.put(String.valueOf(r.loadLabel(pm)).toLowerCase(Locale.GERMANY), r.activityInfo.packageName);
+        }
+        return m;
+    }
+
+    /** Neueste stabile APK aus einer Dateiliste (z. B. Kodi-Server). */
+    static void resolvePage(App a) {
+        try {
+            String abi = Build.SUPPORTED_ABIS[0];
+            String dir = a.dirs == null ? abi : a.dirs.optString(abi, a.dirs.optString("default", abi));
+            String page = a.page.replace("{abi}", abi).replace("{dir}", dir);
+            String html = Style.httpGet(page, null);
+            Matcher m = Pattern.compile(a.pattern.replace("{abi}", Pattern.quote(abi))).matcher(html);
+            String best = null, bestV = null;
+            while (m.find()) {
+                String v = m.groupCount() > 0 ? m.group(1) : m.group();
+                if (bestV == null || newer(v, bestV)) { bestV = v; best = m.group(); }
+            }
+            if (best == null) { a.error = "Keine passende APK gefunden"; return; }
+            a.apk = new java.net.URL(new java.net.URL(page.endsWith("/") ? page : page + "/"), best).toString();
+            a.latest = bestV; a.error = null;
+        } catch (Exception e) { a.error = "Download-Server nicht erreichbar"; }
+    }
+
     /** Neueste passende APK aus den GitHub-Releases. */
     static void resolve(App a) {
+        if (a.page != null && a.apk == null) { resolvePage(a); return; }
         if (a.github == null || a.apk != null && a.latest != null) return;
         try {
             JSONArray rel = new JSONArray(Style.httpGet("https://api.github.com/repos/" + a.github + "/releases?per_page=15", null));

@@ -1,6 +1,6 @@
 {
-  "versionCode": 39,
-  "versionName": "7.6",
+  "versionCode": 40,
+  "versionName": "7.7",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Auch ohne Home Assistant/MagentaTV sauber: Zuhause-Reihe automatisch, TV-App wählbar"
+  "notes": "Mit Handy einrichten: Zuhause-Kacheln auswählen, sortieren und benennen"
 }

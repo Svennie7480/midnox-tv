@@ -118,6 +118,9 @@ public class Remote {
             case "sleep":
                 Sleep.set(c, in.optInt("min"));
                 return "{\"ok\":true}";
+            case "morning":
+                ui(new Runnable() { public void run() { Morning.show(c); } });
+                return "{\"ok\":true}";
             case "search":
                 ui(new Runnable() { public void run() { Intent i = new Intent(c, SearchActivity.class); i.putExtra("q", in.optString("q")); startAct(c, i); } });
                 return "{\"ok\":true}";
@@ -150,7 +153,7 @@ public class Remote {
             + "<h3>RADIO</h3><div class=g><button onclick=\"a('radio',{})\">⏯</button></div><div class=l id=radio></div>"
             + "<h3>TV</h3><div class=l id=tv></div>"
             + "<h3>EINSCHLAF-TIMER</h3><div class=g><button onclick=\"a('sleep',{min:15})\">15</button><button onclick=\"a('sleep',{min:30})\">30</button><button onclick=\"a('sleep',{min:60})\">60</button><button onclick=\"a('sleep',{min:0})\">Aus</button></div>"
-            + "<div class=g><button onclick=\"a('home',{})\" style='grid-column:span 4'>Startseite</button></div>",
+            + "<div class=g><button onclick=\"a('morning',{})\" style='grid-column:span 2'>Mein Tag</button><button onclick=\"a('home',{})\" style='grid-column:span 2'>Startseite</button></div>",
             "var key='" + k + "';"
             + "function k(code){try{navigator.vibrate(12)}catch(e){}fetch('/api/key?k='+key,{method:'POST',body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(j){if(!j.ok)st(j.msg||'Keine Verbindung')})}"
             + "(function(){var p=document.getElementById('pad'),x0,y0;p.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});"

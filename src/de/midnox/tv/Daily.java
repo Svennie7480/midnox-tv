@@ -18,7 +18,11 @@ public class Daily {
     static boolean pausedEmby, duckedRadio;
     static AudioManager.OnAudioFocusChangeListener callFocus = new AudioManager.OnAudioFocusChangeListener() { public void onAudioFocusChange(int f) {} };
 
+    static Boolean wasOn;
     static void tick(Context c) {
+        boolean on = screenOn(c);
+        if (on && Boolean.FALSE.equals(wasOn)) Morning.maybe(c);
+        wasOn = on;
         try { reminders(c); } catch (Exception ignored) {}
         long now = System.currentTimeMillis();
         if (now - lastShift > 60000) { lastShift = now; try { shift(c); } catch (Exception ignored) {} }

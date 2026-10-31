@@ -543,6 +543,7 @@ public class HomeActivity extends Activity {
         lastInput = System.currentTimeMillis();
         lastWeather = 0; lastRadio = 0;
         RadioService.listen(radioChanged); showRadio(); sleepTick();
+        h.postDelayed(new Runnable() { public void run() { if (!isFinishing()) Morning.maybe(HomeActivity.this); } }, 1200);
         h.post(tick); ha.start(); emby.start(); tvRows.start();
     }
     @Override protected void onPause() { super.onPause(); RadioService.unlisten(radioChanged); h.removeCallbacks(tick); ha.stop(); emby.stop(); tvRows.stop(); overlay.stop(); }

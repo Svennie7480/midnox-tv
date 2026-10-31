@@ -161,6 +161,9 @@ public class SettingsActivity extends Activity {
         toggle("Wetter unter der Uhr anzeigen", "weather_on", true, false);
         weatherSource();
 
+        section("GUTEN MORGEN");
+        morningSection();
+
         section("DIENSTPLAN");
         shiftSection();
 
@@ -445,6 +448,24 @@ public class SettingsActivity extends Activity {
     }
 
     // ------------------------------------------------------------ Dienstplan
+    void morningSection() {
+        toggle("Morgens beim Einschalten anzeigen", "morning_on", true, false);
+        final Row win = add("Zeitfenster");
+        final Runnable ws = new Runnable() { public void run() { win.value.setText("\u25C0  " + pr.getInt("morning_from", 4) + " bis " + pr.getInt("morning_to", 11) + " Uhr  \u25B6"); } };
+        ws.run();
+        win.onRight = win.onOk = new Runnable() { public void run() { int t = pr.getInt("morning_to", 11) + 1; if (t > 14) t = 8; pr.edit().putInt("morning_to", t).apply(); ws.run(); } };
+        win.onLeft = new Runnable() { public void run() { int f = pr.getInt("morning_from", 4) + 1; if (f > 8) f = 3; pr.edit().putInt("morning_from", f).apply(); ws.run(); } };
+        final Row news = add("Nachrichten");
+        final String[] nn = {"Aus", "Deutschland (tagesschau)", "Deutschland + Schleswig-Holstein"};
+        final Runnable ns = new Runnable() { public void run() { news.value.setText("\u25C0  " + nn[pr.getInt("morning_news", 2)] + "  \u25B6"); } };
+        ns.run();
+        news.onOk = news.onRight = new Runnable() { public void run() { pr.edit().putInt("morning_news", (pr.getInt("morning_news", 2) + 1) % 3).apply(); ns.run(); } };
+        news.onLeft = new Runnable() { public void run() { pr.edit().putInt("morning_news", (pr.getInt("morning_news", 2) + 2) % 3).apply(); ns.run(); } };
+        final Row now = add("Jetzt anzeigen");
+        now.value.setText("OK");
+        now.onOk = new Runnable() { public void run() { Morning.show(SettingsActivity.this); } };
+    }
+
     void shiftSection() {
         toggle("Vor dem Dienst ans Schlafen erinnern", "shift_on", true, false);
         final Row lead = add("Aufstehen vor Dienstbeginn");

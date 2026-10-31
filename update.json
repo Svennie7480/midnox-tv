@@ -1,6 +1,6 @@
 {
-  "versionCode": 42,
-  "versionName": "7.9",
+  "versionCode": 43,
+  "versionName": "8.0",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Handy-Fernbedienung mit Steuerkreuz, OK, Zurück, Home, Lautstärke und Texteingabe"
+  "notes": "Neu: Guten-Morgen-Bildschirm mit Wetter, Dienst, Terminen, Müll, Auto, Warnungen und Nachrichten"
 }

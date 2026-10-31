@@ -43,7 +43,7 @@ public class Sleep {
     static String label(Context c) { int m = remainingMin(c); return m <= 0 ? "Aus" : m + " Min."; }
 
     /** Alles schlafen legen (im Hintergrund-Thread aufrufen). */
-    static void execute(Context c) {
+    static void execute(final Context c) {
         SharedPreferences pr = Style.prefs(c);
         pr.edit().putLong("sleep_at", 0).putBoolean("sleep_mode", true).apply();
         // 1. Radio aus
@@ -68,6 +68,12 @@ public class Sleep {
                 }
             }
         } catch (Exception ignored) {}
+        // Fire TV in den Standby schicken (schaltet per HDMI-CEC meist auch den Fernseher aus), wenn ADB schon erlaubt ist
+        if (pr.getBoolean("adb_ok", false)) {
+            new Thread(new Runnable() { public void run() {
+                try { Thread.sleep(8000); Adb.shell(c, "input keyevent 223"); } catch (Exception ignored) {}
+            }}).start();
+        }
         // 4./5. Home Assistant: Licht aus, Fernseher aus
         try {
             JSONObject cfg = Style.loadConfig(c);

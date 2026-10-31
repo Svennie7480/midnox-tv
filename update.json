@@ -1,6 +1,6 @@
 {
-  "versionCode": 41,
-  "versionName": "7.8",
+  "versionCode": 42,
+  "versionName": "7.9",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neue Halloween-Kulisse, Handy-Fernbedienung, Musikwünsche über das Internet, midnox-Logo größer"
+  "notes": "Handy-Fernbedienung mit Steuerkreuz, OK, Zurück, Home, Lautstärke und Texteingabe"
 }

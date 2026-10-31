@@ -73,6 +73,27 @@ public class Remote {
                 o.put("sleep", Sleep.remainingMin(c));
                 return o.toString();
             }
+            case "key": {   // Tastendruck wie auf der Fire-TV-Fernbedienung (ueber ADB zum eigenen Geraet)
+                int code = in.optInt("code");
+                try {
+                    Adb.shell(c, "input keyevent " + code);
+                    Style.prefs(c).edit().putBoolean("adb_ok", true).apply();
+                    return "{\"ok\":true}";
+                } catch (Exception e) {
+                    String msg = Adb.status.isEmpty() ? "Keine Verbindung: Netzwerk-Debugging am Fire TV einschalten" : Adb.status;
+                    return new JSONObject().put("ok", false).put("msg", msg).toString();
+                }
+            }
+            case "text": {   // Text in das gerade aktive Eingabefeld (ohne Umlaute)
+                StringBuilder sb = new StringBuilder();
+                for (char ch : in.optString("t").toCharArray()) {
+                    if (ch == ' ') sb.append("%s");
+                    else if ("()<>|;&*\\~\"'$`?![]{}#".indexOf(ch) >= 0) sb.append('\\').append(ch);
+                    else if (ch < 128) sb.append(ch);
+                }
+                try { Adb.shell(c, "input text " + sb); return "{\"ok\":true}"; }
+                catch (Exception e) { return new JSONObject().put("ok", false).put("msg", Adb.status).toString(); }
+            }
             case "emby": {   // PlayPause, Rewind, FastForward, Stop
                 boolean ok = Daily.embyCommand(c, in.optString("c", "PlayPause"));
                 return "{\"ok\":" + ok + "}";
@@ -107,6 +128,19 @@ public class Remote {
     static String page(String k) {
         return MiniServer.page("midnox TV Fernbedienung",
             "<h1>midnox TV</h1><p class=sub id=st>Fernbedienung</p>"
+            + "<style>.pad{position:relative;width:270px;height:270px;margin:6px auto 18px;border-radius:50%;background:#15141f;border:2px solid transparent;"
+            + "background-image:linear-gradient(#15141f,#15141f),linear-gradient(135deg,#7C3AED,#3B5BF0,#06B6D4);background-origin:border-box;background-clip:padding-box,border-box;touch-action:none}"
+            + ".pad button{position:absolute;background:transparent;border:0;color:#e6e8f2;width:90px;height:90px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center}"
+            + ".pad button:active{background:#26243a}.pad .u{left:90px;top:0}.pad .d{left:90px;bottom:0}.pad .l{left:0;top:90px}.pad .r{right:0;top:90px}"
+            + ".pad .ok{left:85px;top:85px;width:100px;height:100px;background:linear-gradient(135deg,#7C3AED,#3B5BF0,#06B6D4);font-size:20px;font-weight:600;box-shadow:0 0 24px rgba(59,91,240,.45)}"
+            + ".row3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.row3 button{background:#1a1928;border:1px solid #2e2c45;border-radius:14px;padding:13px 4px;font-size:15px}"
+            + ".row3 button:active,.l button:active{background:#26243a}</style>"
+            + "<div class=pad id=pad><button class=u onclick=k(19)><svg width=34 height=34 viewBox='0 0 24 24' style='transform:rotate(0deg)'><path d='M6 15l6-6 6 6' fill=none stroke=currentColor stroke-width=2.4 stroke-linecap=round stroke-linejoin=round /></svg></button><button class=l onclick=k(21)><svg width=34 height=34 viewBox='0 0 24 24' style='transform:rotate(-90deg)'><path d='M6 15l6-6 6 6' fill=none stroke=currentColor stroke-width=2.4 stroke-linecap=round stroke-linejoin=round /></svg></button><button class=ok onclick=k(23)>OK</button>"
+            + "<button class=r onclick=k(22)><svg width=34 height=34 viewBox='0 0 24 24' style='transform:rotate(90deg)'><path d='M6 15l6-6 6 6' fill=none stroke=currentColor stroke-width=2.4 stroke-linecap=round stroke-linejoin=round /></svg></button><button class=d onclick=k(20)><svg width=34 height=34 viewBox='0 0 24 24' style='transform:rotate(180deg)'><path d='M6 15l6-6 6 6' fill=none stroke=currentColor stroke-width=2.4 stroke-linecap=round stroke-linejoin=round /></svg></button></div>"
+            + "<div class=row3><button onclick=k(4)>\u2190 Zur\u00fcck</button><button onclick=k(3)>\u2302 Home</button><button onclick=k(82)>\u2630 Men\u00fc</button></div>"
+            + "<div class=row3><button onclick=k(89)>\u25C0\u25C0</button><button onclick=k(85)>\u25B6\u2009\u2759\u2759</button><button onclick=k(90)>\u25B6\u25B6</button></div>"
+            + "<div class=row3><button onclick=k(25)>Leiser</button><button onclick=k(164)>Stumm</button><button onclick=k(24)>Lauter</button></div>"
+            + "<input id=tx placeholder='Text ins aktive Eingabefeld senden \u2026' onkeydown=\"if(event.key=='Enter'){a('text',{t:this.value});this.value=''}\">"
             + "<style>.g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}.g button{padding:14px 4px;font-size:15px;border-radius:14px}"
             + ".l{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}.l button{background:#1a1928;border:1px solid #2e2c45;border-radius:12px;padding:12px;text-align:left}"
             + "h3{font-size:12px;letter-spacing:.25em;color:#8a8fa8;font-weight:500;margin:18px 0 10px}</style>"
@@ -117,12 +151,17 @@ public class Remote {
             + "<h3>TV</h3><div class=l id=tv></div>"
             + "<h3>EINSCHLAF-TIMER</h3><div class=g><button onclick=\"a('sleep',{min:15})\">15</button><button onclick=\"a('sleep',{min:30})\">30</button><button onclick=\"a('sleep',{min:60})\">60</button><button onclick=\"a('sleep',{min:0})\">Aus</button></div>"
             + "<div class=g><button onclick=\"a('home',{})\" style='grid-column:span 4'>Startseite</button></div>",
-            "var k='" + k + "';function a(c,o){return fetch('/api/'+c+'?k='+k,{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.json()}).then(function(j){setTimeout(load,800);return j})}"
+            "var key='" + k + "';"
+            + "function k(code){try{navigator.vibrate(12)}catch(e){}fetch('/api/key?k='+key,{method:'POST',body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(j){if(!j.ok)st(j.msg||'Keine Verbindung')})}"
+            + "(function(){var p=document.getElementById('pad'),x0,y0;p.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});"
+            + "p.addEventListener('touchend',function(e){var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Math.abs(dx)<40&&Math.abs(dy)<40)return;e.preventDefault();"
+            + "k(Math.abs(dx)>Math.abs(dy)?(dx>0?22:21):(dy>0?20:19))})})();"
+            + "function a(c,o){return fetch('/api/'+c+'?k='+key,{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.json()}).then(function(j){setTimeout(load,800);return j})}"
             + "function e(c){a('emby',{c:c}).then(function(j){if(!j.ok)st('Gerade läuft nichts in Emby')})}"
             + "function st(s){document.getElementById('st').textContent=s}"
             + "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}"
             + "function list(id,items,fn){var d=document.getElementById(id);d.innerHTML='';items.forEach(function(it){var b=document.createElement('button');b.innerHTML=esc(it.name);b.onclick=function(){fn(it)};d.appendChild(b)})}"
-            + "var first=true;function load(){fetch('/api/state?k='+k,{method:'POST',body:'{}'}).then(function(r){return r.json()}).then(function(s){"
+            + "var first=true;function load(){fetch('/api/state?k='+key,{method:'POST',body:'{}'}).then(function(r){return r.json()}).then(function(s){"
             + "st((s.radio?'♪ '+s.radio:'Fernbedienung')+(s.sleep>0?'  ·  Timer '+s.sleep+' Min.':''));"
             + "if(first){first=false;list('apps',s.apps,function(it){a('app',{pkg:it.pkg})});list('radio',s.stations,function(it){a('radio',{id:it.id})});list('tv',s.tv,function(it){a('tv',{id:it.id})})}})}"
             + "load();setInterval(load,10000);");

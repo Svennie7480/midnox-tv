@@ -164,6 +164,9 @@ public class SettingsActivity extends Activity {
         section("EINSCHLAF-TIMER");
         sleepSection();
 
+        section("MAGENTATV-SENDERPL\u00c4TZE");
+        magentaNumbers();
+
         section("BILDSCHIRMSCHONER");
         screensaver();
 
@@ -387,6 +390,24 @@ public class SettingsActivity extends Activity {
             final List<String[]> f = l;
             ui.post(new Runnable() { public void run() { list.addAll(f); show.run(); } });
         }}).start();
+    }
+
+    // ------------------------------------------------------------ MagentaTV
+    /** Je Sender der Platz in deiner MagentaTV-Liste; OK schaltet zum Test direkt um. */
+    void magentaNumbers() {
+        Row info = add("\u25C0 \u25B6 Platz \u00e4ndern  \u00b7  OK testet in MagentaTV");
+        info.setFocusable(false);
+        for (final String[] ch : TvRows.CHANNELS) {
+            final Row r = add(ch[1]);
+            final Runnable show = new Runnable() { public void run() {
+                int n = TvRows.number(SettingsActivity.this, ch[0]);
+                r.value.setText("\u25C0  " + (n <= 0 ? "nur App \u00f6ffnen" : "Platz " + n) + "  \u25B6");
+            }};
+            show.run();
+            r.onRight = new Runnable() { public void run() { pr.edit().putInt("mtv_" + ch[0], Math.min(999, TvRows.number(SettingsActivity.this, ch[0]) + 1)).apply(); show.run(); } };
+            r.onLeft = new Runnable() { public void run() { pr.edit().putInt("mtv_" + ch[0], Math.max(0, TvRows.number(SettingsActivity.this, ch[0]) - 1)).apply(); show.run(); } };
+            r.onOk = new Runnable() { public void run() { TvRows.openTv(SettingsActivity.this, ch[0]); } };
+        }
     }
 
     // ------------------------------------------------------------ Einschlaf-Timer

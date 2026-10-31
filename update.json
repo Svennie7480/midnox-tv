@@ -1,6 +1,6 @@
 {
-  "versionCode": 35,
-  "versionName": "7.3",
+  "versionCode": 36,
+  "versionName": "7.4",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neue Reihe: Jetzt im TV (30 Sender), OK öffnet MagentaTV"
+  "notes": "Jetzt im TV: OK startet den Sender direkt in MagentaTV"
 }

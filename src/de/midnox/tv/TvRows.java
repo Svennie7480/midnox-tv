@@ -22,13 +22,13 @@ public class TvRows implements MediaCard.Listener {
     static final String DEFAULT_EPG = "https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz";
     static final String TV_APP = "de.telekom.magentatv.firetv";
     static final String[][] CHANNELS = {
-        {"Das.Erste.de", "Das Erste"}, {"ZDF.de", "ZDF"}, {"RTL.de", "RTL"}, {"SAT.1.de", "SAT.1"}, {"ProSieben.de", "ProSieben"},
-        {"VOX.de", "VOX"}, {"kabel.eins.de", "kabel eins"}, {"RTLZWEI.de", "RTLZWEI"}, {"NDR.de", "NDR"}, {"ZDFneo.de", "ZDFneo"},
-        {"ONE.de", "ONE"}, {"3sat.de", "3sat"}, {"ARTE.de", "ARTE"}, {"DMAX.de", "DMAX"}, {"Tele.5.de", "Tele 5"},
-        {"sixx.de", "sixx"}, {"NITRO.de", "NITRO"}, {"ProSieben.MAXX.de", "ProSieben MAXX"}, {"SUPER.RTL.de", "Super RTL"},
-        {"Comedy.Central.de", "Comedy Central"}, {"RTLup.de", "RTLup"}, {"kabel.eins.Doku.de", "kabel eins Doku"},
-        {"ZDFinfo.de", "ZDFinfo"}, {"ntv.de", "n-tv"}, {"WELT.de", "WELT"}, {"tagesschau24.de", "tagesschau24"},
-        {"SPORT1.de", "SPORT1"}, {"Eurosport.1.de", "Eurosport 1"}, {"KIKA.de", "KiKA"}, {"Hamburg.1.de", "Hamburg 1"},
+        {"Das.Erste.de", "Das Erste", "1"}, {"ZDF.de", "ZDF", "2"}, {"RTL.de", "RTL", "3"}, {"SAT.1.de", "SAT.1", "4"}, {"ProSieben.de", "ProSieben", "5"},
+        {"VOX.de", "VOX", "6"}, {"kabel.eins.de", "kabel eins", "7"}, {"RTLZWEI.de", "RTLZWEI", "8"}, {"NDR.de", "NDR", "0"}, {"ZDFneo.de", "ZDFneo", "0"},
+        {"ONE.de", "ONE", "0"}, {"3sat.de", "3sat", "0"}, {"ARTE.de", "ARTE", "0"}, {"DMAX.de", "DMAX", "0"}, {"Tele.5.de", "Tele 5", "0"},
+        {"sixx.de", "sixx", "0"}, {"NITRO.de", "NITRO", "0"}, {"ProSieben.MAXX.de", "ProSieben MAXX", "0"}, {"SUPER.RTL.de", "Super RTL", "0"},
+        {"Comedy.Central.de", "Comedy Central", "0"}, {"RTLup.de", "RTLup", "0"}, {"kabel.eins.Doku.de", "kabel eins Doku", "0"},
+        {"ZDFinfo.de", "ZDFinfo", "0"}, {"ntv.de", "n-tv", "0"}, {"WELT.de", "WELT", "0"}, {"tagesschau24.de", "tagesschau24", "0"},
+        {"SPORT1.de", "SPORT1", "0"}, {"Eurosport.1.de", "Eurosport 1", "0"}, {"KIKA.de", "KiKA", "0"}, {"Hamburg.1.de", "Hamburg 1", "0"},
     };
 
     static class Prog { long start, stop; String title, sub = "", cat = "", icon, desc = ""; }
@@ -64,12 +64,31 @@ public class TvRows implements MediaCard.Listener {
 
     // ---------------- Karten
     @Override public void onFocus(MediaCard card) { act.reveal(card); act.showHero(card.e); }
-    @Override public void onClick(MediaCard card) { openTv(); }
-    @Override public void onLongClick(MediaCard card) { openTv(); }
-    void openTv() {
-        Intent i = Style.launchIntent(act.getPackageManager(), TV_APP);
-        if (i == null) { Toast.makeText(act, "MagentaTV ist nicht installiert", Toast.LENGTH_SHORT).show(); return; }
-        Style.start(act, i);
+    @Override public void onClick(MediaCard card) { openTv(act, card.e.id.substring(0, card.e.id.indexOf('@'))); }
+    @Override public void onLongClick(MediaCard card) { onClick(card); }
+
+    /** Senderplatz in MagentaTV (eigene Einstellung oder Standard), 0 = unbekannt. */
+    static int number(Context c, String channel) {
+        for (String[] ch : CHANNELS) if (ch[0].equals(channel)) return Style.prefs(c).getInt("mtv_" + channel, Integer.parseInt(ch[2]));
+        return 0;
+    }
+
+    /** MagentaTV direkt auf dem Sender starten (eigener Befehl der App), sonst nur die App oeffnen. */
+    static void openTv(Context c, String channel) {
+        int nr = number(c, channel);
+        if (nr > 0) {
+            try {
+                Intent i = new Intent("de.telekom.magentatv.androidtv.action.SWITCH_CHANNEL", android.net.Uri.parse("content://de.telekom.magentatv.androidtv/SWITCH_CHANNEL/"));
+                i.setPackage(TV_APP);
+                i.putExtra("channelNumber", String.valueOf(nr));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+                return;
+            } catch (Exception ignored) {}
+        }
+        Intent i = Style.launchIntent(c.getPackageManager(), TV_APP);
+        if (i == null) { Toast.makeText(c, "MagentaTV ist nicht installiert", Toast.LENGTH_SHORT).show(); return; }
+        Style.start(c, i);
     }
 
     void start() {

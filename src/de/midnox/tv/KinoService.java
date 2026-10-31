@@ -128,7 +128,7 @@ public class KinoService extends Service {
             playScene(base, token, k, pr);
             status("Film läuft weiter");
         } else if (to == PAUSED && active) {
-            if (!lights.isEmpty()) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", new JSONArray(lights)).put("brightness_pct", k.optInt("pause_pct", 25)));
+            if (!lights.isEmpty()) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", new JSONArray(lights)).put("brightness_pct", pr.getInt("kino_pause", k.optInt("pause_pct", 25))));
             status("Pause – Licht 25 %");
         } else if (to == IDLE && active) {
             call(base, token, "scene", "turn_on", new JSONObject().put("entity_id", "scene.midnox_kino_vorher"));
@@ -139,8 +139,36 @@ public class KinoService extends Service {
 
     void playScene(String base, String token, JSONObject k, SharedPreferences pr) throws Exception {
         if (!lights.isEmpty()) call(base, token, "light", "turn_off", new JSONObject().put("entity_id", new JSONArray(lights)));
-        if (!ambients.isEmpty()) call(base, token, "light", "turn_on", new JSONObject().put("entity_id", new JSONArray(ambients))
-                .put("brightness_pct", pr.getInt("kino_amb", k.optInt("ambient_pct", 20))));
+        int pct = pr.getInt("kino_amb", k.optInt("ambient_pct", 20));
+        String mode = pr.getString("kino_color", "none");
+        for (int i = 0; i < ambients.size(); i++) {
+            JSONObject d = new JSONObject().put("entity_id", ambients.get(i)).put("brightness_pct", pct);
+            color(d, mode, i);
+            call(base, token, "light", "turn_on", d);
+        }
+    }
+
+    // Farben fuer die Ambient-Lampen
+    static final String[] COLOR_IDS = {"none", "warm", "midnox", "theme", "purple", "blue", "cyan", "red", "orange", "pink", "green"};
+    static final String[] COLOR_NAMES = {"Unver\u00e4ndert", "Warmwei\u00df", "midnox-Verlauf", "Saison-Thema", "Lila", "Blau", "T\u00fcrkis", "Rot", "Orange", "Pink", "Gr\u00fcn"};
+
+    /** Farbe in den Licht-Aufruf schreiben; beim Verlauf bekommt jede Lampe eine eigene Verlaufsfarbe. */
+    static void color(JSONObject d, String mode, int index) throws JSONException {
+        int c;
+        switch (mode) {
+            case "warm": d.put("color_temp_kelvin", 2200); return;
+            case "midnox": { int[] g = {0x7C3AED, 0x3B5BF0, 0x06B6D4}; c = g[index % 3]; break; }
+            case "theme": { int[] g = {Style.C1, Style.C2, Style.C3}; c = g[index % 3]; break; }
+            case "purple": c = 0x7C3AED; break;
+            case "blue": c = 0x2F4CFF; break;
+            case "cyan": c = 0x06B6D4; break;
+            case "red": c = 0xFF1E1E; break;
+            case "orange": c = 0xFF7A00; break;
+            case "pink": c = 0xFF2E8B; break;
+            case "green": c = 0x22C55E; break;
+            default: return;   // Farbe nicht anfassen
+        }
+        d.put("rgb_color", new JSONArray().put((c >> 16) & 0xFF).put((c >> 8) & 0xFF).put(c & 0xFF));
     }
 
     /** Lampen-Auswahl aus dem Einstellungsmenue; ohne Auswahl: Bereich Wohnzimmer aus, "TV LED" als Ambient. */

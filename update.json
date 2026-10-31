@@ -1,6 +1,6 @@
 {
-  "versionCode": 32,
-  "versionName": "7.0.1",
+  "versionCode": 33,
+  "versionName": "7.1",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Einschlaf-Timer kann den Fernseher über eine smarte Steckdose ausschalten"
+  "notes": "Kino-Modus: Farbe für die Ambient-Lampen wählbar, mit Vorschau"
 }

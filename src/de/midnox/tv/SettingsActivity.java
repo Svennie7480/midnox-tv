@@ -186,6 +186,25 @@ public class SettingsActivity extends Activity {
         kinoState.setFocusable(true);
         percent("Ambient-Helligkeit bei Wiedergabe", "kino_amb", 20);
         percent("Helligkeit bei Pause", "kino_pause", 25);
+        final Row col = add("Farbe der Ambient-Lampen");
+        final Runnable showC = new Runnable() { public void run() {
+            int i = Arrays.asList(KinoService.COLOR_IDS).indexOf(pr.getString("kino_color", "none"));
+            col.value.setText("\u25C0  " + KinoService.COLOR_NAMES[Math.max(0, i)] + "  \u25B6");
+        }};
+        showC.run();
+        final int[] cd = {1};
+        final Runnable cycC = new Runnable() { public void run() {
+            List<String> ids = Arrays.asList(KinoService.COLOR_IDS);
+            int i = Math.max(0, ids.indexOf(pr.getString("kino_color", "none")));
+            i = (i + cd[0] + ids.size()) % ids.size();
+            pr.edit().putString("kino_color", ids.get(i)).apply();
+            showC.run();
+        }};
+        col.onOk = col.onRight = cycC;
+        col.onLeft = new Runnable() { public void run() { cd[0] = -1; cycC.run(); cd[0] = 1; } };
+        final Row preview = add("Farbe jetzt ausprobieren");
+        preview.value.setText("\u203a");
+        preview.onOk = new Runnable() { public void run() { previewColor(preview); } };
 
         section("LAMPEN F\u00dcR DEN KINO-MODUS");
         lampLoading = add("Lampen werden geladen \u2026");
@@ -290,6 +309,36 @@ public class SettingsActivity extends Activity {
             lp.bottomMargin = Style.px(6);
             parent.addView(r, pos++, lp);
         }
+    }
+
+    /** Ambient-Lampen 8 Sekunden in der gewaehlten Farbe zeigen, dann vorherigen Zustand zurueck. */
+    void previewColor(final Row r) {
+        final JSONObject cfg = Style.loadConfig(this);
+        if (cfg == null) { r.value.setText("erst Home Assistant verbinden"); return; }
+        final List<String> amb = new ArrayList<>();
+        try {
+            JSONObject m = new JSONObject(pr.getString("kino_lights", "{}"));
+            for (Iterator<String> it = m.keys(); it.hasNext(); ) { String id = it.next(); if ("ambient".equals(m.optString(id))) amb.add(id); }
+        } catch (Exception ignored) {}
+        if (amb.isEmpty()) { r.value.setText("keine Lampe auf \u201eAmbient\u201c gestellt"); return; }
+        r.value.setText("leuchtet 8 Sekunden \u2026");
+        new Thread(new Runnable() { public void run() {
+            String msg = "\u203a";
+            try {
+                String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+                Style.httpPost(base + "/api/services/scene/create", tok, new JSONObject().put("scene_id", "midnox_farbtest_vorher").put("snapshot_entities", new JSONArray(amb)).toString());
+                String mode = pr.getString("kino_color", "none");
+                for (int i = 0; i < amb.size(); i++) {
+                    JSONObject d = new JSONObject().put("entity_id", amb.get(i)).put("brightness_pct", Math.max(30, pr.getInt("kino_amb", 20)));
+                    KinoService.color(d, mode, i);
+                    Style.httpPost(base + "/api/services/light/turn_on", tok, d.toString());
+                }
+                Thread.sleep(8000);
+                Style.httpPost(base + "/api/services/scene/turn_on", tok, new JSONObject().put("entity_id", "scene.midnox_farbtest_vorher").toString());
+            } catch (Exception e) { msg = "Fehler: " + e.getMessage(); }
+            final String fm = msg;
+            ui.post(new Runnable() { public void run() { r.value.setText(fm); } });
+        }}).start();
     }
 
     // ------------------------------------------------------------ Wetter

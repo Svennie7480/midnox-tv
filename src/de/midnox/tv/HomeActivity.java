@@ -384,6 +384,11 @@ public class HomeActivity extends Activity {
             addTile(home, small, tileH);
             if ("#home".equals(focusedTag)) toFocus = home;
         }
+        Tile store = new Tile(this, "Store", null, null, Tile.GLYPH_STORE,
+                new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, StoreActivity.class)); } }, null);
+        store.tag = "#store";
+        addTile(store, small, tileH);
+        if ("#store".equals(focusedTag)) toFocus = store;
         Tile all = new Tile(this, "Alle Apps", null, null, Tile.GLYPH_GRID,
                 new Runnable() { public void run() { startActivity(new Intent(HomeActivity.this, AppsActivity.class)); } }, null);
         all.tag = "#all";

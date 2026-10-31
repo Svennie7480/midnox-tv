@@ -1,6 +1,6 @@
 {
-  "versionCode": 44,
-  "versionName": "8.1",
+  "versionCode": 45,
+  "versionName": "8.2",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neu: Apps vom Handy installieren (APK hochladen oder Link) – ohne Downloader, auch App-Bundles"
+  "notes": "Neu: midnox Store – SmartTube & Co. mit einem Klick installieren und aktuell halten"
 }

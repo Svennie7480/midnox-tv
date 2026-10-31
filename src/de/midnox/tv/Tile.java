@@ -8,7 +8,7 @@ import android.widget.HorizontalScrollView;
 
 /** App-Kachel mit Banner/Icon oder gezeichnetem Symbol; leuchtet beim Fokus im Verlauf. */
 public class Tile extends View {
-    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4, GLYPH_SEARCH = 5;
+    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4, GLYPH_SEARCH = 5, GLYPH_STORE = 6;
     final String label; final Drawable banner, icon; final int glyph;
     final Runnable action, longAction;
     HorizontalScrollView scroller;
@@ -116,6 +116,15 @@ public class Tile extends View {
             g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND);
             c.drawCircle(cx - 5 * dp, cy - 5 * dp, 14 * dp, g);
             c.drawLine(cx + 6 * dp, cy + 6 * dp, cx + 18 * dp, cy + 18 * dp, g);
+            g.setStyle(Paint.Style.FILL);
+        } else if (glyph == GLYPH_STORE) {   // Einkaufstasche mit Pfeil
+            g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);
+            c.drawRoundRect(new RectF(cx - 19 * dp, cy - 10 * dp, cx + 19 * dp, cy + 21 * dp), 5 * dp, 5 * dp, g);
+            Path hnd = new Path(); hnd.moveTo(cx - 9 * dp, cy - 10 * dp); hnd.cubicTo(cx - 9 * dp, cy - 24 * dp, cx + 9 * dp, cy - 24 * dp, cx + 9 * dp, cy - 10 * dp);
+            c.drawPath(hnd, g);
+            c.drawLine(cx, cy - 1 * dp, cx, cy + 12 * dp, g);
+            Path ar = new Path(); ar.moveTo(cx - 6 * dp, cy + 6 * dp); ar.lineTo(cx, cy + 12 * dp); ar.lineTo(cx + 6 * dp, cy + 6 * dp);
+            c.drawPath(ar, g);
             g.setStyle(Paint.Style.FILL);
         } else if (glyph == GLYPH_HOME) {   // Haus mit Licht-Punkt
             g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);

@@ -1,0 +1,32 @@
+{
+  "info": "midnox Store – Katalog. Neue App: Eintrag hinzufügen. github = owner/repo (neueste Release-APK, passend zum Prozessor), match = Teil des Dateinamens, alternativ url = direkter APK-Link ({abi} wird ersetzt).",
+  "apps": [
+    {"id": "smarttube", "name": "SmartTube", "cat": "Video", "pkg": "com.teamsmart.videomanager.tv",
+     "desc": "YouTube auf dem Fernseher – ohne Werbung, mit SponsorBlock, 4K/HDR und ohne Google-Konto-Zwang.",
+     "github": "yuliskov/SmartTube", "match": "stable"},
+    {"id": "smarttube-beta", "name": "SmartTube Beta", "cat": "Video", "pkg": "com.liskovsoft.smarttubetv.beta",
+     "desc": "Die Beta von SmartTube mit den neuesten Funktionen und Fehlerbehebungen – läuft parallel zur stabilen Version.",
+     "github": "yuliskov/SmartTube", "match": "beta"},
+    {"id": "smarttwitch", "name": "SmartTwitchTV", "cat": "Video", "pkg": "com.fgl27.twitch",
+     "desc": "Twitch für den Fernseher: Livestreams, VODs und Clips mit Fernbedienung, ohne Werbung.",
+     "github": "fgl27/SmartTwitchTV"},
+    {"id": "jellyfin", "name": "Jellyfin", "cat": "Mediathek", "pkg": "org.jellyfin.androidtv",
+     "desc": "Freie Mediathek-App für Jellyfin-Server – Filme, Serien und Musik vom eigenen Server.",
+     "github": "jellyfin/jellyfin-androidtv", "match": "release"},
+    {"id": "justplayer", "name": "Just Player", "cat": "Video", "pkg": "com.brouken.player",
+     "desc": "Schlanker Videoplayer für Dateien und Netzwerkfreigaben, mit Untertiteln und Audiospur-Wahl.",
+     "github": "moneytoo/Player"},
+    {"id": "mpv", "name": "mpv", "cat": "Video", "pkg": "is.xyz.mpv",
+     "desc": "Der Profi-Videoplayer: spielt praktisch jedes Format, auch HDR und hohe Bitraten.",
+     "github": "mpv-android/mpv-android", "match": "default"},
+    {"id": "moonlight", "name": "Moonlight", "cat": "Spiele", "pkg": "com.limelight",
+     "desc": "PC-Spiele vom eigenen Rechner auf den Fernseher streamen (NVIDIA GameStream / Sunshine).",
+     "github": "moonlight-stream/moonlight-android", "match": "nonRoot"},
+    {"id": "localsend", "name": "LocalSend", "cat": "Werkzeuge", "pkg": "org.localsend.localsend_app",
+     "desc": "Dateien und Fotos vom Handy oder PC direkt auf den Fernseher schicken – im WLAN, ohne Cloud.",
+     "github": "localsend/localsend", "match": "android"},
+    {"id": "materialfiles", "name": "Material Files", "cat": "Werkzeuge", "pkg": "me.zhanghai.android.files",
+     "desc": "Dateimanager mit Zugriff auf Netzwerkfreigaben (SMB, FTP, WebDAV) – z. B. für dein NAS.",
+     "github": "zhanghai/MaterialFiles"}
+  ]
+}

@@ -82,7 +82,12 @@ public class Sleep {
                     if (ids.length() > 0) Style.httpPost(base + "/api/services/light/turn_off", tok, new JSONObject().put("entity_id", ids).put("transition", 20).toString());
                 }
                 String tv = pr.getString("sleep_tv", "");
-                if (!tv.isEmpty()) Style.httpPost(base + "/api/services/media_player/turn_off", tok, new JSONObject().put("entity_id", tv).toString());
+                if (!tv.isEmpty()) {
+                    String domain = tv.substring(0, tv.indexOf('.'));
+                    // Steckdose erst nach kurzer Pause abschalten (Licht-Uebergang, Emby-Stopp laufen noch)
+                    if (domain.equals("switch")) { try { Thread.sleep(15000); } catch (InterruptedException ignored) {} }
+                    Style.httpPost(base + "/api/services/" + domain + "/turn_off", tok, new JSONObject().put("entity_id", tv).toString());
+                }
             }
         } catch (Exception ignored) {}
     }

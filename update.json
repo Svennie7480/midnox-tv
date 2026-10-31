@@ -1,6 +1,6 @@
 {
-  "versionCode": 31,
-  "versionName": "7.0",
+  "versionCode": 32,
+  "versionName": "7.0.1",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Einschlaf-Timer, Radio im Hintergrund, Smart-Home-Leiste nach Räumen"
+  "notes": "Einschlaf-Timer kann den Fernseher über eine smarte Steckdose ausschalten"
 }

@@ -340,6 +340,7 @@ public class SettingsActivity extends Activity {
         toggle("In der letzten Minute leiser werden", "sleep_fade", true, false);
         toggle("Licht ausschalten (Lampen vom Kino-Modus)", "sleep_lights", true, false);
         final Row tv = add("Fernseher ausschalten \u00fcber");
+        tv.name.setMaxWidth(Style.px(250));
         final List<String[]> players = new ArrayList<>();
         players.add(new String[]{"", "nicht ausschalten"});
         final Runnable showTv = new Runnable() { public void run() {
@@ -364,16 +365,24 @@ public class SettingsActivity extends Activity {
         new Thread(new Runnable() { public void run() {
             try {
                 JSONArray a = new JSONArray(Style.httpGet(cfg.getString("url").replaceAll("/+$", "") + "/api/states", cfg.getString("token")));
-                final List<String[]> tvs = new ArrayList<>(), rest = new ArrayList<>();
+                final List<String[]> tvs = new ArrayList<>(), plugs = new ArrayList<>(), rest = new ArrayList<>();
                 for (int i = 0; i < a.length(); i++) {
                     JSONObject o = a.getJSONObject(i);
                     String id = o.getString("entity_id");
-                    if (!id.startsWith("media_player.") || id.contains("browser_mod")) continue;
                     JSONObject at = o.optJSONObject("attributes");
-                    String[] e = {id, at.optString("friendly_name", id)};
+                    String n = at.optString("friendly_name", id);
+                    if (id.startsWith("switch.")) {   // smarte Steckdosen / Schalter
+                        if ("unavailable".equals(o.optString("state"))) continue;
+                        plugs.add(new String[]{id, "Steckdose: " + n});
+                        continue;
+                    }
+                    if (!id.startsWith("media_player.") || id.contains("browser_mod")) continue;
+                    String[] e = {id, n};
                     if ("tv".equals(at.optString("device_class"))) tvs.add(e); else rest.add(e);
                 }
-                ui.post(new Runnable() { public void run() { players.addAll(tvs); players.addAll(rest); showTv.run(); } });
+                Comparator<String[]> byName = new Comparator<String[]>() { public int compare(String[] x, String[] y) { return x[1].compareToIgnoreCase(y[1]); } };
+                Collections.sort(plugs, byName); Collections.sort(tvs, byName); Collections.sort(rest, byName);
+                ui.post(new Runnable() { public void run() { players.addAll(tvs); players.addAll(plugs); players.addAll(rest); showTv.run(); } });
             } catch (Exception ignored) {}
         }}).start();
     }

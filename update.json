@@ -1,6 +1,6 @@
 {
-  "versionCode": 51,
-  "versionName": "8.8",
+  "versionCode": 52,
+  "versionName": "8.9",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Neu: Sport – 1./2. Bundesliga live mit Torschützen, Tabelle und Sportschau-Radio je Spiel; Formel 1 mit Kalender, WM-Stand und Live-Positionen"
+  "notes": "Tor-Alarm über jeder App (Tore, Gelb, Gelb-Rot, Rot); PC-Verwaltung: Bereich Zuhause mit Lampen für Kino, Einschlaf-Timer und Guten Morgen, Geräten und Kacheln"
 }

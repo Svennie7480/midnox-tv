@@ -46,8 +46,23 @@ public class Morning {
             if (t.equals(pr.getString("morning_day", ""))) return;
             pr.edit().putString("morning_day", t).apply();
             show(c);
+            lightsOn(c);
         } catch (Exception ignored) {}
     }
+    /** Gewaehlte Lampen sanft einschalten (PC-Verwaltung > Zuhause > Guten Morgen). */
+    static void lightsOn(final Context c) {
+        final String ids = Style.prefs(c).getString("morning_light_ids", "");
+        if (ids.isEmpty() || ids.equals("[]")) return;
+        new Thread(new Runnable() { public void run() {
+            try {
+                JSONObject cfg = Style.loadConfig(c);
+                String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+                Style.httpPost(base + "/api/services/light/turn_on", tok, new JSONObject().put("entity_id", new JSONArray(ids))
+                        .put("brightness_pct", Style.prefs(c).getInt("morning_light_pct", 60)).put("transition", 30).toString());
+            } catch (Exception ignored) {}
+        }}).start();
+    }
+
     static void show(Context c) {
         Intent i = new Intent(c, MorningActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

@@ -82,8 +82,12 @@ public class Sleep {
                 if (pr.getBoolean("sleep_lights", true)) {
                     JSONArray ids = new JSONArray();
                     try {
-                        JSONObject m = new JSONObject(pr.getString("kino_lights", "{}"));
-                        for (Iterator<String> it = m.keys(); it.hasNext(); ) ids.put(it.next());
+                        String own = pr.getString("sleep_light_ids", "");
+                        if (!own.isEmpty()) ids = new JSONArray(own);
+                        else {
+                            JSONObject m = new JSONObject(pr.getString("kino_lights", "{}"));
+                            for (Iterator<String> it = m.keys(); it.hasNext(); ) ids.put(it.next());
+                        }
                     } catch (Exception ignored) {}
                     if (ids.length() > 0) Style.httpPost(base + "/api/services/light/turn_off", tok, new JSONObject().put("entity_id", ids).put("transition", 20).toString());
                 }

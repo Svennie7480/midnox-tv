@@ -121,6 +121,50 @@ final class AdminApi {
                 return "{\"ok\":true}";
             }
             case "settings": return settings(c);
+            case "goal_test": ui(new Runnable() { public void run() { GoalAlert.test(c); } }); return "{\"ok\":true}";
+            case "ha": return ha(c);
+            case "ha_save": {
+                SharedPreferences.Editor ed = pr.edit();
+                if (in.has("kino")) ed.putString("kino_lights", in.getJSONObject("kino").toString());
+                if (in.has("sleep")) ed.putString("sleep_light_ids", in.isNull("sleep") ? "" : in.getJSONArray("sleep").toString());
+                if (in.has("morning")) ed.putString("morning_light_ids", in.getJSONArray("morning").toString());
+                if (in.has("morning_pct")) ed.putInt("morning_light_pct", in.getInt("morning_pct"));
+                for (String k : new String[]{"weather_entity", "sleep_tv", "call_entity"}) if (in.has(k)) ed.putString(k, in.getString(k));
+                ed.apply();
+                SetupActivity.changed = true;
+                return "{\"ok\":true}";
+            }
+            case "ha_light": {   // Lampe zum Erkennen kurz schalten
+                JSONObject cfg = Style.loadConfig(c);
+                String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+                Style.httpPost(base + "/api/services/light/toggle", tok, new JSONObject().put("entity_id", in.getString("id")).toString());
+                return "{\"ok\":true}";
+            }
+            case "tiles": {
+                JSONObject cfg = Style.loadConfig(c);
+                String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+                JSONArray st = new JSONArray(Style.httpGet(base + "/api/states", tok)), sensors = new JSONArray();
+                for (int i = 0; i < st.length(); i++) {
+                    JSONObject o = st.getJSONObject(i);
+                    String id = o.getString("entity_id");
+                    if (!(id.startsWith("sensor.") || id.startsWith("binary_sensor.") || id.startsWith("input_number.") || id.startsWith("weather."))) continue;
+                    if ("unavailable".equals(o.optString("state"))) continue;
+                    JSONObject a = o.optJSONObject("attributes");
+                    sensors.put(new JSONObject().put("id", id).put("name", a == null ? id : a.optString("friendly_name", id))
+                        .put("unit", a == null ? "" : a.optString("unit_of_measurement", "")).put("state", o.optString("state"))
+                        .put("dienst", a != null && a.has("start_time") && a.has("end_time")));
+                }
+                JSONArray t = cfg.optJSONArray("tiles");
+                if (t == null || t.length() == 0) t = HaPanel.autoTiles(st);
+                return new JSONObject().put("tiles", t).put("sensors", sensors).toString();
+            }
+            case "tiles_save": {
+                JSONObject cfg = Style.loadConfig(c);
+                cfg.put("tiles", in.getJSONArray("tiles"));
+                Style.saveConfig(c, cfg);
+                SetupActivity.changed = true;
+                return "{\"ok\":true}";
+            }
             case "settings_save": {
                 SharedPreferences.Editor ed = pr.edit();
                 for (Iterator<String> it = in.keys(); it.hasNext(); ) {
@@ -198,6 +242,13 @@ final class AdminApi {
             {"Jetzt im TV", "tv_app", "TV-App", "choice", "", tvIds, tvNames},
             {"Jetzt im TV", "tv_rtlplus", "RTL-Sender als Livestream in RTL+ öffnen", "bool", true, null, null},
             {"Jetzt im TV", "tv_rtlmax", "RTL+ Max-Sender zeigen (Crime, Passion, Living, GEO)", "bool", false, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_on", "Tore und Karten live einblenden", "bool", true, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_bl1", "1. Bundesliga", "bool", true, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_bl2", "2. Bundesliga", "bool", true, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_goal", "Tore", "bool", true, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_yellow", "Gelbe Karten", "bool", false, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_red", "Rote und Gelb-Rote Karten", "bool", true, null, null},
+            {"Tor-Alarm (über jeder App)", "sa_teams", "Nur diese Vereine (nichts gewählt = alle)", "multi", "", null, null},
             {"Wetter", "weather_on", "Wetter unter der Uhr", "bool", true, null, null},
             {"Wetter", "weather_entity", "Wetter-Entität (leer = automatisch)", "string", "", null, null},
             {"Guten Morgen", "morning_on", "Morgens beim Einschalten anzeigen", "bool", true, null, null},
@@ -223,6 +274,39 @@ final class AdminApi {
             {"Kino-Modus", "kino_color", "Lichtfarbe", "choice", "none", KinoService.COLOR_IDS, KinoService.COLOR_NAMES},
         };
     }
+    // ------------------------------------------------------------ Home Assistant
+    static String ha(Context c) throws Exception {
+        JSONObject cfg = Style.loadConfig(c);
+        if (cfg == null || !cfg.has("url")) return new JSONObject().put("error", "Home Assistant ist noch nicht verbunden (Einstellungen \u203a Mit Handy einrichten)").toString();
+        String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+        SharedPreferences pr = Style.prefs(c);
+        JSONArray lights = new JSONArray();
+        for (JSONArray l : KinoService.allLights(base, tok)) lights.put(l);
+        JSONArray st = new JSONArray(Style.httpGet(base + "/api/states", tok));
+        JSONArray weather = new JSONArray(), tv = new JSONArray(), phone = new JSONArray();
+        JSONObject lightState = new JSONObject();
+        for (int i = 0; i < st.length(); i++) {
+            JSONObject o = st.getJSONObject(i);
+            String id = o.getString("entity_id");
+            JSONObject a = o.optJSONObject("attributes");
+            String name = a == null ? id : a.optString("friendly_name", id);
+            JSONArray e = new JSONArray().put(id).put(name);
+            if (id.startsWith("light.")) lightState.put(id, o.optString("state"));
+            if (id.startsWith("weather.")) weather.put(e);
+            else if (id.startsWith("switch.") || id.startsWith("media_player.")) tv.put(e);
+            else if (id.startsWith("sensor.") && id.contains("phone_state")) phone.put(e);
+        }
+        JSONObject kino; try { kino = new JSONObject(pr.getString("kino_lights", "{}")); } catch (Exception e) { kino = new JSONObject(); }
+        Object sleep; String sl = pr.getString("sleep_light_ids", "");
+        try { sleep = sl.isEmpty() ? JSONObject.NULL : new JSONArray(sl); } catch (Exception e) { sleep = JSONObject.NULL; }
+        JSONArray morning; try { morning = new JSONArray(pr.getString("morning_light_ids", "[]")); } catch (Exception e) { morning = new JSONArray(); }
+        return new JSONObject().put("lights", lights).put("state", lightState).put("kino", kino).put("sleep", sleep).put("morning", morning)
+            .put("morning_pct", pr.getInt("morning_light_pct", 60))
+            .put("weather", weather).put("tv", tv).put("phone", phone)
+            .put("weather_entity", pr.getString("weather_entity", "")).put("sleep_tv", pr.getString("sleep_tv", "")).put("call_entity", pr.getString("call_entity", ""))
+            .toString();
+    }
+
     static Object[] find(String k) { for (Object[] s : schema()) if (s[1].equals(k)) return s; return null; }
 
     static String settings(Context c) throws JSONException {
@@ -237,6 +321,14 @@ final class AdminApi {
             else if (t.equals("float")) o.put("value", pr.getFloat(k, (Float) s[4]));
             else if (t.equals("ichoice")) o.put("value", String.valueOf(pr.getInt(k, (Integer) s[4])));
             else o.put("value", pr.getString(k, (String) s[4]));
+            if (t.equals("multi") && k.equals("sa_teams")) {
+                JSONArray opts = new JSONArray();
+                for (String lg : new String[]{"bl1", "bl2"}) try {
+                    JSONArray tb = new JSONArray(Style.httpGet("https://api.openligadb.de/getbltable/" + lg + "/" + Sport.season(), null));
+                    for (int i = 0; i < tb.length(); i++) { String n = tb.getJSONObject(i).optString("shortName"); opts.put(new JSONObject().put("v", n).put("n", n).put("g", lg.equals("bl1") ? "1. Liga" : "2. Liga")); }
+                } catch (Exception ignored) {}
+                o.put("options", opts);
+            }
             if (s[5] != null) {
                 JSONArray opts = new JSONArray();
                 String[] ids = (String[]) s[5], names = (String[]) s[6];

@@ -79,6 +79,7 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
   <a data-p="ch" class="on">📺 Senderliste</a>
   <a data-p="m3u">📥 M3U-Import</a>
   <a data-p="apps">▦ Apps auf der Startseite</a>
+  <a data-p="ha">🏠 Zuhause</a>
   <a data-p="set">⚙ Einstellungen</a>
   <a onclick="logout()" style="margin-top:30px;color:var(--mut)">⎋ Abmelden</a>
  </nav>
@@ -120,6 +121,28 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
    <h3>ALLE APPS</h3><div class="apps" id="allapps"></div>
   </section>
 
+  <section id="p-ha" style="display:none">
+   <h2>Zuhause</h2><p class="sub">Home Assistant: welche Lampen was tun, Geräte und die Werte auf der Startseite. ⚡ schaltet eine Lampe kurz zum Erkennen.</p>
+   <div id="hamsg" class="hint"></div>
+   <div id="habox" style="display:none">
+    <div class="card"><h3 style="margin-top:0">LAMPEN</h3>
+     <table><thead><tr><th>Lampe</th><th>Bereich</th><th>Kino-Modus</th><th>Einschlaf-Timer</th><th>Guten Morgen</th><th></th></tr></thead><tbody id="lamps"></tbody></table>
+     <div class="bar" style="margin-top:12px"><label class="hint"><input type="checkbox" id="sleepSame" onchange="haDirty();renderLamps()"> Einschlaf-Timer: dieselben Lampen wie im Kino-Modus</label>
+      <span class="grow"></span><span class="hint">Guten-Morgen-Helligkeit</span><input type="range" id="mpct" min="10" max="100" step="5" oninput="$('mpv').textContent=this.value+' %';haDirty()"><b id="mpv"></b></div>
+     <p class="hint" style="margin-top:8px">Kino-Modus: <b>Aus</b> = geht bei Filmstart aus · <b>Ambient</b> = bleibt gedimmt (Helligkeit und Farbe unter Einstellungen › Kino-Modus). Guten Morgen: Lampen gehen sanft an, wenn der Morgen-Bildschirm erscheint.</p>
+    </div>
+    <div class="card"><h3 style="margin-top:0">GERÄTE</h3>
+     <div class="set"><label>Wetter für Startseite und Guten Morgen</label><select id="hw"></select></div>
+     <div class="set"><label>Einschlaf-Timer schaltet ab (Fernseher / Steckdose)</label><select id="htv"></select></div>
+     <div class="set"><label>Handy-Klingeln erkennen über</label><select id="hph"></select></div>
+    </div>
+    <div class="card"><h3 style="margin-top:0">ZUHAUSE-KACHELN AUF DER STARTSEITE</h3>
+     <div id="tiles"></div>
+     <div class="bar" style="margin-top:10px"><input id="tq" placeholder="Sensor hinzufügen: z. B. Temperatur, Akku, Strom …" style="flex:1" oninput="tileSearch()"></div><div id="tres"></div>
+    </div>
+   </div>
+  </section>
+
   <section id="p-set" style="display:none">
    <h2>Einstellungen</h2><p class="sub">Änderungen werden sofort gespeichert und beim nächsten Öffnen der Startseite übernommen.</p>
    <div class="grid2" id="sets"></div>
@@ -127,6 +150,7 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
  </main>
 </div>
 <div class="save" id="save"><span>Ungespeicherte Änderungen</span><button class="sm" onclick="loadCh()">Verwerfen</button><button class="pri" onclick="saveCh()">Speichern</button></div>
+<div class="save" id="hasave"><span>Ungespeicherte Änderungen</span><button class="sm" onclick="loadHa()">Verwerfen</button><button class="pri" onclick="saveHa()">Speichern</button></div>
 <div id="toast"></div>
 
 <script>
@@ -152,9 +176,9 @@ function start(){api('info').then(function(i){$('login').style.display='none';$(
  loadCh()}).catch(function(){})}
 document.querySelectorAll('nav a[data-p]').forEach(function(a){a.onclick=function(){
  document.querySelectorAll('nav a').forEach(function(x){x.classList.remove('on')});a.classList.add('on');
- ['ch','m3u','apps','set'].forEach(function(p){$('p-'+p).style.display=p==a.dataset.p?'block':'none'});
- $('save').classList.toggle('on',a.dataset.p=='ch'&&dirty);
- if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
+ ['ch','m3u','apps','ha','set'].forEach(function(p){$('p-'+p).style.display=p==a.dataset.p?'block':'none'});
+ $('save').classList.toggle('on',a.dataset.p=='ch'&&dirty);if(a.dataset.p!='ha')$('hasave').classList.remove('on');
+ if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='ha')loadHa();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
 // ---------- Senderliste
 var CH=[],RTL=false,dirty=false;
 var SRC={magenta:['MagentaTV','#E20074'],rtl:['RTL+ Livestream','#E4002B'],m3u:['Stream (VLC)','#FF8800'],hide:['ausgeblendet','#6b6f86']};
@@ -206,13 +230,52 @@ function renderApps(){$('pinned').innerHTML=FAV.map(function(p){return tile(app(
  var dragP=null;document.querySelectorAll('#pinned .app').forEach(function(el){el.ondragstart=function(){dragP=el.dataset.p};el.ondragover=function(e){e.preventDefault()};
   el.ondrop=function(e){e.preventDefault();var to=FAV.indexOf(el.dataset.p),from=FAV.indexOf(dragP);if(from<0||from==to)return;FAV.splice(from,1);FAV.splice(to,0,dragP);saveApps()}})}
 function saveApps(){renderApps();api('apps_save',{favs:FAV}).then(function(){toast('Startseite aktualisiert ✓')})}
+// ---------- Zuhause
+var HA=null,TILES=[],SENS=[];
+function haDirty(){$('hasave').classList.add('on')}
+function loadHa(){$('hasave').classList.remove('on');$('hamsg').textContent='Lade Home Assistant …';$('habox').style.display='none';
+ api('ha').then(function(j){if(j.error){$('hamsg').textContent=j.error;return}HA=j;$('hamsg').textContent='';$('habox').style.display='block';
+  $('sleepSame').checked=j.sleep===null;$('mpct').value=j.morning_pct;$('mpv').textContent=j.morning_pct+' %';
+  var opt=function(list,cur,none){return '<option value="">'+none+'</option>'+list.map(function(e){return '<option value="'+esc(e[0])+'"'+(e[0]==cur?' selected':'')+'>'+esc(e[1])+' ('+esc(e[0])+')</option>'}).join('')};
+  $('hw').innerHTML=opt(j.weather,j.weather_entity,'automatisch');$('htv').innerHTML=opt(j.tv,j.sleep_tv,'nichts abschalten');$('hph').innerHTML=opt(j.phone,j.call_entity,'automatisch suchen');
+  ['hw','htv','hph'].forEach(function(i){$(i).onchange=haDirty});renderLamps()});
+ api('tiles').then(function(j){if(j.error)return;TILES=j.tiles||[];SENS=j.sensors||[];renderTiles()}).catch(function(){})}
+function renderLamps(){var same=$('sleepSame').checked,sl=HA.sleep||[];
+ $('lamps').innerHTML=HA.lights.map(function(l,i){var id=l[0],k=HA.kino[id]||'';var on=HA.state[id]=='on';
+  return '<tr><td><b>'+esc(l[1])+'</b> <span class="hint" style="font-size:12px">'+(on?'● an':'○ aus')+'</span></td><td class="hint">'+esc(l[2]||'–')+'</td>'+
+  '<td><select data-l="'+i+'" data-f="kino">'+[['','nicht ändern'],['off','Aus'],['ambient','Ambient']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]==k?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></td>'+
+  '<td><label class="hint"><input type="checkbox" data-l="'+i+'" data-f="sleep"'+((same?!!k:sl.indexOf(id)>=0)?' checked':'')+(same?' disabled':'')+'> ausschalten</label></td>'+
+  '<td><label class="hint"><input type="checkbox" data-l="'+i+'" data-f="morning"'+(HA.morning.indexOf(id)>=0?' checked':'')+'> einschalten</label></td>'+
+  '<td><button class="sm" onclick="api(\'ha_light\',{id:\''+esc(id)+'\'}).then(function(){toast(\'Geschaltet\')})">⚡</button></td></tr>'}).join('');
+ document.querySelectorAll('#lamps [data-l]').forEach(function(el){el.onchange=function(){var id=HA.lights[+el.dataset.l][0],f=el.dataset.f;
+  if(f=='kino'){if(el.value)HA.kino[id]=el.value;else delete HA.kino[id];if($('sleepSame').checked)renderLamps()}
+  else{var arr=f=='sleep'?(HA.sleep=HA.sleep||[]):HA.morning;var p=arr.indexOf(id);if(el.checked&&p<0)arr.push(id);if(!el.checked&&p>=0)arr.splice(p,1)}
+  haDirty()}})}
+function saveHa(){var o={kino:HA.kino,sleep:$('sleepSame').checked?null:(HA.sleep||[]),morning:HA.morning,morning_pct:+$('mpct').value,weather_entity:$('hw').value,sleep_tv:$('htv').value,call_entity:$('hph').value};
+ api('ha_save',o).then(function(){return api('tiles_save',{tiles:TILES})}).then(function(){$('hasave').classList.remove('on');toast('Zuhause gespeichert ✓')})}
+function sens(id){for(var i=0;i<SENS.length;i++)if(SENS[i].id==id)return SENS[i];return{name:id,unit:'',state:''}}
+function unit(u){return u=='°C'?'°':u=='%'?' %':u?' '+u:''}
+function renderTiles(){$('tiles').innerHTML=TILES.map(function(t,i){var s=sens((t.main||[])[0]);
+  return '<div class="set"><input type="text" value="'+esc(t.label)+'" style="width:220px" oninput="TILES['+i+'].label=this.value;haDirty()"><label class="hint">'+esc(s.name)+(t.format=='dienst'?' · Dienst':' · jetzt '+esc(s.state)+esc(unit(s.unit)))+'</label>'+
+  '<button class="sm" onclick="mvT('+i+',-1)">↑</button><button class="sm" onclick="mvT('+i+',1)">↓</button><button class="sm danger" onclick="TILES.splice('+i+',1);renderTiles();haDirty()">✕</button></div>'}).join('')||'<p class="hint">Keine Kacheln.</p>'}
+function mvT(i,d){var j=i+d;if(j<0||j>=TILES.length)return;var x=TILES[i];TILES[i]=TILES[j];TILES[j]=x;renderTiles();haDirty()}
+function tileSearch(){var q=$('tq').value.toLowerCase(),r=$('tres');if(q.length<2){r.innerHTML='';return}
+ r.innerHTML=SENS.filter(function(s){return(s.name+' '+s.id).toLowerCase().indexOf(q)>=0}).slice(0,10).map(function(s,i){return '<div class="set" style="cursor:pointer" data-id="'+esc(s.id)+'"><label>'+esc(s.name)+' <span class="hint">'+esc(s.id)+'</span></label><span>'+esc(s.state)+esc(unit(s.unit))+'</span><button class="sm">+ hinzufügen</button></div>'}).join('');
+ r.querySelectorAll('[data-id]').forEach(function(el){el.onclick=function(){var s=sens(el.dataset.id),t={label:s.name,main:[s.id]};
+  if(s.dienst)t.format='dienst';else{t.main_unit=unit(s.unit);t.decimals=isNaN(parseFloat(s.state))||String(s.state).indexOf('.')<0?0:1}
+  TILES.push(t);$('tq').value='';r.innerHTML='';renderTiles();haDirty()}})}
 // ---------- Einstellungen
 function loadSet(){api('settings').then(function(j){var sec={},order=[];j.settings.forEach(function(s){if(!sec[s.section]){sec[s.section]=[];order.push(s.section)}sec[s.section].push(s)});
  $('sets').innerHTML=order.map(function(n){return '<div class="card"><h3 style="margin-top:0">'+esc(n.toUpperCase())+'</h3>'+sec[n].map(ctl).join('')+'</div>'}).join('');
  document.querySelectorAll('[data-k]').forEach(function(el){el.onchange=function(){var o={},t=el.dataset.t,v;
   if(t=='bool'||t=='inv')v=el.checked;else if(t=='int'||t=='float')v=parseFloat(el.value.replace(',','.'));else v=el.value;
-  if((t=='int'||t=='float')&&isNaN(v))return;o[el.dataset.k]=v;api('settings_save',o).then(function(){toast('Gespeichert ✓')})}})})}
+  if((t=='int'||t=='float')&&isNaN(v))return;o[el.dataset.k]=v;api('settings_save',o).then(function(){toast('Gespeichert ✓')})}});
+ document.querySelectorAll('[data-multi]').forEach(function(el){el.onchange=function(){var k=el.dataset.multi,v=[];document.querySelectorAll('[data-multi="'+k+'"]').forEach(function(x){if(x.checked)v.push(x.value);x.parentNode.style.background=x.checked?'#3B5BF0':'transparent'});
+  var o={};o[k]=v.join(',');api('settings_save',o).then(function(){toast(v.length?v.length+' Vereine gewählt ✓':'Alle Vereine ✓')})}})})}
 function ctl(s){var id='s_'+s.key,c;
+ if(s.type=='multi'){var sel=String(s.value||'').split(',').filter(Boolean);var grp={};(s.options||[]).forEach(function(o){(grp[o.g]=grp[o.g]||[]).push(o)});
+  return '<div class="set" style="display:block"><label>'+esc(s.label)+'</label>'+Object.keys(grp).map(function(g){return '<div class="hint" style="margin:10px 0 4px">'+esc(g)+'</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+grp[g].map(function(o){return '<label style="padding:5px 12px;border-radius:999px;border:1px solid #2a2840;font-size:13px;cursor:pointer;background:'+(sel.indexOf(o.v)>=0?'#3B5BF0':'transparent')+'"><input type="checkbox" style="display:none" data-multi="'+s.key+'" value="'+esc(o.v)+'"'+(sel.indexOf(o.v)>=0?' checked':'')+'>'+esc(o.n)+'</label>'}).join('')+'</div>'}).join('')+
+  '<div style="margin-top:12px"><button class="sm" onclick="api(\'goal_test\').then(function(){toast(\'Beispiel läuft am Fernseher\')})">Beispiel am Fernseher anzeigen</button></div></div>'}
  if(s.type=='bool'||s.type=='inv')c='<span class="sw"><input type="checkbox" id="'+id+'" data-k="'+s.key+'" data-t="'+s.type+'"'+(s.value?' checked':'')+'><span onclick="this.previousSibling.click()"></span></span>';
  else if(s.options)c='<select data-k="'+s.key+'" data-t="'+s.type+'">'+s.options.map(function(o){return '<option value="'+esc(o.v)+'"'+(String(o.v)==String(s.value)?' selected':'')+'>'+esc(o.n)+'</option>'}).join('')+'</select>';
  else if(s.type=='int'||s.type=='float')c='<input type="number" step="'+(s.type=='float'?'0.5':'1')+'" data-k="'+s.key+'" data-t="'+s.type+'" value="'+s.value+'">';

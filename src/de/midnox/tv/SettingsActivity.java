@@ -164,6 +164,20 @@ public class SettingsActivity extends Activity {
         section("GUTEN MORGEN");
         morningSection();
 
+        section("TOR-ALARM (\u00dcBER JEDER APP)");
+        toggle("Tore und Karten live einblenden", "sa_on", true, false);
+        toggle("1. Bundesliga", "sa_bl1", true, false);
+        toggle("2. Bundesliga", "sa_bl2", true, false);
+        toggle("Tore", "sa_goal", true, false);
+        toggle("Gelbe Karten", "sa_yellow", false, false);
+        toggle("Rote und Gelb-Rote Karten", "sa_red", true, false);
+        final Row sat = add("Vereine");
+        sat.value.setText(pr.getString("sa_teams", "").isEmpty() ? "alle  (am PC w\u00e4hlbar)" : pr.getString("sa_teams", ""));
+        sat.setFocusable(true);
+        final Row sad = add("Beispiel anzeigen");
+        sad.value.setText("OK");
+        sad.onOk = new Runnable() { public void run() { GoalAlert.test(SettingsActivity.this); } };
+
         section("DIENSTPLAN");
         shiftSection();
 

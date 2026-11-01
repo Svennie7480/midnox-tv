@@ -78,6 +78,7 @@ final class Web {
                 for (Model.Channel ch : Lib.channels) cnt.put(ch.src, cnt.containsKey(ch.src) ? cnt.get(ch.src) + 1 : 1);
                 for (Model.Source s : Lib.sources(c)) {
                     JSONObject o = s.json();
+                    if (s.type.equals("stalker")) { int n = Stalker.macs(s).size(); o.put("macinfo", n + (n == 1 ? " MAC" : " MACs") + (n > 1 ? " · aktiv: MAC " + (Stalker.activeIndex(s) + 1) : "")); }
                     o.put("pass", s.pass.isEmpty() ? "" : "••••").put("label", s.label()).put("error", Lib.errors.containsKey(s.id) ? Lib.errors.get(s.id) : "").put("count", cnt.containsKey(s.id) ? cnt.get(s.id) : 0);
                     a.put(o);
                 }
@@ -93,7 +94,8 @@ final class Web {
                 s.name = in.optString("name").trim();
                 if (s.name.isEmpty()) s.name = s.type.equals("m3u") ? "M3U-Liste" : s.url.replaceAll("^https?://", "").replaceAll("[:/].*", "");
                 if (s.url.isEmpty()) return "{\"ok\":false,\"msg\":\"Bitte eine Adresse eingeben\"}";
-                if (s.type.equals("stalker") && !Stalker.mac(s.mac).matches("([0-9A-F]{2}:){5}[0-9A-F]{2}")) return "{\"ok\":false,\"msg\":\"MAC-Adresse im Format 00:1A:79:XX:XX:XX\"}";
+                if (s.type.equals("stalker") && Stalker.macs(s).isEmpty()) return "{\"ok\":false,\"msg\":\"MAC-Adresse im Format 00:1A:79:XX:XX:XX\"}";
+                if (s.type.equals("stalker")) s.mac = android.text.TextUtils.join("\n", Stalker.macs(s));
                 List<Model.Source> l = Lib.sources(c); l.add(s); Lib.saveSources(c, l);
                 reloadAll(c);
                 return "{\"ok\":true,\"msg\":\"Quelle hinzugefügt – Sender werden geladen …\"}";
@@ -103,6 +105,18 @@ final class Web {
                 for (Model.Source s : l) if (!s.id.equals(in.optString("id"))) n.add(s); else Lib.m3uFile(c, s.id).delete();
                 Lib.saveSources(c, n); reloadAll(c);
                 return "{\"ok\":true}";
+            }
+            case "macs": {   // MAC-Liste einer Stalker-Quelle aendern
+                List<Model.Source> l = Lib.sources(c);
+                for (Model.Source s : l) if (s.id.equals(in.optString("id"))) {
+                    Model.Source t = new Model.Source(); t.mac = in.optString("mac");
+                    List<String> ms = Stalker.macs(t);
+                    if (ms.isEmpty()) return "{\"ok\":false,\"msg\":\"Keine gültige MAC-Adresse\"}";
+                    s.mac = android.text.TextUtils.join("\n", ms);
+                    Stalker.active.put(s.id, 0);
+                }
+                Lib.saveSources(c, l); reloadAll(c);
+                return "{\"ok\":true,\"msg\":\"MAC-Adressen gespeichert\"}";
             }
             case "toggle": {
                 List<Model.Source> l = Lib.sources(c);
@@ -160,7 +174,7 @@ final class Web {
             + ":root{--g:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4)}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0a14;color:#e6e8f2;padding:22px 16px 60px}"
             + ".w{max-width:720px;margin:0 auto}h1{font-weight:300;font-size:32px;margin:0 0 4px}h1 b{background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:300}h1 i{font-style:normal;font-size:14px;background:#ef4444;color:#fff;padding:3px 9px;border-radius:7px;vertical-align:middle;margin-left:6px;font-weight:700}"
             + ".sub{color:#8a8fa8;margin:0 0 18px;font-size:14px}h3{font-size:12px;letter-spacing:.25em;color:#8a8fa8;font-weight:500;margin:26px 0 10px}"
-            + ".card{background:#15141f;border:1px solid #26243a;border-radius:16px;padding:16px;margin-bottom:12px}input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #2e2c45;background:#0e0d18;color:#fff;font-size:16px;margin-bottom:8px}"
+            + ".card{background:#15141f;border:1px solid #26243a;border-radius:16px;padding:16px;margin-bottom:12px}input,select,textarea{width:100%;font-family:inherit;padding:12px;border-radius:10px;border:1px solid #2e2c45;background:#0e0d18;color:#fff;font-size:16px;margin-bottom:8px}"
             + "button{padding:10px 18px;border:0;border-radius:999px;background:var(--g);color:#fff;font-size:14px;cursor:pointer}button.g{background:#26243a}.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.tabs button{background:#26243a}.tabs button.on{background:var(--g)}"
             + ".src{display:flex;gap:12px;align-items:center}.src b{display:block}.src span{color:#8a8fa8;font-size:13px}.err{color:#fca5a5!important}.src .bt{margin-left:auto;display:flex;gap:6px}#msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#26243a;padding:12px 18px;border-radius:12px;display:none}"
             + ".grp{display:flex;flex-wrap:wrap;gap:6px}.grp label{padding:6px 12px;border-radius:999px;border:1px solid #2e2c45;font-size:13px;cursor:pointer}.grp label.on{background:#3B5BF0;border-color:#3B5BF0}.grp input{display:none}.hint{color:#8a8fa8;font-size:13px}"
@@ -170,7 +184,7 @@ final class Web {
             + "<div id=f_m3u><input id=m_url placeholder='http://…/playlist.m3u'><input id=m_name placeholder='Name (optional)'><input id=m_epg placeholder='EPG-Adresse (optional, sonst aus der Playlist)'><button onclick=add('m3u')>Hinzufügen</button></div>"
             + "<div id=f_file style=display:none><input type=file id=file accept='.m3u,.m3u8,audio/x-mpegurl,application/x-mpegurl,text/plain'><button onclick=up()>Hochladen</button></div>"
             + "<div id=f_xtream style=display:none><input id=x_url placeholder='Server, z. B. http://anbieter.tv:8080'><input id=x_user placeholder='Benutzername'><input id=x_pass placeholder='Passwort' type=password><input id=x_name placeholder='Name (optional)'><button onclick=add('xtream')>Hinzufügen</button></div>"
-            + "<div id=f_stalker style=display:none><input id=s_url placeholder='Portal-Adresse, z. B. http://portal.tv:8080/c/'><input id=s_mac placeholder='MAC-Adresse 00:1A:79:XX:XX:XX'><input id=s_name placeholder='Name (optional)'><input id=s_epg placeholder='Zusätzliche EPG-Adresse (optional)'><button onclick=add('stalker')>Hinzufügen</button><p class=hint>midnox Live meldet sich beim Portal wie eine MAG-Box an. Die MAC-Adresse muss bei deinem Anbieter freigeschaltet sein.</p></div></div>"
+            + "<div id=f_stalker style=display:none><input id=s_url placeholder='Portal-Adresse, z. B. http://portal.tv:8080/c/'><textarea id=s_mac rows=3 placeholder='MAC-Adresse(n), eine pro Zeile:&#10;00:1A:79:XX:XX:XX&#10;00:1A:79:YY:YY:YY'></textarea><input id=s_name placeholder='Name (optional)'><input id=s_epg placeholder='Zusätzliche EPG-Adresse (optional)'><button onclick=add('stalker')>Hinzufügen</button><p class=hint>midnox Live meldet sich beim Portal wie eine MAG-Box an. Die MAC-Adressen müssen bei deinem Anbieter freigeschaltet sein. Mehrere MACs werden gestapelt: Geht ein Sender über eine MAC nicht, versucht midnox Live automatisch die nächste – und merkt sich die, die funktioniert.</p></div></div>"
             + "<h3>PROGRAMMFÜHRER (EPG)</h3><div class=card><p class=hint style=margin-top:0>Zusätzliche XMLTV-Adressen (auch .gz), mehrere mit Komma. Die Sender werden über tvg-id oder den Namen zugeordnet. Voreingestellt ist ein freies deutsches EPG.</p><input id=epg><button onclick=epg()>Speichern und neu laden</button> <span class=hint id=epgst></span></div>"
             + "<h3>GRUPPEN</h3><div class=card><p class=hint style=margin-top:0>Angetippte Gruppen werden am Fernseher ausgeblendet (praktisch bei großen Listen mit vielen Ländern).</p><div class=grp id=grp></div></div>"
             + "<p><button class=g onclick=\"api('reload').then(msg)\">Alles neu laden</button></p><div id=msg></div></div><script>"
@@ -181,9 +195,10 @@ final class Web {
             + "function v(i){return $(i).value.trim()}"
             + "function add(t){var o={type:t};if(t=='m3u')o={type:t,url:v('m_url'),name:v('m_name'),epg:v('m_epg')};if(t=='xtream')o={type:t,url:v('x_url'),user:v('x_user'),pass:v('x_pass'),name:v('x_name')};if(t=='stalker')o={type:t,url:v('s_url'),mac:v('s_mac'),name:v('s_name'),epg:v('s_epg')};api('add',o).then(msg)}"
             + "function up(){var f=$('file').files[0];if(!f)return;msg({msg:'Lade hoch …'});var x=new XMLHttpRequest();x.open('POST','/upload?k='+K+'&name='+encodeURIComponent(f.name));x.onload=function(){try{msg(JSON.parse(x.responseText))}catch(e){msg({msg:'Fehler beim Hochladen'})}};x.send(f)}"
+            + "function mc(i){var x=S[i];var v=prompt('MAC-Adressen für '+x.name+' (mit Komma getrennt). Reihenfolge = Reihenfolge beim Ausweichen:',x.mac.split('\\n').join(', '));if(v)api('macs',{id:x.id,mac:v}).then(msg)}"
             + "function epg(){api('epg',{extra:v('epg')}).then(msg)}"
             + "var first=true;function load(){api('state').then(function(s){$('st').textContent=s.status+(s.busy?' · lädt …':'')+(s.epg?' · '+s.epg:'');if(first){$('epg').value=s.epg_extra;first=false}"
-            + "$('src').innerHTML=s.sources.length?s.sources.map(function(x){return '<div class=card><div class=src><div><b>'+esc(x.name)+'</b><span>'+esc(x.label)+' · '+(x.on?x.count+' Sender':'ausgeschaltet')+'</span>'+(x.error?'<br><span class=err>'+esc(x.error)+'</span>':'')+'</div><div class=bt><button class=g onclick=\"api(\\'toggle\\',{id:\\''+x.id+'\\'}).then(msg)\">'+(x.on?'Aus':'An')+'</button><button class=g onclick=\"if(confirm(\\'Quelle löschen?\\'))api(\\'del\\',{id:\\''+x.id+'\\'}).then(msg)\">Löschen</button></div></div></div>'}).join(''):'<div class=card><span class=hint>Noch keine Quelle – füge unten deine M3U-Liste, Xtream-Zugangsdaten oder dein Stalker-Portal hinzu.</span></div>';"
+            + "$('src').innerHTML=s.sources.length?(window.S=s.sources).map(function(x,i){return '<div class=card><div class=src><div><b>'+esc(x.name)+'</b><span>'+esc(x.label)+' · '+(x.on?x.count+' Sender':'ausgeschaltet')+(x.macinfo?' · '+esc(x.macinfo):'')+'</span>'+(x.error?'<br><span class=err>'+esc(x.error)+'</span>':'')+'</div><div class=bt>'+(x.type=='stalker'?'<button class=g onclick=\"mc('+i+')\">MACs</button>':'')+'<button class=g onclick=\"api(\\'toggle\\',{id:\\''+x.id+'\\'}).then(msg)\">'+(x.on?'Aus':'An')+'</button><button class=g onclick=\"if(confirm(\\'Quelle löschen?\\'))api(\\'del\\',{id:\\''+x.id+'\\'}).then(msg)\">Löschen</button></div></div></div>'}).join(''):'<div class=card><span class=hint>Noch keine Quelle – füge unten deine M3U-Liste, Xtream-Zugangsdaten oder dein Stalker-Portal hinzu.</span></div>';"
             + "if(s.busy)setTimeout(load,2500)});"
             + "api('groups').then(function(g){$('grp').innerHTML=g.groups.map(function(x,i){return '<label class=\"'+(x.hidden?'':'on')+'\"><input type=checkbox '+(x.hidden?'':'checked')+' data-n=\"'+esc(x.name)+'\">'+esc(x.name||'(ohne Gruppe)')+' · '+x.count+'</label>'}).join('')||'<span class=hint>Gruppen erscheinen, sobald Sender geladen sind.</span>';"
             + "document.querySelectorAll('#grp input').forEach(function(c){c.onchange=function(){c.parentNode.classList.toggle('on',c.checked);var h=[];document.querySelectorAll('#grp input').forEach(function(x){if(!x.checked)h.push(x.dataset.n)});api('hide',{hidden:h}).then(function(){msg({msg:'Gespeichert'})})}})})}"

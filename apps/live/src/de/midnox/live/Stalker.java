@@ -11,6 +11,16 @@ final class Stalker {
 
     static final class Session { String api, portal, mac, token = ""; long since; }
     static final Map<String, Session> sessions = new HashMap<>();
+    /** Zuletzt funktionierende MAC je Quelle (Index in macs()). */
+    static final Map<String, Integer> active = Collections.synchronizedMap(new HashMap<String, Integer>());
+
+    /** Mehrere MACs je Quelle: eine pro Zeile oder mit Komma/Leerzeichen getrennt. */
+    static List<String> macs(Model.Source src) {
+        List<String> l = new ArrayList<>();
+        for (String m : src.mac.split("[\\s,;]+")) { m = mac(m); if (m.matches("([0-9A-F]{2}:){5}[0-9A-F]{2}") && !l.contains(m)) l.add(m); }
+        return l;
+    }
+    static int activeIndex(Model.Source src) { Integer i = active.get(src.id); int n = macs(src).size(); return i == null || i >= n ? 0 : i; }
 
     /** Portal-Adresse -> moegliche API-Adressen. */
     static List<String> apis(String url) {
@@ -44,14 +54,19 @@ final class Stalker {
         return new JSONObject(body.substring(i));
     }
 
-    static synchronized Session session(Model.Source src, boolean fresh) throws Exception {
-        Session s = sessions.get(src.id);
+    static Session session(Model.Source src, boolean fresh) throws Exception { return session(src, activeIndex(src), fresh); }
+    static synchronized Session session(Model.Source src, int macIdx, boolean fresh) throws Exception {
+        List<String> ms = macs(src);
+        if (ms.isEmpty()) throw new Exception("keine gültige MAC-Adresse");
+        String theMac = ms.get(Math.max(0, Math.min(macIdx, ms.size() - 1)));
+        String sk = src.id + "#" + theMac;
+        Session s = sessions.get(sk);
         if (s != null && !fresh && System.currentTimeMillis() - s.since < 3 * 3600000L) return s;
         Exception last = null;
         for (String api : apis(src.url)) {
             try {
                 Session n = new Session();
-                n.api = api; n.mac = mac(src.mac);
+                n.api = api; n.mac = theMac;
                 n.portal = api.replaceAll("/(portal\\.php|server/load\\.php)$", "");
                 JSONObject h = call(n, "type=stb&action=handshake&token=&prehash=0");
                 String tok = h.optJSONObject("js") == null ? "" : h.getJSONObject("js").optString("token");
@@ -64,15 +79,26 @@ final class Stalker {
                 if (js != null && js.optInt("status", 0) == 2 && js.optString("msg").length() > 0) throw new Exception(js.optString("msg"));
                 if (js != null && js.has("block_msg") && js.optString("block_msg").length() > 0) throw new Exception(js.optString("block_msg"));
                 n.since = System.currentTimeMillis();
-                sessions.put(src.id, n);
+                sessions.put(sk, n);
                 return n;
             } catch (Exception e) { last = e; }
         }
         throw new Exception("Portal nicht erreichbar oder MAC nicht freigeschaltet" + (last == null ? "" : " (" + last.getMessage() + ")"));
     }
 
+    /** Senderliste ueber die erste MAC, die funktioniert. */
     static List<Model.Channel> channels(Model.Source src) throws Exception {
-        Session s = session(src, true);
+        List<String> ms = macs(src);
+        Exception last = null;
+        int start = activeIndex(src);
+        for (int k = 0; k < Math.max(1, ms.size()); k++) {
+            int i = (start + k) % Math.max(1, ms.size());
+            try { List<Model.Channel> l = channels(src, i); active.put(src.id, i); return l; } catch (Exception e) { last = e; }
+        }
+        throw last != null ? last : new Exception("keine gültige MAC-Adresse");
+    }
+    static List<Model.Channel> channels(Model.Source src, int macIdx) throws Exception {
+        Session s = session(src, macIdx, true);
         Map<String, String> genres = new HashMap<>();
         try {
             JSONArray g = call(s, "type=itv&action=get_genres").optJSONArray("js");
@@ -102,7 +128,9 @@ final class Stalker {
     }
 
     /** Abspiel-Adresse fuer einen Sender (Portale erzeugen sie erst beim Abspielen). */
-    static String link(Model.Source src, Model.Channel c) throws Exception {
+    static String link(Model.Source src, Model.Channel c) throws Exception { return link(src, c, activeIndex(src)); }
+    /** Abspiel-Adresse ueber eine bestimmte MAC. */
+    static String link(Model.Source src, Model.Channel c, int macIdx) throws Exception {
         String cmd = c.cmd;
         String direct = strip(cmd);
         if (direct.startsWith("http") && !direct.contains("localhost") && !direct.contains("127.0.0.1")) {
@@ -110,7 +138,7 @@ final class Stalker {
         }
         for (int attempt = 0; attempt < 2; attempt++) {
             try {
-                Session s = session(src, attempt > 0);
+                Session s = session(src, macIdx, attempt > 0);
                 JSONObject r = call(s, "type=itv&action=create_link&cmd=" + enc(cmd) + "&series=&forced_storage=undefined&disable_ad=0&download=0");
                 JSONObject js = r.optJSONObject("js");
                 String u = js == null ? "" : strip(js.optString("cmd"));

@@ -78,6 +78,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         Web.start(this);
         Web.onChange = new Runnable() { public void run() { refreshAll(); } };
         Lib.loadCache(this);
+        for (Model.Source s : Lib.sources(this)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(this).getInt("mac_" + s.id, 0));
         Epg.loadCache(this);
         initPlayer();
         refreshAll();
@@ -145,14 +146,17 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         player.setVideoSurfaceView(surface);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int st) {
-                if (st == Player.STATE_BUFFERING) showStatus("Lädt …", 0);
-                else if (st == Player.STATE_READY) { hideStatus(); retries = 0; updateBadge(); }
-                else if (st == Player.STATE_ENDED && current != null) h.postDelayed(new Runnable() { public void run() { if (current != null) play(current); } }, 1500);
+                h.removeCallbacks(stallWatch);
+                if (st == Player.STATE_BUFFERING) { if (!tryMsg) showStatus("Lädt …", 0); h.postDelayed(stallWatch, everReady ? 25000 : 15000); }
+                else if (st == Player.STATE_READY) { hideStatus(); tryMsg = false; retries = 0; everReady = true; updateBadge(); succeeded(); }
+                else if (st == Player.STATE_ENDED && current != null) h.postDelayed(new Runnable() { public void run() { if (current != null) runTry(); } }, 1500);
             }
             @Override public void onPlayerError(PlaybackException e) {
                 if (current == null) return;
-                if (retries++ < 3) { showStatus("Verbindung unterbrochen – neuer Versuch …", 0); h.postDelayed(new Runnable() { public void run() { if (current != null) start(current, true); } }, 1500 * retries); }
-                else showStatus("„" + current.name + "“ lässt sich gerade nicht abspielen (" + e.getErrorCodeName().replace("ERROR_CODE_", "").toLowerCase(Locale.ROOT).replace('_', ' ') + ")", 0);
+                lastError = e.getErrorCodeName().replace("ERROR_CODE_", "").toLowerCase(Locale.ROOT).replace('_', ' ');
+                // lief schon: einmal neu verbinden; sonst gleich naechste MAC / Quelle
+                if (everReady && retries++ < 2) { showStatus("Verbindung unterbrochen – neuer Versuch …", 0); h.postDelayed(new Runnable() { public void run() { if (current != null) runTry(); } }, 1500 * retries); }
+                else failNext();
             }
             @Override public void onVideoSizeChanged(VideoSize v) {
                 if (v.width > 0 && v.height > 0) { videoRatio = v.width * v.pixelWidthHeightRatio / v.height; layoutVideo(); updateBadge(); }
@@ -187,24 +191,78 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         retries = 0;
         U.prefs(this).edit().putString("last", ch.id).apply();
         showBanner(ch);
-        start(ch, false);
+        buildPlan(ch);
+        runTry();
         Epg.ensureShort(this, ch, new Runnable() { public void run() { banner.invalidate(); } });
     }
-    void start(final Model.Channel ch, boolean retry) {
-        if (!retry) showStatus("Lädt …", 0);
-        if (!ch.cmd.isEmpty()) {   // Stalker: Adresse erst holen
+    void start(Model.Channel ch, boolean retry) { runTry(); }
+
+    // ------------------------------------------------------------ Ausweichen: naechste MAC, dann andere Quelle
+    static final class Try { Model.Channel ch; int mac = -1, macs; String label = ""; }
+    final List<Try> plan = new ArrayList<>();
+    int planPos; boolean everReady, tryMsg; String lastError = "";
+
+    void buildPlan(Model.Channel ch) {
+        plan.clear(); planPos = 0; everReady = false; tryMsg = false;
+        addTries(ch);
+        // derselbe Sender aus anderen Quellen (gleicher Name)
+        if (U.prefs(this).getBoolean("fallback", true)) {
+            String n = U.norm(ch.name);
+            for (Model.Channel o : Lib.channels) if (!o.id.equals(ch.id) && !o.src.equals(ch.src) && U.norm(o.name).equals(n) && plan.size() < 16) addTries(o);
+        }
+    }
+    void addTries(Model.Channel ch) {
+        if (!ch.cmd.isEmpty()) {
+            Model.Source s = Lib.source(this, ch.src);
+            int n = s == null ? 1 : Math.max(1, Stalker.macs(s).size()), st = s == null ? 0 : Stalker.activeIndex(s);
+            for (int k = 0; k < n; k++) { Try t = new Try(); t.ch = ch; t.mac = (st + k) % n; t.macs = n; t.label = (s == null ? "" : s.name) + (n > 1 ? " · MAC " + (t.mac + 1) + " von " + n : ""); plan.add(t); }
+        } else {
+            Model.Source s = Lib.source(this, ch.src);
+            Try t = new Try(); t.ch = ch; t.label = s == null ? "" : s.name; plan.add(t);
+        }
+    }
+    void failNext() {
+        h.removeCallbacks(stallWatch);
+        planPos++; retries = 0; everReady = false;
+        if (planPos >= plan.size()) {
+            tryMsg = false;
+            String what = plan.size() > 1 ? " – alle " + plan.size() + " Wege probiert" : "";
+            showStatus("„" + current.name + "“ lässt sich gerade nicht abspielen" + what + (lastError.isEmpty() ? "" : " (" + lastError + ")"), 0);
+            return;
+        }
+        runTry();
+    }
+    final Runnable stallWatch = new Runnable() { public void run() {
+        if (player != null && player.getPlaybackState() == Player.STATE_BUFFERING && current != null) { lastError = "kein Bild"; if (everReady && retries++ < 1) runTry(); else failNext(); }
+    }};
+    void runTry() {
+        if (current == null || plan.isEmpty()) return;
+        if (planPos >= plan.size()) planPos = 0;
+        final Try t = plan.get(planPos);
+        final Model.Channel ch = current;
+        if (planPos > 0) { tryMsg = true; showStatus(ch.name + ": versuche " + (t.ch.src.equals(ch.src) ? "" : "Ausweich-Quelle ") + t.label + " …", 0); }
+        else showStatus("Lädt …", 0);
+        if (!t.ch.cmd.isEmpty()) {   // Stalker: Adresse erst holen
             new Thread(new Runnable() { public void run() {
                 try {
-                    Model.Source s = Lib.source(PlayerActivity.this, ch.src);
+                    Model.Source s = Lib.source(PlayerActivity.this, t.ch.src);
                     if (s == null) throw new Exception("Quelle fehlt");
-                    final String u = Stalker.link(s, ch);
-                    h.post(new Runnable() { public void run() { if (current == ch) prepare(ch, u, Stalker.MAG_UA); } });
+                    final String u = Stalker.link(s, t.ch, Math.max(0, t.mac));
+                    h.post(new Runnable() { public void run() { if (current == ch && plan.indexOf(t) == planPos) prepare(t.ch, u, Stalker.MAG_UA); } });
                 } catch (final Exception e) {
-                    h.post(new Runnable() { public void run() { if (current == ch) showStatus("Portal: " + e.getMessage(), 0); } });
+                    h.post(new Runnable() { public void run() { if (current == ch && plan.indexOf(t) == planPos) { lastError = e.getMessage(); failNext(); } } });
                 }
             }}).start();
-        } else prepare(ch, ch.url, ch.ua.isEmpty() ? null : ch.ua);
+        } else prepare(t.ch, t.ch.url, t.ch.ua.isEmpty() ? null : t.ch.ua);
     }
+    /** Es laeuft: funktionierende MAC merken, damit der naechste Sender gleich darueber startet. */
+    void succeeded() {
+        if (planPos >= plan.size()) return;
+        Try t = plan.get(planPos);
+        if (t.mac >= 0) { Stalker.active.put(t.ch.src, t.mac); U.prefs(this).edit().putInt("mac_" + t.ch.src, t.mac).apply(); }
+        if (planPos > 0) toast(current.name + " läuft über " + t.label);
+    }
+
     void prepare(Model.Channel ch, String url, String ua) {
         DefaultHttpDataSource.Factory ds = new DefaultHttpDataSource.Factory()
             .setUserAgent(ua != null ? ua : U.UA)

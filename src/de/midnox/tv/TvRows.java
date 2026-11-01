@@ -62,12 +62,33 @@ public class TvRows implements MediaCard.Listener {
     static final Set<String> RTL_MAX = new HashSet<>(Arrays.asList("RTL.Crime.de", "RTL.Passion.de", "RTL.Living.de", "GEO.Television.de"));
     static String rtlSlug(String ch) { for (String[] r : RTL_LIVE) if (r[0].equals(ch)) return r[1]; return null; }
     static boolean hasRtl(Context c) { return Style.launchIntent(c.getPackageManager(), RTLPLUS) != null; }
-    /** Sender startet ueber RTL+ (installiert, Sender vorhanden, Einstellung an). */
-    static boolean viaRtl(Context c, String ch) { return rtlSlug(ch) != null && Style.prefs(c).getBoolean("tv_rtlplus", true) && hasRtl(c); }
-    /** Sender in der Reihe zeigen? Nur-RTL+-Sender brauchen RTL+, Max-Sender zusaetzlich die Einstellung. */
-    static boolean visible(Context c, String ch) {
-        if (RTL_MAX.contains(ch) && !Style.prefs(c).getBoolean("tv_rtlmax", false)) return false;
-        return number(c, ch) > 0 || viaRtl(c, ch) || ch.equals("Hamburg.1.de");
+    /** Quelle eines Senders: "magenta", "rtl" oder "hide" (eigene Wahl in der Senderliste, sonst automatisch). */
+    static String source(Context c, String ch) {
+        String s = Style.prefs(c).getString("tvsrc_" + ch, "");
+        boolean rtlOk = rtlSlug(ch) != null && hasRtl(c);
+        if (s.equals("rtl") && rtlOk) return "rtl";
+        if (s.equals("magenta") || s.equals("hide")) return s;
+        if (RTL_MAX.contains(ch) && !Style.prefs(c).getBoolean("tv_rtlmax", false)) return "hide";
+        if (rtlOk && Style.prefs(c).getBoolean("tv_rtlplus", true)) return "rtl";
+        return number(c, ch) > 0 || ch.equals("Hamburg.1.de") ? "magenta" : "hide";
+    }
+    static boolean viaRtl(Context c, String ch) { return "rtl".equals(source(c, ch)); }
+    static boolean visible(Context c, String ch) { return !"hide".equals(source(c, ch)); }
+
+    /** Sender in der eigenen Reihenfolge (Senderliste in den Einstellungen). */
+    static List<String[]> ordered(Context c) {
+        List<String[]> out = new ArrayList<>();
+        try {
+            JSONArray a = new JSONArray(Style.prefs(c).getString("tv_order", "[]"));
+            for (int i = 0; i < a.length(); i++) for (String[] ch : CHANNELS) if (ch[0].equals(a.optString(i))) { out.add(ch); break; }
+        } catch (Exception ignored) {}
+        for (String[] ch : CHANNELS) if (!out.contains(ch)) out.add(ch);
+        return out;
+    }
+    static void saveOrder(Context c, List<String[]> l) {
+        JSONArray a = new JSONArray();
+        for (String[] ch : l) a.put(ch[0]);
+        Style.prefs(c).edit().putString("tv_order", a.toString()).apply();
     }
 
     static class Prog { long start, stop; String title, sub = "", cat = "", icon, desc = ""; }
@@ -260,7 +281,7 @@ public class TvRows implements MediaCard.Listener {
         long now = System.currentTimeMillis();
         SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.GERMANY);
         final List<Emby.Entry> list = new ArrayList<>();
-        for (String[] c : CHANNELS) {
+        for (String[] c : ordered(act)) {
             if (!visible(act, c[0])) continue;
             List<Prog> l = d.get(c[0]);
             if (l == null) continue;

@@ -1,6 +1,6 @@
 {
-  "versionCode": 48,
-  "versionName": "8.5",
+  "versionCode": 49,
+  "versionName": "8.6",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Jetzt im TV: RTL-Sender starten direkt als Livestream in RTL+ (inkl. VOXup, TOGGO plus)"
+  "notes": "Senderliste zum Sortieren mit Quelle je Sender; beliebige Dateien vom Handy in den Download-Ordner (ZIP entpacken)"
 }

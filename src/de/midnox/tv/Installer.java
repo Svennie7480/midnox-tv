@@ -26,7 +26,10 @@ public class Installer {
     static File file(Context c) { return new File(dir(c), "upload.apk"); }
 
     /** Upload vom Handy (roher Datenstrom). */
-    static String receive(Context c, InputStream in, long len, String name) throws Exception {
+    static boolean isApp(String name) { return name.toLowerCase(Locale.ROOT).matches(".*\\.(apk|apks|xapk)$"); }
+
+    static String receive(Context c, InputStream in, long len, String name, boolean unzip) throws Exception {
+        if (!isApp(name)) return saveFile(c, in, len, name, unzip).toString();
         if (busy) return err("Es läuft gerade schon eine Installation");
         busy = true;
         try {
@@ -159,6 +162,72 @@ public class Installer {
             } catch (Exception e) { Style.toast(c, "Installer konnte nicht geöffnet werden"); }
         }});
         return new JSONObject().put("ok", true).put("msg", "Bitte am Fernseher „Installieren“ bestätigen (" + what.trim() + ")");
+    }
+
+    // ------------------------------------------------------------ beliebige Dateien -> Download-Ordner
+    static JSONObject saveFile(final Context c, InputStream in, long len, String name, boolean unzip) throws Exception {
+        if (len <= 0) return fail("Keine Datei empfangen");
+        name = name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
+        if (name.isEmpty()) name = "datei";
+        toast(c, "Empfange " + name + " …");
+        File dl = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+        boolean canWrite = c.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        if (!canWrite) {   // Recht einmalig ueber ADB holen
+            try { Adb.shellLong(c, "pm grant " + c.getPackageName() + " android.permission.WRITE_EXTERNAL_STORAGE", 20000); } catch (Exception ignored) {}
+            canWrite = c.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        }
+        File dir = canWrite ? dl : new File(dir(c), "Empfangen");
+        dir.mkdirs();
+        File f = unique(dir, name);
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(f), 65536);
+        byte[] buf = new byte[65536]; long left = len; int n;
+        try { while (left > 0 && (n = in.read(buf, 0, (int) Math.min(buf.length, left))) > 0) { out.write(buf, 0, n); left -= n; } }
+        finally { out.close(); }
+        if (left > 0) { f.delete(); return fail("Übertragung abgebrochen"); }
+        String where = (canWrite ? "Download/" : "midnox-Ordner/") + f.getName();
+        if (!canWrite) {   // ohne Schreibrecht: ueber ADB in den Download-Ordner verschieben
+            try {
+                Adb.shellLong(c, "mkdir -p /sdcard/Download && mv '" + f.getPath() + "' '/sdcard/Download/" + f.getName().replace("'", "") + "'", 120000);
+                f = new File(dl, f.getName().replace("'", "")); where = "Download/" + f.getName();
+            } catch (Exception ignored) {}
+        }
+        String extra = "";
+        if (unzip && f.getName().toLowerCase(Locale.ROOT).endsWith(".zip") && f.canRead() && f.getParentFile().canWrite()) {
+            File to = unique(f.getParentFile(), f.getName().replaceAll("(?i)\\.zip$", ""));
+            int cnt = 0;
+            try (ZipInputStream z = new ZipInputStream(new BufferedInputStream(new FileInputStream(f)))) {
+                ZipEntry e;
+                String base = to.getCanonicalPath() + File.separator;
+                while ((e = z.getNextEntry()) != null) {
+                    File o = new File(to, e.getName());
+                    if (!o.getCanonicalPath().startsWith(base)) continue;   // Schutz vor ../-Pfaden
+                    if (e.isDirectory()) { o.mkdirs(); continue; }
+                    o.getParentFile().mkdirs();
+                    try (OutputStream w = new BufferedOutputStream(new FileOutputStream(o), 65536)) { while ((n = z.read(buf)) > 0) w.write(buf, 0, n); }
+                    cnt++;
+                }
+            }
+            extra = " · " + cnt + " Dateien entpackt nach " + to.getName() + "/";
+            scan(c, to);
+        }
+        scan(c, f);
+        final String msg = "\u2713 " + f.getName() + " gespeichert in " + where.replaceAll("/[^/]*$", "/") + extra;
+        toast(c, msg);
+        return new JSONObject().put("ok", true).put("msg", msg).put("path", f.getPath());
+    }
+    static File unique(File dir, String name) {
+        File f = new File(dir, name);
+        String base = name.replaceAll("\\.[^.]*$", ""), ext = name.length() > base.length() ? name.substring(base.length()) : "";
+        for (int i = 2; f.exists() && i < 1000; i++) f = new File(dir, base + " (" + i + ")" + ext);
+        return f;
+    }
+    static void scan(Context c, File f) {
+        try {
+            List<String> paths = new ArrayList<>();
+            if (f.isDirectory()) { File[] l = f.listFiles(); if (l != null) for (File x : l) if (x.isFile()) paths.add(x.getPath()); }
+            else paths.add(f.getPath());
+            android.media.MediaScannerConnection.scanFile(c, paths.toArray(new String[0]), null, null);
+        } catch (Exception ignored) {}
     }
 
     // ------------------------------------------------------------ Helfer

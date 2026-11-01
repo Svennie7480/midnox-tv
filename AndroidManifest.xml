@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.tv" android:versionCode="48" android:versionName="8.5">
+    package="de.midnox.tv" android:versionCode="49" android:versionName="8.6">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
   <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
   <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA"/>
@@ -31,6 +32,7 @@
     <activity android:name=".PromptActivity" android:theme="@style/Midnox.Overlay" android:screenOrientation="landscape" android:excludeFromRecents="true" android:launchMode="singleTop" android:taskAffinity="de.midnox.tv.prompt"/>
     <activity android:name=".SleepActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:launchMode="singleTask" android:showWhenLocked="true" android:turnScreenOn="true"/>
     <activity android:name=".MorningActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:launchMode="singleTask" android:showWhenLocked="true"/>
+    <activity android:name=".ChannelListActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".StoreActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".RadioActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".ScreensaverActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:theme="@style/Midnox"/>

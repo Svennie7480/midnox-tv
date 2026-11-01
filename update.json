@@ -1,6 +1,6 @@
 {
- "versionCode": 61,
- "versionName": "10.1",
+ "versionCode": 62,
+ "versionName": "10.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Der Launcher weiß, was läuft: Weiterschauen über alle Apps, Kino-Modus für Netflix, Prime, Disney+ & Co., Anruf-Pause für jede App, Fernseh-Tagebuch in der PC-Verwaltung"
+ "notes": "midnox Live als TV-App: „Jetzt im TV“ springt direkt auf den Sender. midnox Live gibt es neu im midnox Store."
 }

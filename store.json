@@ -2,6 +2,15 @@
  "info": "midnox Store – Katalog. Quellen: github = owner/repo (neueste Release-APK, passend zum Prozessor; match = Teil des Dateinamens), page + pattern = Dateiliste eines Servers (neueste stabile Version, {abi}/{dir} werden ersetzt), amazon = Paketname im Amazon Appstore, search = Suchbegriff im Amazon Appstore.",
  "apps": [
   {
+   "id": "midnox-live",
+   "name": "midnox Live",
+   "cat": "midnox",
+   "pkg": "de.midnox.live",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
+   "version": "1.0",
+   "desc": "Deine eigene IPTV-App: M3U-Listen, Xtream Codes und Stalker-Portale, eingebauter Player, TV-Guide mit EPG, Favoriten und Tonspur-Wahl. Einrichtung bequem per Handy oder PC."
+  },
+  {
    "id": "midnox-radio",
    "name": "midnox Radio",
    "cat": "midnox",

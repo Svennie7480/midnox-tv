@@ -388,7 +388,7 @@ final class AdminApi {
                     boolean inst = pick != null && Style.launchIntent(pm, pick) != null;
                     if (pick == null) pick = x[0];
                     done.add(x[1]);
-                    String hint = x[0].equals(TvRows.TV_APP) ? " \u2013 schaltet direkt auf den Sender" : " \u2013 \u00f6ffnet nur die App";
+                    String hint = x[0].equals(TvRows.TV_APP) || x[0].equals("de.midnox.live") ? " \u2013 schaltet direkt auf den Sender" : " \u2013 \u00f6ffnet nur die App";
                     opts.put(new JSONObject().put("v", pick).put("n", x[1] + (inst ? "" : " (nicht installiert)") + hint));
                 }
                 opts.put(new JSONObject().put("v", "-").put("n", "keine"));

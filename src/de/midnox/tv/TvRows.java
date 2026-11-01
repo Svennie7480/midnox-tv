@@ -23,7 +23,7 @@ public class TvRows implements MediaCard.Listener {
     static final String TV_APP = "de.telekom.magentatv.firetv";
     /** Bekannte TV-Apps: {Paket, Name}. Nur MagentaTV kann direkt auf einen Sender springen. */
     static final String[][] TV_APPS = {
-        {"de.telekom.magentatv.firetv", "MagentaTV"}, {"de.exaring.waipu.firetv.live", "waipu.tv"}, {"de.exaring.waipu", "waipu.tv"},
+        {"de.telekom.magentatv.firetv", "MagentaTV"}, {"de.midnox.live", "midnox Live"}, {"de.exaring.waipu.firetv.live", "waipu.tv"}, {"de.exaring.waipu", "waipu.tv"},
         {"com.zattoo.player", "Zattoo"}, {"com.zattoo.android", "Zattoo"}, {"de.prosiebensat1digital.seventv", "Joyn"},
         {"ar.tvplayer.tv", "TiviMate"}, {"studio.scillarium.ottnavigator", "OTT Navigator"},
     };
@@ -178,7 +178,17 @@ public class TvRows implements MediaCard.Listener {
             } catch (Exception e) { Style.start(c, Style.launchIntent(c.getPackageManager(), RTLPLUS)); return; }
         }
         String app = tvApp(c);
-        if (app == null) { Style.toast(c, "Keine TV-App installiert (z. B. MagentaTV, waipu.tv, Zattoo)"); return; }
+        if (app == null) { Style.toast(c, "Keine TV-App installiert (z. B. midnox Live, MagentaTV, waipu.tv, Zattoo)"); return; }
+        if (app.equals("de.midnox.live")) {   // eigene IPTV-App: springt direkt auf den Sender
+            try {
+                Intent i = new Intent("de.midnox.live.PLAY");
+                i.setPackage(app);
+                i.putExtra("channel", name(c, channel));
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+                return;
+            } catch (Exception ignored) {}
+        }
         int nr = number(c, channel);
         if (nr > 0 && app.equals(TV_APP)) {
             try {

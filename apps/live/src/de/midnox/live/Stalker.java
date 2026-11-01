@@ -119,12 +119,26 @@ final class Stalker {
             c.num = o.optInt("number");
             c.cmd = o.optString("cmd");
             String logo = o.optString("logo");
-            c.logo = logo.isEmpty() ? "" : logo.startsWith("http") ? logo : s.portal + "/misc/logos/320/" + logo;
+            c.logo = logoUrls(s, logo);
             String gn = genres.get(o.optString("tv_genre_id"));
             c.group = gn == null ? "" : gn;
             out.add(c);
         }
         return out;
+    }
+
+    /** Logo-Adressen je nach Portal-Aufbau (mehrere Kandidaten mit | getrennt). */
+    static String logoUrls(Session s, String logo) {
+        logo = logo == null ? "" : logo.trim();
+        if (logo.isEmpty()) return "";
+        if (logo.startsWith("http")) return logo;
+        String host = s.portal.replaceAll("^(https?://[^/]+).*$", "$1");
+        if (logo.startsWith("/")) return host + logo;
+        LinkedHashSet<String> u = new LinkedHashSet<>();
+        u.add(s.portal + "/misc/logos/320/" + logo);
+        u.add(host + "/stalker_portal/misc/logos/320/" + logo);
+        u.add(s.portal + "/misc/logos/240/" + logo);
+        return android.text.TextUtils.join("|", u);
     }
 
     /** Abspiel-Adresse fuer einen Sender (Portale erzeugen sie erst beim Abspielen). */

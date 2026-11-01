@@ -50,9 +50,17 @@ final class Web {
             while ((l = line(in)) != null && !l.isEmpty()) if (l.toLowerCase(Locale.ROOT).startsWith("content-length:")) len = Long.parseLong(l.substring(15).trim());
             boolean ok = path.contains("k=" + key(c));
             String type = "application/json", body;
+            if (path.startsWith("/export") && ok) {   // Sicherung als Datei herunterladen
+                byte[] out = export(c).toString(1).getBytes("UTF-8");
+                OutputStream o = s.getOutputStream();
+                String fn = "midnox-live-" + new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(new Date()) + ".json";
+                o.write(("HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nContent-Disposition: attachment; filename=\"" + fn + "\"\r\nContent-Length: " + out.length + "\r\nConnection: close\r\n\r\n").getBytes("UTF-8"));
+                o.write(out); o.flush();
+                return;
+            }
             if (path.startsWith("/upload")) {
                 s.setSoTimeout(180000);
-                body = ok ? upload(c, path, in, len) : "{\"ok\":false,\"msg\":\"QR-Code neu scannen\"}";
+                body = !ok ? "{\"ok\":false,\"msg\":\"QR-Code neu scannen\"}" : path.contains("import=1") ? importFile(c, in, len) : upload(c, path, in, len);
             } else {
                 byte[] b = new byte[(int) Math.min(len, 2L * 1024 * 1024)]; int r = 0;
                 while (r < b.length) { int n = in.read(b, r, b.length - r); if (n < 0) break; r += n; }
@@ -151,6 +159,52 @@ final class Web {
         new Thread(new Runnable() { public void run() { Lib.reload(c); changed(); Epg.reload(c); changed(); } }).start();
     }
 
+    // ------------------------------------------------------------ Sichern und Uebertragen
+    /** Alles, was man fuer einen zweiten Stick braucht: Quellen (mit Zugangsdaten/MACs), Favoriten, ausgeblendete Gruppen, EPG. */
+    static JSONObject export(Context c) throws Exception {
+        JSONArray src = new JSONArray();
+        for (Model.Source s : Lib.sources(c)) {
+            JSONObject o = s.json();
+            if (s.type.equals("m3u") && s.url.startsWith("datei:")) try { o.put("file", U.readFile(Lib.m3uFile(c, s.id))); } catch (Exception ignored) {}
+            src.put(o);
+        }
+        return new JSONObject().put("midnox_live", 1).put("exported", System.currentTimeMillis()).put("sources", src)
+            .put("favs", new JSONArray(Lib.favs(c))).put("hidden", new JSONArray(new ArrayList<>(Lib.hiddenGroups(c))))
+            .put("epg_extra", U.prefs(c).getString("epg_extra", Epg.DEFAULT_EXTRA));
+    }
+    /** Sicherung einlesen: vorhandene Quellen bleiben, gleiche werden nicht doppelt angelegt. */
+    static String importFile(Context c, InputStream in, long len) throws Exception {
+        ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] b = new byte[65536]; long n = 0; int r;
+        while ((len < 0 || n < len) && (r = in.read(b, 0, (int) (len < 0 ? b.length : Math.min(b.length, len - n)))) > 0) { bo.write(b, 0, r); n += r; }
+        JSONObject o;
+        try { o = new JSONObject(bo.toString("UTF-8")); } catch (Exception e) { return "{\"ok\":false,\"msg\":\"Das ist keine midnox-Live-Sicherung\"}"; }
+        if (!o.has("midnox_live")) return "{\"ok\":false,\"msg\":\"Das ist keine midnox-Live-Sicherung\"}";
+        List<Model.Source> have = Lib.sources(c);
+        int added = 0;
+        JSONArray a = o.optJSONArray("sources");
+        for (int i = 0; a != null && i < a.length(); i++) {
+            JSONObject so = a.getJSONObject(i);
+            Model.Source s = Model.Source.from(so);
+            boolean dup = false;
+            for (Model.Source h : have) if (h.id.equals(s.id) || (h.type.equals(s.type) && h.url.equals(s.url) && h.user.equals(s.user) && h.mac.equals(s.mac))) dup = true;
+            if (dup) continue;
+            if (so.has("file")) try { U.writeFile(Lib.m3uFile(c, s.id), so.getString("file")); } catch (Exception ignored) {}
+            have.add(s); added++;
+        }
+        Lib.saveSources(c, have);
+        List<String> favs = Lib.favs(c);
+        JSONArray f = o.optJSONArray("favs");
+        for (int i = 0; f != null && i < f.length(); i++) if (!favs.contains(f.getString(i))) favs.add(f.getString(i));
+        Set<String> hid = Lib.hiddenGroups(c);
+        JSONArray hg = o.optJSONArray("hidden");
+        for (int i = 0; hg != null && i < hg.length(); i++) hid.add(hg.getString(i));
+        android.content.SharedPreferences.Editor ed = U.prefs(c).edit().putString("favs", new JSONArray(favs).toString()).putStringSet("hidden", hid);
+        if (o.has("epg_extra")) ed.putString("epg_extra", o.getString("epg_extra"));
+        ed.apply();
+        reloadAll(c);
+        return new JSONObject().put("ok", true).put("msg", added + (added == 1 ? " Quelle" : " Quellen") + " übernommen – Sender werden geladen …").toString();
+    }
+
     /** M3U-Datei hochladen -> neue Quelle. */
     static String upload(Context c, String path, InputStream in, long len) throws Exception {
         String name = "Playlist";
@@ -187,6 +241,8 @@ final class Web {
             + "<div id=f_stalker style=display:none><input id=s_url placeholder='Portal-Adresse, z. B. http://portal.tv:8080/c/'><textarea id=s_mac rows=3 placeholder='MAC-Adresse(n), eine pro Zeile:&#10;00:1A:79:XX:XX:XX&#10;00:1A:79:YY:YY:YY'></textarea><input id=s_name placeholder='Name (optional)'><input id=s_epg placeholder='Zusätzliche EPG-Adresse (optional)'><button onclick=add('stalker')>Hinzufügen</button><p class=hint>midnox Live meldet sich beim Portal wie eine MAG-Box an. Die MAC-Adressen müssen bei deinem Anbieter freigeschaltet sein. Mehrere MACs werden gestapelt: Geht ein Sender über eine MAC nicht, versucht midnox Live automatisch die nächste – und merkt sich die, die funktioniert.</p></div></div>"
             + "<h3>PROGRAMMFÜHRER (EPG)</h3><div class=card><p class=hint style=margin-top:0>Zusätzliche XMLTV-Adressen (auch .gz), mehrere mit Komma. Die Sender werden über tvg-id oder den Namen zugeordnet. Voreingestellt ist ein freies deutsches EPG.</p><input id=epg><button onclick=epg()>Speichern und neu laden</button> <span class=hint id=epgst></span></div>"
             + "<h3>GRUPPEN</h3><div class=card><p class=hint style=margin-top:0>Angetippte Gruppen werden am Fernseher ausgeblendet (praktisch bei großen Listen mit vielen Ländern).</p><div class=grp id=grp></div></div>"
+            + "<h3>SICHERN UND AUF ANDEREN STICK ÜBERTRAGEN</h3><div class=card><p class=hint style=margin-top:0>Die Sicherung enthält alle Quellen mit Zugangsdaten und MACs, Favoriten, ausgeblendete Gruppen und EPG-Adressen. Gut aufbewahren – sie enthält deine Passwörter.</p>"
+            + "<p><a href='/export?k=" + k + "'><button>⬇ Sicherung herunterladen</button></a></p><p class=hint>Auf dem anderen Stick midnox Live öffnen, dessen QR-Code scannen und hier die Datei einspielen:</p><input type=file id=imp accept='.json,application/json'><button onclick=imp()>⬆ Sicherung einspielen</button></div>"
             + "<p><button class=g onclick=\"api('reload').then(msg)\">Alles neu laden</button></p><div id=msg></div></div><script>"
             + "var K='" + k + "';function $(i){return document.getElementById(i)}function esc(s){return String(s==null?'':s).replace(/[&<>\"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}"
             + "function api(c,o){return fetch('/api/'+c+'?k='+K,{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.json()})}"
@@ -196,6 +252,7 @@ final class Web {
             + "function add(t){var o={type:t};if(t=='m3u')o={type:t,url:v('m_url'),name:v('m_name'),epg:v('m_epg')};if(t=='xtream')o={type:t,url:v('x_url'),user:v('x_user'),pass:v('x_pass'),name:v('x_name')};if(t=='stalker')o={type:t,url:v('s_url'),mac:v('s_mac'),name:v('s_name'),epg:v('s_epg')};api('add',o).then(msg)}"
             + "function up(){var f=$('file').files[0];if(!f)return;msg({msg:'Lade hoch …'});var x=new XMLHttpRequest();x.open('POST','/upload?k='+K+'&name='+encodeURIComponent(f.name));x.onload=function(){try{msg(JSON.parse(x.responseText))}catch(e){msg({msg:'Fehler beim Hochladen'})}};x.send(f)}"
             + "function mc(i){var x=S[i];var v=prompt('MAC-Adressen für '+x.name+' (mit Komma getrennt). Reihenfolge = Reihenfolge beim Ausweichen:',x.mac.split('\\n').join(', '));if(v)api('macs',{id:x.id,mac:v}).then(msg)}"
+            + "function imp(){var f=$('imp').files[0];if(!f)return;msg({msg:'Spiele Sicherung ein …'});var x=new XMLHttpRequest();x.open('POST','/upload?k='+K+'&import=1');x.onload=function(){try{msg(JSON.parse(x.responseText))}catch(e){msg({msg:'Fehler beim Einspielen'})}};x.send(f)}"
             + "function epg(){api('epg',{extra:v('epg')}).then(msg)}"
             + "var first=true;function load(){api('state').then(function(s){$('st').textContent=s.status+(s.busy?' · lädt …':'')+(s.epg?' · '+s.epg:'');if(first){$('epg').value=s.epg_extra;first=false}"
             + "$('src').innerHTML=s.sources.length?(window.S=s.sources).map(function(x,i){return '<div class=card><div class=src><div><b>'+esc(x.name)+'</b><span>'+esc(x.label)+' · '+(x.on?x.count+' Sender':'ausgeschaltet')+(x.macinfo?' · '+esc(x.macinfo):'')+'</span>'+(x.error?'<br><span class=err>'+esc(x.error)+'</span>':'')+'</div><div class=bt>'+(x.type=='stalker'?'<button class=g onclick=\"mc('+i+')\">MACs</button>':'')+'<button class=g onclick=\"api(\\'toggle\\',{id:\\''+x.id+'\\'}).then(msg)\">'+(x.on?'Aus':'An')+'</button><button class=g onclick=\"if(confirm(\\'Quelle löschen?\\'))api(\\'del\\',{id:\\''+x.id+'\\'}).then(msg)\">Löschen</button></div></div></div>'}).join(''):'<div class=card><span class=hint>Noch keine Quelle – füge unten deine M3U-Liste, Xtream-Zugangsdaten oder dein Stalker-Portal hinzu.</span></div>';"

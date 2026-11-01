@@ -17,7 +17,12 @@ final class Views {
 
     /** Logo in eine Kachel zeichnen (oder Monogramm). */
     static void logo(Canvas c, Paint p, TextPaint t, Model.Channel ch, RectF r, View v) {
-        Bitmap b = Img.get(ch.logo, v == null ? null : new Inval(v));
+        Bitmap b = null;
+        for (String u : Logos.candidates(ch)) {
+            if (Img.failed.contains(u)) continue;
+            b = Img.get(u, v == null ? null : new Inval(v));
+            break;   // erst wenn diese Adresse scheitert, kommt die naechste dran
+        }
         float rad = 8 * U.dp;
         if (b != null) {
             p.setShader(null); p.setColor(0x26FFFFFF); c.drawRoundRect(r, rad, rad, p);
@@ -105,8 +110,12 @@ final class Views {
         @Override protected void onDraw(Canvas c) {
             float dp = U.dp, w = getWidth(), h = getHeight();
             float gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp);
-            p.setShader(new LinearGradient(0, 0, gw + cw + 140 * dp, 0, new int[]{0xF20B0A14, 0xEB0B0A14, 0x000B0A14}, new float[]{0, 0.82f, 1}, Shader.TileMode.CLAMP));
-            c.drawRect(0, 0, gw + cw + 140 * dp, h, p); p.setShader(null);
+            p.setShader(null);
+            p.setColor(0xFF100F1A); c.drawRect(0, 0, gw, h, p);                       // Gruppen
+            p.setColor(0xFF0B0A14); c.drawRect(gw, 0, gw + cw + 16 * dp, h, p);       // Sender
+            p.setShader(new LinearGradient(gw + cw + 16 * dp, 0, gw + cw + 60 * dp, 0, 0xCC000000, 0x00000000, Shader.TileMode.CLAMP));
+            c.drawRect(gw + cw + 16 * dp, 0, gw + cw + 60 * dp, h, p); p.setShader(null);
+            p.setShader(U.brand(0, gw + cw + 16 * dp)); c.drawRect(0, 0, gw + cw + 16 * dp, 3 * dp, p); p.setShader(null);
             long now = System.currentTimeMillis();
             // Kopf
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.LEFT); t.setLetterSpacing(0.2f);
@@ -155,6 +164,15 @@ final class Views {
                 Model.Prog pr = Epg.now(ch);
                 t.setTypeface(sel ? U.BOLD : U.POP); t.setTextSize(16 * dp); t.setColor(Color.WHITE);
                 String nm = (Lib.isFav(getContext(), ch.id) ? "★ " : "") + ch.name;
+                String src = Lib.srcNames.size() > 1 ? Lib.srcNames.get(ch.src) : null;
+                if (src != null) {
+                    t.setTypeface(U.POP); t.setTextSize(11 * dp);
+                    float sw = Math.min(t.measureText(src) + 12 * dp, 150 * dp), sx = tx + tw - sw;
+                    p.setColor(0x26FFFFFF); c.drawRoundRect(new RectF(sx, y + 12 * dp, sx + sw, y + 30 * dp), 6 * dp, 6 * dp, p);
+                    t.setColor(0xFFC9CCE0); c.drawText(ell(t, src, sw - 12 * dp), sx + 6 * dp, y + 25 * dp, t);
+                    tw -= sw + 8 * dp;
+                    t.setTypeface(sel ? U.BOLD : U.POP); t.setTextSize(16 * dp); t.setColor(Color.WHITE);
+                }
                 c.drawText(ell(t, nm, tw), tx, y + (pr == null ? rh / 2 + 6 * dp : 26 * dp), t);
                 if (pr != null) {
                     t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(0xFFB4B8CC);
@@ -169,7 +187,7 @@ final class Views {
             if (s != null && col == 1 && w - (gw + cw) > 300 * dp) {
                 Model.Prog pr = Epg.now(s), nx = Epg.next(s);
                 float dx = gw + cw + 40 * dp, dw = w - dx - 40 * dp, dy = h - 200 * dp;
-                p.setColor(0xD90B0A14); c.drawRoundRect(new RectF(dx - 16 * dp, dy - 34 * dp, dx + dw + 16 * dp, h - 30 * dp), 16 * dp, 16 * dp, p);
+                p.setColor(0xFA15141F); c.drawRoundRect(new RectF(dx - 16 * dp, dy - 34 * dp, dx + dw + 16 * dp, h - 30 * dp), 16 * dp, 16 * dp, p);
                 t.setTypeface(U.BOLD); t.setTextSize(17 * dp); t.setColor(Color.WHITE);
                 c.drawText(ell(t, pr == null ? s.name : pr.title, dw), dx, dy, t);
                 t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(0xFFB4B8CC);
@@ -203,19 +221,20 @@ final class Views {
     static final class Banner extends View {
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        Model.Channel ch; String badge = "", msg = "";
+        Model.Channel ch; String badge = "", msg = "", via = "";
         Banner(Context c) { super(c); }
         @Override protected void onDraw(Canvas c) {
             if (ch == null) return;
             float dp = U.dp, w = getWidth(), h = getHeight();
             long now = System.currentTimeMillis();
-            p.setShader(new LinearGradient(0, h - 230 * dp, 0, h, 0x000B0A14, 0xF20B0A14, Shader.TileMode.CLAMP));
-            c.drawRect(0, h - 230 * dp, w, h, p); p.setShader(null);
-            float x = 60 * dp, by = h - 150 * dp;
+            RectF card = new RectF(30 * dp, h - 196 * dp, w - 30 * dp, h - 22 * dp);
+            p.setShader(null); p.setColor(0xF7121120); c.drawRoundRect(card, 20 * dp, 20 * dp, p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2 * dp); p.setShader(U.brand(card.left, card.right)); c.drawRoundRect(card, 20 * dp, 20 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
+            float x = 60 * dp, by = h - 160 * dp;
             logo(c, p, t, ch, new RectF(x, by, x + 150 * dp, by + 90 * dp), this);
             float tx = x + 176 * dp, tw = w - tx - 60 * dp;
             t.setTypeface(U.POP); t.setTextSize(15 * dp); t.setColor(U.MUTED);
-            c.drawText(ch.num + "  " + ch.name + (badge.isEmpty() ? "" : "") + (ch.group.isEmpty() ? "" : "   ·   " + ch.group), tx, by + 6 * dp, t);
+            c.drawText(ell(t, ch.num + "  " + ch.name + (ch.group.isEmpty() ? "" : "   ·   " + ch.group), tw - 420 * dp), tx, by + 6 * dp, t);
             if (!badge.isEmpty()) {
                 t.setTypeface(U.BOLD); t.setTextSize(11 * dp);
                 float bw = t.measureText(badge) + 14 * dp, bx = w - 60 * dp - bw;
@@ -223,7 +242,10 @@ final class Views {
                 t.setColor(Color.WHITE); c.drawText(badge, bx + 7 * dp, by + 3 * dp, t);
             }
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.RIGHT);
-            c.drawText(hm(now), w - 60 * dp, by - 22 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            float rx = w - 60 * dp - (badge.isEmpty() ? 0 : 50 * dp);
+            if (!via.isEmpty()) { t.setColor(0xFF9EC5FF); c.drawText(ell(t, "\u25CF " + via, 360 * dp), rx, by + 6 * dp, t); }
+            t.setColor(U.MUTED);
+            c.drawText(hm(now), w - 60 * dp, by + 96 * dp, t); t.setTextAlign(Paint.Align.LEFT);
             Model.Prog pr = Epg.now(ch), nx = Epg.next(ch);
             t.setTypeface(U.BOLD); t.setTextSize(26 * dp); t.setColor(Color.WHITE);
             c.drawText(ell(t, msg.isEmpty() ? (pr == null ? ch.name : pr.title) : msg, tw), tx, by + 42 * dp, t);
@@ -382,8 +404,9 @@ final class Views {
         }
         @Override protected void onDraw(Canvas c) {
             float dp = U.dp, w = getWidth(), h = getHeight(), mw = 420 * dp, x = w - mw;
-            p.setShader(new LinearGradient(x - 80 * dp, 0, w, 0, new int[]{0x000B0A14, 0xF00B0A14, 0xF70B0A14}, new float[]{0, 0.2f, 1}, Shader.TileMode.CLAMP));
-            c.drawRect(x - 80 * dp, 0, w, h, p); p.setShader(null);
+            p.setShader(new LinearGradient(x - 40 * dp, 0, x, 0, 0x00000000, 0xCC000000, Shader.TileMode.CLAMP)); c.drawRect(x - 40 * dp, 0, x, h, p);
+            p.setShader(null); p.setColor(0xFF0B0A14); c.drawRect(x, 0, w, h, p);
+            p.setShader(U.brand(x, w)); c.drawRect(x, 0, w, 3 * dp, p); p.setShader(null);
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setLetterSpacing(0.2f);
             c.drawText(ell(t, title.toUpperCase(Locale.GERMANY), mw - 40 * dp), x + 20 * dp, 54 * dp, t); t.setLetterSpacing(0);
             float rh = 50 * dp, y = 76 * dp;

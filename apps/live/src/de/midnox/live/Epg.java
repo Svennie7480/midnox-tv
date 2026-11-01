@@ -15,9 +15,11 @@ final class Epg {
     static final String DEFAULT_EXTRA = "https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz";
     static volatile Map<String, List<Model.Prog>> progs = new HashMap<>();   // EPG-Kanal-ID -> Sendungen
     static volatile Map<String, String> names = new HashMap<>();             // normierter Name -> EPG-Kanal-ID
+    static volatile Map<String, String> icons = new HashMap<>();             // EPG-Kanal-ID -> Logo
     static final Map<String, String> resolved = Collections.synchronizedMap(new HashMap<String, String>());   // Sender-ID -> EPG-ID
     static final Map<String, List<Model.Prog>> shortCache = Collections.synchronizedMap(new HashMap<String, List<Model.Prog>>());
     static volatile long loadedAt;
+    static Map<String, String> curIcons;
     static volatile boolean loading;
     static volatile String status = "";
 
@@ -42,6 +44,7 @@ final class Epg {
         if (l == null) l = shortCache.get(c.id);
         return l == null ? Collections.<Model.Prog>emptyList() : l;
     }
+    static String icon(Model.Channel c) { String k = key(c); return k == null ? null : icons.get(k); }
     static Model.Prog at(Model.Channel c, long t) { for (Model.Prog p : list(c)) if (p.now(t)) return p; return null; }
     static Model.Prog now(Model.Channel c) { return at(c, System.currentTimeMillis()); }
     static Model.Prog next(Model.Channel c) {
@@ -65,7 +68,10 @@ final class Epg {
             Map<String, String> n = new HashMap<>();
             JSONObject nm = o.getJSONObject("n");
             for (Iterator<String> it = nm.keys(); it.hasNext(); ) { String k = it.next(); n.put(k, nm.getString(k)); }
-            progs = m; names = n; loadedAt = o.optLong("at"); resolved.clear();
+            Map<String, String> ic = new HashMap<>();
+            JSONObject im = o.optJSONObject("i");
+            if (im != null) for (Iterator<String> it = im.keys(); it.hasNext(); ) { String k = it.next(); ic.put(k, im.getString(k)); }
+            progs = m; names = n; icons = ic; loadedAt = o.optLong("at"); resolved.clear();
         } catch (Exception ignored) {}
     }
     static boolean stale() { return System.currentTimeMillis() - loadedAt > 12 * 3600000L; }
@@ -92,6 +98,7 @@ final class Epg {
             for (Model.Channel ch : chans) { if (!ch.tvgId.isEmpty()) wantIds.add(ch.tvgId.toLowerCase(Locale.ROOT)); wantNames.add(U.norm(ch.name)); if (!ch.tvgId.isEmpty()) wantNames.add(U.norm(ch.tvgId)); }
             Map<String, List<Model.Prog>> m = new HashMap<>();
             Map<String, String> n = new HashMap<>();
+            curIcons = new HashMap<>();
             long from = System.currentTimeMillis() - 3 * 3600000L, to = System.currentTimeMillis() + 30 * 3600000L;
             for (String url : urls(c)) {
                 status = "Lade Programm: " + shortUrl(url);
@@ -102,7 +109,7 @@ final class Epg {
                 try { m.putAll(Stalker.epg(s)); } catch (Exception ignored) {}
             }
             for (List<Model.Prog> l : m.values()) Collections.sort(l, new Comparator<Model.Prog>() { public int compare(Model.Prog a, Model.Prog b) { return Long.compare(a.start, b.start); } });
-            progs = m; names = n; loadedAt = System.currentTimeMillis(); resolved.clear();
+            progs = m; names = n; icons = curIcons; loadedAt = System.currentTimeMillis(); resolved.clear();
             save(c);
             status = m.size() + " Sender mit Programm";
         } finally { loading = false; }
@@ -117,7 +124,7 @@ final class Epg {
                 for (Model.Prog p : e.getValue()) a.put(new JSONArray().put(p.start).put(p.stop).put(p.title).put(p.desc));
                 pm.put(e.getKey(), a);
             }
-            U.writeFile(new File(c.getFilesDir(), "epg.json"), new JSONObject().put("at", loadedAt).put("p", pm).put("n", new JSONObject(names)).toString());
+            U.writeFile(new File(c.getFilesDir(), "epg.json"), new JSONObject().put("at", loadedAt).put("p", pm).put("n", new JSONObject(names)).put("i", new JSONObject(icons)).toString());
         } catch (Exception ignored) {}
     }
 
@@ -139,6 +146,9 @@ final class Epg {
                 if (tag.equals("channel")) {
                     chId = x.getAttributeValue(null, "id");
                     if (chId != null && wantIds.contains(chId.toLowerCase(Locale.ROOT))) keep.add(chId);
+                } else if (tag.equals("icon") && chId != null && pCh == null) {
+                    String src = x.getAttributeValue(null, "src");
+                    if (src != null && src.startsWith("http") && curIcons != null) curIcons.put(chId, src);
                 } else if (tag.equals("display-name") && chId != null) {
                     String nm = U.norm(x.nextText());
                     if (wantNames.contains(nm)) { keep.add(chId); if (!nameMap.containsKey(nm)) nameMap.put(nm, chId); }

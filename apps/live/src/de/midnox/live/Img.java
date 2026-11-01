@@ -34,7 +34,7 @@ final class Img {
             Bitmap r = fetch(url, 160);
             pending.remove(url);
             if (r != null) mem.put(url, r); else failed.add(url);
-            if (r != null && cb != null) ui.post(cb);
+            if (cb != null) ui.post(cb);   // auch bei Fehler neu zeichnen (naechste Logo-Quelle)
         }});
         return null;
     }
@@ -45,7 +45,7 @@ final class Img {
             if (!f.exists() || f.length() < 100) {
                 HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                 c.setConnectTimeout(6000); c.setReadTimeout(10000); c.setInstanceFollowRedirects(true);
-                c.setRequestProperty("User-Agent", U.UA);
+                c.setRequestProperty("User-Agent", url.contains("/misc/logos/") ? Stalker.MAG_UA : U.UA);
                 if (c.getResponseCode() / 100 != 2) return null;
                 ByteArrayOutputStream o = new ByteArrayOutputStream(); byte[] buf = new byte[16384]; int n;
                 InputStream in = c.getInputStream();

@@ -80,6 +80,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         Lib.loadCache(this);
         for (Model.Source s : Lib.sources(this)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(this).getInt("mac_" + s.id, 0));
         Epg.loadCache(this);
+        Logos.load(this);
         initPlayer();
         refreshAll();
         if (Lib.channels.isEmpty() || Lib.stale()) reloadSources(!Lib.channels.isEmpty());
@@ -261,6 +262,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         Try t = plan.get(planPos);
         if (t.mac >= 0) { Stalker.active.put(t.ch.src, t.mac); U.prefs(this).edit().putInt("mac_" + t.ch.src, t.mac).apply(); }
         if (planPos > 0) toast(current.name + " läuft über " + t.label);
+        banner.via = t.label; banner.invalidate();
     }
 
     void prepare(Model.Channel ch, String url, String ua) {
@@ -376,6 +378,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         guide.setVisibility(View.VISIBLE);
     }
     void showBanner(Model.Channel ch) {
+        if (banner.ch == null || !banner.ch.id.equals(ch.id)) banner.via = Lib.srcNames.containsKey(ch.src) ? Lib.srcNames.get(ch.src) : "";
         banner.ch = ch; banner.msg = "";
         banner.setVisibility(View.VISIBLE); banner.invalidate();
         hideLater(banner, 6000);

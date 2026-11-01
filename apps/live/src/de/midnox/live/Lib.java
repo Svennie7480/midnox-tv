@@ -14,6 +14,7 @@ final class Lib {
     static volatile long loadedAt;
     static volatile boolean loading;
     static volatile String status = "";
+    static volatile Map<String, String> srcNames = new HashMap<>();   // Quelle-ID -> Name (fuer die Anzeige)
 
     // ------------------------------------------------------------ Quellen
     static List<Model.Source> sources(Context c) {
@@ -79,6 +80,9 @@ final class Lib {
     }
 
     static void set(Context c, List<Model.Channel> l) {
+        Map<String, String> sn = new HashMap<>();
+        for (Model.Source s : sources(c)) if (s.on) sn.put(s.id, s.name);
+        srcNames = sn;
         Set<String> hidden = hiddenGroups(c);
         List<Model.Channel> vis = new ArrayList<>();
         LinkedHashSet<String> gs = new LinkedHashSet<>();

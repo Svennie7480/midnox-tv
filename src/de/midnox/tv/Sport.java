@@ -18,7 +18,9 @@ final class Sport {
         final List<Goal> goals = new ArrayList<>();
         String radio;   // Sportschau-Stream fuer genau dieses Spiel (wenn ermittelt)
         boolean hb;     // Handball: keine Minutenangabe, Spiel dauert ca. 1:45 h
-        int hbState;    // Handball laut HBL: 0 unbekannt, 1 laeuft, 2 beendet
+        int hbState;    // Handball: 0 unbekannt, 1 laeuft, 2 beendet
+        String hbPhase = "";   // z. B. "1.HZ", "HZ", "2.HZ"
+        String hsId;           // Spiel-ID bei Sportschau/Heimspiel
         boolean live(long now) {
             if (hb && hbState == 1) return true;
             if (hb && hbState == 2) return false;
@@ -34,7 +36,7 @@ final class Sport {
                 boolean today = c.get(Calendar.DAY_OF_YEAR) == t.get(Calendar.DAY_OF_YEAR) && c.get(Calendar.YEAR) == t.get(Calendar.YEAR);
                 return new SimpleDateFormat(today ? "'heute' HH:mm" : "EE HH:mm", Locale.GERMANY).format(new Date(kickoff));
             }
-            if (hb) return "LIVE";
+            if (hb) return hbPhase.isEmpty() ? "LIVE" : hbPhase.equals("Halbzeit") ? "Halbzeit" : "LIVE " + hbPhase;
             long m = (now - kickoff) / 60000 + 1;
             if (m <= 46) return "LIVE " + Math.min(m, 45) + (m > 45 ? "+" : "") + "'";
             if (m <= 62) return "Halbzeit";
@@ -108,11 +110,85 @@ final class Sport {
             l.table.add(r);
         }
         if (l.matches.isEmpty() && l.table.isEmpty()) throw new Exception("keine Handball-Daten");
-        try { hblEnrich(l); } catch (Exception ignored) {}
+        boolean ok = false;
+        try { ok = heimspiel(l); } catch (Exception ignored) {}
+        if (!ok) try { hblEnrich(l); } catch (Exception ignored) {}
         return l;
     }
 
-    // Offizielle HBL-Daten (opel-hbl.de): Logos und Live-Spielstaende
+    // Live-Daten der Sportschau (Heimspiel): Spiel-IDs der Saison liegen im Repo unter handball/hbl2.json
+    static JSONObject HS2; static long hs2Loaded;
+    static synchronized JSONObject hs2() throws Exception {
+        if (HS2 == null || System.currentTimeMillis() - hs2Loaded > 12 * 3600000L) {
+            HS2 = new JSONObject(Style.httpGet("https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/handball/hbl2.json", null));
+            hs2Loaded = System.currentTimeMillis();
+        }
+        return HS2;
+    }
+    static boolean sameTeam(Team t, JSONArray names) {
+        String a = norm(t.name), b = norm(t.shortName);
+        for (int i = 0; i < names.length(); i++) {
+            String n = norm(names.optString(i));
+            if (n.isEmpty()) continue;
+            if (n.equals(a) || n.contains(a) || a.contains(n) || n.contains(b) || b.contains(n)) return true;
+        }
+        String full = names.optString(0).toLowerCase(Locale.GERMANY);
+        for (String w : t.name.toLowerCase(Locale.GERMANY).split("[^a-z\u00e4\u00f6\u00fc\u00df]+")) if (w.length() >= 5 && full.contains(w)) return true;
+        return false;
+    }
+    static boolean heimspiel(League l) throws Exception {
+        JSONObject d = hs2();
+        JSONObject teams = d.getJSONObject("teams");
+        JSONArray all = d.getJSONArray("matches");
+        SimpleDateFormat utc = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT);
+        utc.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Map<String, String> logo = new HashMap<>();
+        int found = 0;
+        for (Match m : l.matches) {
+            for (int i = 0; i < all.length(); i++) {
+                JSONArray x = all.getJSONArray(i);
+                long t; try { t = utc.parse(x.getString(1)).getTime(); } catch (Exception e) { continue; }
+                if (Math.abs(t - m.kickoff) > 36 * 3600000L) continue;
+                JSONArray hn = teams.optJSONArray(x.getString(2)), an = teams.optJSONArray(x.getString(3));
+                if (hn == null || an == null || !sameTeam(m.t1, hn) || !sameTeam(m.t2, an)) continue;
+                m.hsId = x.getString(0); found++;
+                m.t1.icon = "https://s.hs-data.com/gfx/emblem/common/80x80/" + x.getString(2) + ".png";
+                m.t2.icon = "https://s.hs-data.com/gfx/emblem/common/80x80/" + x.getString(3) + ".png";
+                logo.put(m.t1.name, m.t1.icon); logo.put(m.t2.name, m.t2.icon);
+                break;
+            }
+        }
+        for (Row r : l.table) if (logo.containsKey(r.team.name)) r.team.icon = logo.get(r.team.name);
+        if (found == 0) return false;
+        long now = System.currentTimeMillis();
+        StringBuilder ids = new StringBuilder();
+        for (Match m : l.matches) if (m.hsId != null && now > m.kickoff - 15 * 60000L && now < m.kickoff + 4 * 3600000L) ids.append(ids.length() > 0 ? "-" : "").append(m.hsId);
+        if (ids.length() == 0) return true;
+        JSONArray live = new JSONArray(Style.httpGet("https://www.sportschau.de/live-und-ergebnisse/json/matches-by-ids/ma" + ids + "/index.json", null));
+        for (int i = 0; i < live.length(); i++) {
+            JSONObject o = live.getJSONObject(i);
+            for (Match m : l.matches) {
+                if (!o.optString("id").equals(m.hsId)) continue;
+                JSONArray rs = o.optJSONArray("match_result");
+                for (int k = 0; rs != null && k < rs.length(); k++) {
+                    JSONObject r = rs.getJSONObject(k);
+                    if (!"0".equals(r.optString("match_result_at"))) continue;
+                    try { int v = Integer.parseInt(r.optString("match_result")); if ("home".equals(r.optString("place"))) m.s1 = v; else m.s2 = v; } catch (Exception ignored) {}
+                }
+                String st = o.optString("real_live_status");
+                JSONObject ms = o.optJSONObject("match_status");
+                if (st.equals("live")) {
+                    m.hbState = 1; m.finished = false;
+                    String ph = ms == null ? "" : ms.optString("shortname", ms.optString("name"));
+                    m.hbPhase = ph.equalsIgnoreCase("HZ") || ph.equalsIgnoreCase("Halbzeit") ? "Halbzeit" : ph;
+                } else if (st.equals("finished")) { m.hbState = 2; m.finished = m.s1 >= 0; }
+                else if (st.equals("upcoming")) { m.hbState = 0; m.finished = false; m.s1 = -1; m.s2 = -1; }
+            }
+        }
+        return true;
+    }
+
+    // Offizielle HBL-Daten (opel-hbl.de): Logos und Live-Spielstaende (Ersatz, falls Sportschau nichts liefert)
     static final String HBL = "https://www.opel-hbl.de/api/synergy/";
     static final String HBL2_COMPETITION = "4c5a3af0-3956-11ef-9b6c-b74f5c057367";
     static String hblSeason; static long hblLoaded;

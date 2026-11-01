@@ -1,6 +1,6 @@
 {
-  "versionCode": 52,
-  "versionName": "8.9",
-  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Tor-Alarm über jeder App (Tore, Gelb, Gelb-Rot, Rot); PC-Verwaltung: Bereich Zuhause mit Lampen für Kino, Einschlaf-Timer und Guten Morgen, Geräten und Kacheln"
+ "versionCode": 53,
+ "versionName": "9.0",
+ "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
+ "notes": "Tor-Jubel: Lampen leuchten in den Vereinsfarben, wenn dein Verein trifft"
 }

@@ -174,6 +174,10 @@ public class SettingsActivity extends Activity {
         final Row sat = add("Vereine");
         sat.value.setText(pr.getString("sa_teams", "").isEmpty() ? "alle  (am PC w\u00e4hlbar)" : pr.getString("sa_teams", ""));
         sat.setFocusable(true);
+        toggle("Tor-Jubel: Lampen in Vereinsfarben, wenn dein Verein trifft", "gl_on", false, false);
+        final Row glt = add("Tor-Jubel testen");
+        glt.value.setText((pr.getString("gl_teams", "").isEmpty() ? pr.getString("sa_teams", "") : pr.getString("gl_teams", "")).isEmpty() ? "Verein am PC w\u00e4hlen" : "OK");
+        glt.onOk = new Runnable() { public void run() { GoalAlert.jubelTest(SettingsActivity.this); } };
         final Row sad = add("Beispiel anzeigen");
         sad.value.setText("OK");
         sad.onOk = new Runnable() { public void run() { GoalAlert.test(SettingsActivity.this); } };

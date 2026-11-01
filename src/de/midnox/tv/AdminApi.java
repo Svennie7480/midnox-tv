@@ -121,6 +121,7 @@ final class AdminApi {
                 return "{\"ok\":true}";
             }
             case "settings": return settings(c);
+            case "goal_light_test": GoalAlert.jubelTest(c); return "{\"ok\":true}";
             case "goal_test": ui(new Runnable() { public void run() { GoalAlert.test(c); } }); return "{\"ok\":true}";
             case "ha": return ha(c);
             case "ha_save": {
@@ -128,6 +129,7 @@ final class AdminApi {
                 if (in.has("kino")) ed.putString("kino_lights", in.getJSONObject("kino").toString());
                 if (in.has("sleep")) ed.putString("sleep_light_ids", in.isNull("sleep") ? "" : in.getJSONArray("sleep").toString());
                 if (in.has("morning")) ed.putString("morning_light_ids", in.getJSONArray("morning").toString());
+                if (in.has("goal")) ed.putString("goal_light_ids", in.getJSONArray("goal").toString());
                 if (in.has("morning_pct")) ed.putInt("morning_light_pct", in.getInt("morning_pct"));
                 for (String k : new String[]{"weather_entity", "sleep_tv", "call_entity"}) if (in.has(k)) ed.putString(k, in.getString(k));
                 ed.apply();
@@ -249,6 +251,8 @@ final class AdminApi {
             {"Tor-Alarm (über jeder App)", "sa_yellow", "Gelbe Karten", "bool", false, null, null},
             {"Tor-Alarm (über jeder App)", "sa_red", "Rote und Gelb-Rote Karten", "bool", true, null, null},
             {"Tor-Alarm (über jeder App)", "sa_teams", "Nur diese Vereine (nichts gewählt = alle)", "multi", "", null, null},
+            {"Tor-Jubel mit Licht", "gl_on", "Lampen leuchten in den Vereinsfarben, wenn dein Verein trifft", "bool", false, null, null},
+            {"Tor-Jubel mit Licht", "gl_teams", "Mein Verein (nichts gewählt = Vereine vom Tor-Alarm)", "multi", "", null, null},
             {"Wetter", "weather_on", "Wetter unter der Uhr", "bool", true, null, null},
             {"Wetter", "weather_entity", "Wetter-Entität (leer = automatisch)", "string", "", null, null},
             {"Guten Morgen", "morning_on", "Morgens beim Einschalten anzeigen", "bool", true, null, null},
@@ -300,7 +304,8 @@ final class AdminApi {
         Object sleep; String sl = pr.getString("sleep_light_ids", "");
         try { sleep = sl.isEmpty() ? JSONObject.NULL : new JSONArray(sl); } catch (Exception e) { sleep = JSONObject.NULL; }
         JSONArray morning; try { morning = new JSONArray(pr.getString("morning_light_ids", "[]")); } catch (Exception e) { morning = new JSONArray(); }
-        return new JSONObject().put("lights", lights).put("state", lightState).put("kino", kino).put("sleep", sleep).put("morning", morning)
+        JSONArray goal; try { goal = new JSONArray(pr.getString("goal_light_ids", "[]")); } catch (Exception e) { goal = new JSONArray(); }
+        return new JSONObject().put("lights", lights).put("state", lightState).put("kino", kino).put("sleep", sleep).put("morning", morning).put("goal", goal)
             .put("morning_pct", pr.getInt("morning_light_pct", 60))
             .put("weather", weather).put("tv", tv).put("phone", phone)
             .put("weather_entity", pr.getString("weather_entity", "")).put("sleep_tv", pr.getString("sleep_tv", "")).put("call_entity", pr.getString("call_entity", ""))
@@ -321,7 +326,7 @@ final class AdminApi {
             else if (t.equals("float")) o.put("value", pr.getFloat(k, (Float) s[4]));
             else if (t.equals("ichoice")) o.put("value", String.valueOf(pr.getInt(k, (Integer) s[4])));
             else o.put("value", pr.getString(k, (String) s[4]));
-            if (t.equals("multi") && k.equals("sa_teams")) {
+            if (t.equals("multi")) {
                 JSONArray opts = new JSONArray();
                 for (String lg : new String[]{"bl1", "bl2"}) try {
                     JSONArray tb = new JSONArray(Style.httpGet("https://api.openligadb.de/getbltable/" + lg + "/" + Sport.season(), null));

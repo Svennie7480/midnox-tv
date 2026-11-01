@@ -126,10 +126,10 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
    <div id="hamsg" class="hint"></div>
    <div id="habox" style="display:none">
     <div class="card"><h3 style="margin-top:0">LAMPEN</h3>
-     <table><thead><tr><th>Lampe</th><th>Bereich</th><th>Kino-Modus</th><th>Einschlaf-Timer</th><th>Guten Morgen</th><th></th></tr></thead><tbody id="lamps"></tbody></table>
+     <table><thead><tr><th>Lampe</th><th>Bereich</th><th>Kino-Modus</th><th>Einschlaf-Timer</th><th>Guten Morgen</th><th>Tor-Jubel</th><th></th></tr></thead><tbody id="lamps"></tbody></table>
      <div class="bar" style="margin-top:12px"><label class="hint"><input type="checkbox" id="sleepSame" onchange="haDirty();renderLamps()"> Einschlaf-Timer: dieselben Lampen wie im Kino-Modus</label>
       <span class="grow"></span><span class="hint">Guten-Morgen-Helligkeit</span><input type="range" id="mpct" min="10" max="100" step="5" oninput="$('mpv').textContent=this.value+' %';haDirty()"><b id="mpv"></b></div>
-     <p class="hint" style="margin-top:8px">Kino-Modus: <b>Aus</b> = geht bei Filmstart aus · <b>Ambient</b> = bleibt gedimmt (Helligkeit und Farbe unter Einstellungen › Kino-Modus). Guten Morgen: Lampen gehen sanft an, wenn der Morgen-Bildschirm erscheint.</p>
+     <p class="hint" style="margin-top:8px">Kino-Modus: <b>Aus</b> = geht bei Filmstart aus · <b>Ambient</b> = bleibt gedimmt (Helligkeit und Farbe unter Einstellungen › Kino-Modus). Guten Morgen: Lampen gehen sanft an, wenn der Morgen-Bildschirm erscheint. Tor-Jubel: diese Lampen leuchten in den Vereinsfarben (ohne Auswahl: die Kino-Lampen).</p>
     </div>
     <div class="card"><h3 style="margin-top:0">GERÄTE</h3>
      <div class="set"><label>Wetter für Startseite und Guten Morgen</label><select id="hw"></select></div>
@@ -246,12 +246,13 @@ function renderLamps(){var same=$('sleepSame').checked,sl=HA.sleep||[];
   '<td><select data-l="'+i+'" data-f="kino">'+[['','nicht ändern'],['off','Aus'],['ambient','Ambient']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]==k?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></td>'+
   '<td><label class="hint"><input type="checkbox" data-l="'+i+'" data-f="sleep"'+((same?!!k:sl.indexOf(id)>=0)?' checked':'')+(same?' disabled':'')+'> ausschalten</label></td>'+
   '<td><label class="hint"><input type="checkbox" data-l="'+i+'" data-f="morning"'+(HA.morning.indexOf(id)>=0?' checked':'')+'> einschalten</label></td>'+
+  '<td><label class="hint"><input type="checkbox" data-l="'+i+'" data-f="goal"'+((HA.goal||[]).indexOf(id)>=0?' checked':'')+'> leuchtet mit</label></td>'+
   '<td><button class="sm" onclick="api(\'ha_light\',{id:\''+esc(id)+'\'}).then(function(){toast(\'Geschaltet\')})">⚡</button></td></tr>'}).join('');
  document.querySelectorAll('#lamps [data-l]').forEach(function(el){el.onchange=function(){var id=HA.lights[+el.dataset.l][0],f=el.dataset.f;
   if(f=='kino'){if(el.value)HA.kino[id]=el.value;else delete HA.kino[id];if($('sleepSame').checked)renderLamps()}
-  else{var arr=f=='sleep'?(HA.sleep=HA.sleep||[]):HA.morning;var p=arr.indexOf(id);if(el.checked&&p<0)arr.push(id);if(!el.checked&&p>=0)arr.splice(p,1)}
+  else{var arr=f=='sleep'?(HA.sleep=HA.sleep||[]):f=='goal'?(HA.goal=HA.goal||[]):HA.morning;var p=arr.indexOf(id);if(el.checked&&p<0)arr.push(id);if(!el.checked&&p>=0)arr.splice(p,1)}
   haDirty()}})}
-function saveHa(){var o={kino:HA.kino,sleep:$('sleepSame').checked?null:(HA.sleep||[]),morning:HA.morning,morning_pct:+$('mpct').value,weather_entity:$('hw').value,sleep_tv:$('htv').value,call_entity:$('hph').value};
+function saveHa(){var o={kino:HA.kino,sleep:$('sleepSame').checked?null:(HA.sleep||[]),morning:HA.morning,goal:HA.goal||[],morning_pct:+$('mpct').value,weather_entity:$('hw').value,sleep_tv:$('htv').value,call_entity:$('hph').value};
  api('ha_save',o).then(function(){return api('tiles_save',{tiles:TILES})}).then(function(){$('hasave').classList.remove('on');toast('Zuhause gespeichert ✓')})}
 function sens(id){for(var i=0;i<SENS.length;i++)if(SENS[i].id==id)return SENS[i];return{name:id,unit:'',state:''}}
 function unit(u){return u=='°C'?'°':u=='%'?' %':u?' '+u:''}
@@ -275,7 +276,7 @@ function loadSet(){api('settings').then(function(j){var sec={},order=[];j.settin
 function ctl(s){var id='s_'+s.key,c;
  if(s.type=='multi'){var sel=String(s.value||'').split(',').filter(Boolean);var grp={};(s.options||[]).forEach(function(o){(grp[o.g]=grp[o.g]||[]).push(o)});
   return '<div class="set" style="display:block"><label>'+esc(s.label)+'</label>'+Object.keys(grp).map(function(g){return '<div class="hint" style="margin:10px 0 4px">'+esc(g)+'</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+grp[g].map(function(o){return '<label style="padding:5px 12px;border-radius:999px;border:1px solid #2a2840;font-size:13px;cursor:pointer;background:'+(sel.indexOf(o.v)>=0?'#3B5BF0':'transparent')+'"><input type="checkbox" style="display:none" data-multi="'+s.key+'" value="'+esc(o.v)+'"'+(sel.indexOf(o.v)>=0?' checked':'')+'>'+esc(o.n)+'</label>'}).join('')+'</div>'}).join('')+
-  '<div style="margin-top:12px"><button class="sm" onclick="api(\'goal_test\').then(function(){toast(\'Beispiel läuft am Fernseher\')})">Beispiel am Fernseher anzeigen</button></div></div>'}
+  (s.key=='gl_teams'?'<div style="margin-top:12px"><button class="sm" onclick="api(\'goal_light_test\').then(function(){toast(\'Tor-Jubel läuft …\')})">Tor-Jubel jetzt testen</button> <span class="hint">vorher unter „Zuhause“ die Lampen wählen</span></div>':'<div style="margin-top:12px"><button class="sm" onclick="api(\'goal_test\').then(function(){toast(\'Beispiel läuft am Fernseher\')})">Beispiel am Fernseher anzeigen</button></div>')+'</div>'}
  if(s.type=='bool'||s.type=='inv')c='<span class="sw"><input type="checkbox" id="'+id+'" data-k="'+s.key+'" data-t="'+s.type+'"'+(s.value?' checked':'')+'><span onclick="this.previousSibling.click()"></span></span>';
  else if(s.options)c='<select data-k="'+s.key+'" data-t="'+s.type+'">'+s.options.map(function(o){return '<option value="'+esc(o.v)+'"'+(String(o.v)==String(s.value)?' selected':'')+'>'+esc(o.n)+'</option>'}).join('')+'</select>';
  else if(s.type=='int'||s.type=='float')c='<input type="number" step="'+(s.type=='float'?'0.5':'1')+'" data-k="'+s.key+'" data-t="'+s.type+'" value="'+s.value+'">';

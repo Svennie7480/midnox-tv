@@ -102,6 +102,10 @@ public final class GoalAlert {
                 for (Ev e : fresh) {
                     String type = e.action.equals("goal") ? "goal" : e.action.equals("card") ? (e.kind.contains("red") && e.kind.contains("yellow") ? "yellowred" : e.kind.contains("red") ? "red" : "yellow") : null;
                     if (type == null) continue;
+                    if (type.equals("goal")) {
+                        Matcher fu = Pattern.compile("f\u00fcr ([^,]+),").matcher(e.text);
+                        celebrate(c, fu.find() ? fu.group(1) : e.team);
+                    }
                     if (type.equals("goal") && !on(c, "sa_goal", true)) continue;
                     if (type.equals("yellow") && !on(c, "sa_yellow", false)) continue;
                     if ((type.equals("red") || type.equals("yellowred")) && !on(c, "sa_red", true)) continue;
@@ -115,6 +119,75 @@ public final class GoalAlert {
                 }
             }
         }
+    }
+
+    // ------------------------------------------------------------ Tor-Jubel mit Licht
+    /** Vereinsfarben, die als Licht gut wirken (Schwarz wird zu Weiss). {Suchbegriffe, Farbe 1, Farbe 2} */
+    static final Object[][] COLORS = {
+        {"bayern", 0xDC052D, 0xFFFFFF}, {"dortmund|bvb", 0xFDE100, 0xFFFFFF}, {"freiburg", 0xE2001A, 0xFFFFFF}, {"leipzig", 0xDD0741, 0xFFFFFF},
+        {"bremen|werder", 0x1D9053, 0xFFFFFF}, {"leverkusen", 0xE32221, 0xFFFFFF}, {"elversberg", 0xFFFFFF, 0x2A6FDB}, {"mainz", 0xC3141E, 0xFFFFFF},
+        {"augsburg", 0xBA3733, 0x46714D}, {"stuttgart", 0xE32219, 0xFFFFFF}, {"hoffenheim", 0x1961B5, 0xFFFFFF}, {"paderborn", 0x005CA9, 0xFFFFFF},
+        {"hamburger|hsv", 0x0A3F86, 0xFFFFFF}, {"union", 0xEB1923, 0xFFFFFF}, {"koeln|koln", 0xED1C24, 0xFFFFFF}, {"frankfurt", 0xE1000F, 0xFFFFFF},
+        {"schalke|s04", 0x004D9D, 0xFFFFFF}, {"gladbach|monchengladbach|moenchengladbach", 0x00A54F, 0xFFFFFF},
+        {"bielefeld|arminia", 0x004E95, 0xFFFFFF}, {"braunschweig", 0xFFD500, 0x0050A0}, {"cottbus", 0xE30613, 0xFFFFFF}, {"bochum", 0x005CA9, 0xFFFFFF},
+        {"wolfsburg", 0x65B32E, 0xFFFFFF}, {"osnabrueck|osnabruck", 0x5A2D82, 0xFFFFFF}, {"darmstadt", 0x004E9F, 0xFFFFFF}, {"magdeburg", 0x0059A3, 0xFFFFFF},
+        {"kaiserslautern|fck", 0xE20612, 0xFFFFFF}, {"hertha", 0x005CA9, 0xFFFFFF}, {"karlsruhe|ksc", 0x00529F, 0xFFFFFF}, {"heidenheim", 0xE30613, 0x00489B},
+        {"pauli", 0xE30613, 0xFFFFFF}, {"nuernberg|nurnberg", 0xAA1124, 0xFFFFFF}, {"hannover", 0x00A54F, 0xE30613}, {"dresden|dynamo", 0xFFD200, 0xFFFFFF},
+        {"fuerth|furth", 0x00A54F, 0xFFFFFF}, {"kiel|holstein", 0x0050A0, 0xE30613}, {"hansa|rostock", 0x004A99, 0xFFFFFF}, {"duesseldorf|dusseldorf|fortuna", 0xE30613, 0xFFFFFF},
+    };
+    static int[] colors(String team) {
+        String n = Sport.norm(team);
+        for (Object[] c : COLORS) for (String k : ((String) c[0]).split("\\|")) if (n.contains(k)) return new int[]{(Integer) c[1], (Integer) c[2]};
+        return null;
+    }
+    static boolean clubSelected(Context c, String team) {
+        String sel = Style.prefs(c).getString("gl_teams", "");
+        if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
+        if (sel.isEmpty()) return false;
+        String n = Sport.norm(team);
+        for (String x : sel.split(",")) { String f = Sport.norm(x.trim()); if (!f.isEmpty() && (n.contains(f) || f.contains(n))) return true; }
+        return false;
+    }
+    static void celebrate(Context c, String team) {
+        if (!on(c, "gl_on", false) || !clubSelected(c, team)) return;
+        int[] col = colors(team);
+        if (col != null) jubel(c, col);
+    }
+    static volatile boolean jubelt;
+    /** Lampen ~9 Sekunden in den Vereinsfarben wechseln lassen, dann vorherigen Zustand wiederherstellen. */
+    static void jubel(final Context c, final int[] col) {
+        if (jubelt) return;
+        jubelt = true;
+        new Thread(new Runnable() { public void run() {
+            try {
+                JSONObject cfg = Style.loadConfig(c);
+                String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
+                JSONArray ids = new JSONArray(Style.prefs(c).getString("goal_light_ids", "[]"));
+                if (ids.length() == 0) {
+                    JSONObject m = new JSONObject(Style.prefs(c).getString("kino_lights", "{}"));
+                    for (Iterator<String> it = m.keys(); it.hasNext(); ) ids.put(it.next());
+                }
+                if (ids.length() == 0) return;
+                Style.httpPost(base + "/api/services/scene/create", tok, new JSONObject().put("scene_id", "midnox_torjubel_vorher").put("snapshot_entities", ids).toString());
+                for (int i = 0; i < 10; i++) {
+                    int cc = col[i % 2];
+                    JSONObject d = new JSONObject().put("entity_id", ids).put("brightness_pct", 100).put("transition", 0)
+                        .put("rgb_color", new JSONArray().put((cc >> 16) & 0xFF).put((cc >> 8) & 0xFF).put(cc & 0xFF));
+                    try { Style.httpPost(base + "/api/services/light/turn_on", tok, d.toString()); } catch (Exception ignored) {}
+                    Thread.sleep(900);
+                }
+                Style.httpPost(base + "/api/services/scene/turn_on", tok, new JSONObject().put("entity_id", "scene.midnox_torjubel_vorher").put("transition", 1).toString());
+            } catch (Exception ignored) {
+            } finally { jubelt = false; }
+        }}).start();
+    }
+    static void jubelTest(Context c) {
+        String sel = Style.prefs(c).getString("gl_teams", "");
+        if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
+        String team = sel.isEmpty() ? "HSV" : sel.split(",")[0];
+        int[] col = colors(team);
+        jubel(c, col == null ? new int[]{0x7C3AED, 0x06B6D4} : col);
+        show(c, "goal", "90", team, "Gegner", "1 : 0", "Test: Tor-Jubel", team, null, null);
     }
 
     static String grab(String s, String re) { Matcher m = Pattern.compile(re).matcher(s); return m.find() ? android.text.Html.fromHtml(m.group(1)).toString().trim() : ""; }

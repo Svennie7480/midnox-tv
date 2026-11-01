@@ -121,6 +121,10 @@ final class AdminApi {
                 return "{\"ok\":true}";
             }
             case "settings": return settings(c);
+            case "sounds": return new JSONObject().put("sounds", GoalSound.list(c)).toString();
+            case "sound_test": GoalSound.test(c, in.optString("slot")); return "{\"ok\":true}";
+            case "sound_stop": GoalSound.stop(); return "{\"ok\":true}";
+            case "sound_delete": GoalSound.delete(c, in.optString("slot")); return "{\"ok\":true}";
             case "goal_light_test": GoalAlert.jubelTest(c); return "{\"ok\":true}";
             case "goal_test": ui(new Runnable() { public void run() { GoalAlert.test(c); } }); return "{\"ok\":true}";
             case "ha": return ha(c);
@@ -255,6 +259,9 @@ final class AdminApi {
             {"Tor-Jubel mit Licht", "gl_teams", "Mein Verein (nichts gewählt = Vereine vom Tor-Alarm)", "multi", "", null, null},
             {"Tor-Jubel mit Licht", "gl_c1", "Farbe 1", "color", "", null, null},
             {"Tor-Jubel mit Licht", "gl_c2", "Farbe 2", "color", "", null, null},
+            {"Tor-Sounds", "gs_on", "Eigene Sounds bei Toren und Karten abspielen", "bool", true, null, null},
+            {"Tor-Sounds", "gs_vol", "Lautstärke in % (relativ zur TV-Lautstärke)", "int", 80, null, null},
+            {"Tor-Sounds", "gs_files", "", "sounds", "", null, null},
             {"Wetter", "weather_on", "Wetter unter der Uhr", "bool", true, null, null},
             {"Wetter", "weather_entity", "Wetter-Entität (leer = automatisch)", "string", "", null, null},
             {"Guten Morgen", "morning_on", "Morgens beim Einschalten anzeigen", "bool", true, null, null},

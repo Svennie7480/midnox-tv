@@ -102,9 +102,15 @@ public final class GoalAlert {
                 for (Ev e : fresh) {
                     String type = e.action.equals("goal") ? "goal" : e.action.equals("card") ? (e.kind.contains("red") && e.kind.contains("yellow") ? "yellowred" : e.kind.contains("red") ? "red" : "yellow") : null;
                     if (type == null) continue;
+                    String slot = "card";
                     if (type.equals("goal")) {
                         Matcher fu = Pattern.compile("f\u00fcr ([^,]+),").matcher(e.text);
-                        celebrate(c, fu.find() ? fu.group(1) : e.team);
+                        String scorer = fu.find() ? fu.group(1) : e.team;
+                        celebrate(c, scorer);
+                        if (clubSelected(c, scorer)) slot = "mygoal";
+                        else if (clubSelected(c, home) || clubSelected(c, away) || clubSelected(c, hs) || clubSelected(c, as)) slot = "against";
+                        else slot = "goal";
+                        if (slot.equals("mygoal") && on(c, "gl_on", false)) GoalSound.play(c, slot);   // Jubel-Sound auch ohne Einblendung
                     }
                     if (type.equals("goal") && !on(c, "sa_goal", true)) continue;
                     if (type.equals("yellow") && !on(c, "sa_yellow", false)) continue;
@@ -114,6 +120,7 @@ public final class GoalAlert {
                     if (type.equals("goal") && sc.find()) score = sc.group(1) + " : " + sc.group(2);
                     if (score == null) score = grab(b, "match-result-home\"><div class=\"match-result match-result-0\">(\\d+)") + " : " + grab(b, "match-result-away\"><div class=\"match-result match-result-0\">(\\d+)");
                     Bitmap c1 = crest(imgs.size() > 0 ? imgs.get(0) : null), c2 = crest(imgs.size() > 1 ? imgs.get(1) : null);
+                    if (!(slot.equals("mygoal") && on(c, "gl_on", false))) GoalSound.play(c, slot);
                     show(c, type, e.minute, hs.isEmpty() ? home : hs, as.isEmpty() ? away : as, score, e.player, e.team, c1, c2);
                     try { Thread.sleep(7500); } catch (InterruptedException ignored) {}
                 }
@@ -144,7 +151,8 @@ public final class GoalAlert {
         String sel = Style.prefs(c).getString("gl_teams", "");
         if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
         if (sel.isEmpty()) return false;
-        String n = Sport.norm(team);
+        String n = Sport.norm(team == null ? "" : team);
+        if (n.isEmpty()) return false;
         for (String x : sel.split(",")) { String f = Sport.norm(x.trim()); if (!f.isEmpty() && (n.contains(f) || f.contains(n))) return true; }
         return false;
     }
@@ -206,6 +214,7 @@ public final class GoalAlert {
         String team = sel.isEmpty() ? "HSV" : sel.split(",")[0];
         int[] col = colors(team);
         jubel(c, col == null ? new int[]{0x7C3AED, 0x06B6D4} : col);
+        GoalSound.play(c, "mygoal");
         show(c, "goal", "90", team, "Gegner", "1 : 0", "Test: Tor-Jubel", team, null, null);
     }
 

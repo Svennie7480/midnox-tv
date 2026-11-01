@@ -39,6 +39,8 @@ public class Remote {
             String name = "app.apk";
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("[?&]name=([^&]*)").matcher(path);
             if (m.find()) name = java.net.URLDecoder.decode(m.group(1), "UTF-8");
+            java.util.regex.Matcher sm = java.util.regex.Pattern.compile("[?&]sound=([a-z]+)").matcher(path);
+            if (sm.find()) return GoalSound.receive(c, in, len, sm.group(1), name);
             return Installer.receive(c, in, len, name, path.contains("unzip=1"));
         }};
         try { port = server.start(8130); } catch (Exception e) { server = null; port = 0; }

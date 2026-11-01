@@ -1,6 +1,6 @@
 {
- "versionCode": 54,
- "versionName": "9.1",
+ "versionCode": 55,
+ "versionName": "9.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Tor-Jubel: eigene Lichtfarben in der PC-Verwaltung wählbar"
+ "notes": "Eigene Tor-Sounds: in der PC-Verwaltung hochladen (Tor meines Vereins, Gegentor, andere Tore, Karten)"
 }

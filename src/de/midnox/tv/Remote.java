@@ -87,6 +87,8 @@ public class Remote {
                 RadioService r = RadioService.inst;
                 o.put("radio", r != null && (r.playing || r.preparing) ? r.station.name + (r.current == null ? "" : " · " + r.current.artist + " – " + r.current.title) : "");
                 o.put("sleep", Sleep.remainingMin(c));
+                JSONObject np = MediaWatch.now(c);
+                if (np != null) o.put("now", np);
                 return o.toString();
             }
             case "key": {   // Tastendruck wie auf der Fire-TV-Fernbedienung (ueber ADB zum eigenen Geraet)
@@ -189,7 +191,7 @@ public class Remote {
             + "function esc(s){return String(s).replace(/[&<>\"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}"
             + "function list(id,items,fn){var d=document.getElementById(id);d.innerHTML='';items.forEach(function(it){var b=document.createElement('button');b.innerHTML=esc(it.name);b.onclick=function(){fn(it)};d.appendChild(b)})}"
             + "var first=true;function load(){fetch('/api/state?k='+key,{method:'POST',body:'{}'}).then(function(r){return r.json()}).then(function(s){"
-            + "st((s.radio?'♪ '+s.radio:'Fernbedienung')+(s.sleep>0?'  ·  Timer '+s.sleep+' Min.':''));"
+            + "st((s.now&&s.now.title?(s.now.state=='pause'?'\u23F8 ':'\u25B6 ')+s.now.title+(s.now.sub?' \u2013 '+s.now.sub:'')+' ('+s.now.app+')':s.now?'\u25B6 '+s.now.app:s.radio?'♪ '+s.radio:'Fernbedienung')+(s.sleep>0?'  ·  Timer '+s.sleep+' Min.':''));"
             + "if(first){first=false;list('apps',s.apps,function(it){a('app',{pkg:it.pkg})});list('radio',s.stations,function(it){a('radio',{id:it.id})});list('tv',s.tv,function(it){a('tv',{id:it.id})})}})}"
             + "load();setInterval(load,10000);");
     }

@@ -1,6 +1,6 @@
 {
- "versionCode": 60,
- "versionName": "10.0",
+ "versionCode": 61,
+ "versionName": "10.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "midnox TV 10: Live-Leiste über jeder App, Spieltag-Modus mit Erinnerung, Stadion-Licht und Endstand, Wo läuft das? (Sky, DAZN, RTL, Dyn …), Highlights per MENU"
+ "notes": "Der Launcher weiß, was läuft: Weiterschauen über alle Apps, Kino-Modus für Netflix, Prime, Disney+ & Co., Anruf-Pause für jede App, Fernseh-Tagebuch in der PC-Verwaltung"
 }

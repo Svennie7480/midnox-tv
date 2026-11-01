@@ -125,6 +125,8 @@ final class AdminApi {
             case "sound_test": GoalSound.test(c, in.optString("slot")); return "{\"ok\":true}";
             case "sound_stop": GoalSound.stop(); return "{\"ok\":true}";
             case "sound_delete": GoalSound.delete(c, in.optString("slot")); return "{\"ok\":true}";
+            case "watch": return MediaWatch.report(c).toString();
+            case "watch_clear": MediaWatch.clear(c); return "{\"ok\":true}";
             case "bar_toggle": { final String[] r = {""}; r[0] = LiveBar.toggle(c); return new JSONObject().put("ok", true).put("msg", r[0]).toString(); }
             case "md_test": ui(new Runnable() { public void run() { Matchday.test(c); } }); return "{\"ok\":true}";
             case "hb_test": ui(new Runnable() { public void run() { Handball.test(c); } }); return "{\"ok\":true}";
@@ -269,6 +271,11 @@ final class AdminApi {
             {"Handball", "hb_every", "Zwischenstand höchstens alle … Minuten (0 = aus)", "int", 10, null, null},
             {"Handball", "hb_radio", "Eigener Radio-Link (leer = Knopf öffnet Dyn)", "text", "", null, null},
             {"Handball", "hb_test", "Einblendung testen", "action", "hb_test", null, null},
+            {"Was läuft (alle Apps)", "mw_on", "Erkennen, was in jeder App läuft (Netflix, Prime, Disney+ …)", "bool", true, null, null},
+            {"Was läuft (alle Apps)", "kino_all", "Kino-Modus auch bei Netflix, Prime, Disney+, YouTube …", "bool", true, null, null},
+            {"Was läuft (alle Apps)", "kino_livetv", "Kino-Modus auch bei Live-TV-Apps (MagentaTV, Zattoo …)", "bool", false, null, null},
+            {"Was läuft (alle Apps)", "mw_row", "Reihe „Zuletzt in deinen Apps“ auf der Startseite", "bool", true, null, null},
+            {"Was läuft (alle Apps)", "mw_break_h", "Pausen-Hinweis nach … Stunden am Stück (0 = aus)", "int", 0, null, null},
             {"Live-Leiste", "bar_on", "Spielstände dauerhaft über jeder App, solange deine Vereine spielen", "bool", true, null, null},
             {"Live-Leiste", "bar_pos", "Position", "choice", "bottom", new String[]{"bottom", "top"}, new String[]{"unten", "oben"}},
             {"Live-Leiste", "bar_toggle", "Leiste jetzt ein-/ausblenden", "action", "bar_toggle", null, null},

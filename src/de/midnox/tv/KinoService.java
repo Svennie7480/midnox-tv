@@ -60,12 +60,15 @@ public class KinoService extends Service {
         while (running) {
             try { sleepTimer(); } catch (Exception ignored) {}
             try { Daily.tick(this); } catch (Exception ignored) {}
+            try { MediaWatch.tick(this); } catch (Exception ignored) {}
             try {
                 SharedPreferences pr = Style.prefs(this);
                 JSONObject cfg = Style.loadConfig(this);
                 Emby emby = Emby.from(this);
-                if (pr.getBoolean("kino_on", true) && cfg != null && emby != null && cfg.has("url")) {
-                    int now = playState(emby, ip);
+                if (pr.getBoolean("kino_on", true) && cfg != null && cfg.has("url")) {
+                    int now = IDLE;
+                    if (emby != null) try { now = playState(emby, ip); } catch (Exception ignored) {}
+                    if (now == IDLE && pr.getBoolean("kino_all", true)) now = MediaWatch.kinoState(this);   // Netflix, Prime, Disney+ …
                     if (now == IDLE) idleCount++; else idleCount = 0;
                     if (now == IDLE && idleCount < 3) now = state;       // kurze Luecken (Folgenwechsel) ueberbruecken
                     if (now != state) transition(cfg, pr, state, now);

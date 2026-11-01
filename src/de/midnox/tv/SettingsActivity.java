@@ -174,6 +174,8 @@ public class SettingsActivity extends Activity {
         final Row sat = add("Vereine");
         sat.value.setText(pr.getString("sa_teams", "").isEmpty() ? "alle  (am PC w\u00e4hlbar)" : pr.getString("sa_teams", ""));
         sat.setFocusable(true);
+        toggle("Erkennen, was in jeder App läuft (Weiterschauen, Statistik)", "mw_on", true, false);
+        toggle("Kino-Modus auch bei Netflix, Prime, Disney+, YouTube …", "kino_all", true, false);
         toggle("Live-Leiste: Spielstände über jeder App, solange deine Vereine spielen", "bar_on", true, false);
         final Row lbt = add("Live-Leiste jetzt ein-/ausblenden");
         lbt.value.setText("OK");

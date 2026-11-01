@@ -187,10 +187,17 @@ public class Daily {
             try { ((AudioManager) c.getSystemService(Context.AUDIO_SERVICE)).requestAudioFocus(callFocus, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT); } catch (Exception ignored) {}
         }});
         pausedEmby = embyCommand(c, "Pause");
+        // jede andere App: Pause-Taste senden, wenn sie gerade spielt
+        MediaWatch.Session s = MediaWatch.current;
+        if (!pausedEmby && s != null && s.state == MediaWatch.PLAYING && !MediaWatch.audioOnly(s.pkg)) {
+            try { Adb.shell(c, "input keyevent 127"); pausedApp = true; } catch (Exception ignored) {}
+        }
     }
+    static boolean pausedApp;
 
     static void endCall(final Context c) {
         if (pausedEmby) { embyCommand(c, "Unpause"); pausedEmby = false; }
+        if (pausedApp) { try { Adb.shell(c, "input keyevent 126"); } catch (Exception ignored) {} pausedApp = false; }
         new Handler(Looper.getMainLooper()).post(new Runnable() { public void run() {
             try { ((AudioManager) c.getSystemService(Context.AUDIO_SERVICE)).abandonAudioFocus(callFocus); } catch (Exception ignored) {}
             if (duckedRadio && RadioService.inst != null) RadioService.inst.volume(1f);

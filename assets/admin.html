@@ -80,6 +80,7 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
   <a data-p="m3u">📥 M3U-Import</a>
   <a data-p="apps">▦ Apps auf der Startseite</a>
   <a data-p="ha">🏠 Zuhause</a>
+  <a data-p="mw">▶ Was läuft</a>
   <a data-p="set">⚙ Einstellungen</a>
   <a onclick="logout()" style="margin-top:30px;color:var(--mut)">⎋ Abmelden</a>
  </nav>
@@ -143,6 +144,18 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
    </div>
   </section>
 
+  <section id="p-mw" style="display:none">
+   <h2>Was läuft</h2><p class="sub">Der Fernseher erkennt, was in jeder App läuft (Netflix, Prime Video, Disney+, YouTube, RTL+ …). Daraus entstehen „Zuletzt in deinen Apps“ auf der Startseite, der Kino-Modus für alle Apps und dein Fernseh-Tagebuch. Alles bleibt auf dem Fernseher.</p>
+   <div class="card" id="mwnow"></div>
+   <div class="grid2">
+    <div class="card"><h3 style="margin-top:0">HEUTE · WOCHE · MONAT</h3><div id="mwapps" class="hint">Lade …</div></div>
+    <div class="card"><h3 style="margin-top:0">DIE LETZTEN 14 TAGE</h3><div id="mwchart" style="display:flex;align-items:flex-end;gap:6px;height:150px"></div></div>
+   </div>
+   <div class="card"><h3 style="margin-top:0">ZULETZT GESCHAUT</h3><div id="mwhist" class="hint">Lade …</div></div>
+   <div class="card"><h3 style="margin-top:0">PRÜFANSICHT: WAS MELDEN DIE APPS?</h3><p class="hint" style="margin-top:0">Starte am Fernseher etwas in einer App und lade diese Seite neu. Steht hier ein Titel, klappt Weiterschauen für diese App. Steht nur der Status, funktionieren Kino-Modus und Statistik, aber ohne Titel.</p><div id="mwseen"></div>
+    <div style="margin-top:14px;display:flex;gap:8px"><button class="sm" onclick="loadMw()">Neu laden</button><button class="sm" onclick="if(confirm('Verlauf und Statistik löschen?'))api('watch_clear').then(loadMw)">Tagebuch löschen</button></div></div>
+  </section>
+
   <section id="p-set" style="display:none">
    <h2>Einstellungen</h2><p class="sub">Änderungen werden sofort gespeichert und beim nächsten Öffnen der Startseite übernommen.</p>
    <div class="grid2" id="sets"></div>
@@ -176,9 +189,9 @@ function start(){api('info').then(function(i){$('login').style.display='none';$(
  loadCh()}).catch(function(){})}
 document.querySelectorAll('nav a[data-p]').forEach(function(a){a.onclick=function(){
  document.querySelectorAll('nav a').forEach(function(x){x.classList.remove('on')});a.classList.add('on');
- ['ch','m3u','apps','ha','set'].forEach(function(p){$('p-'+p).style.display=p==a.dataset.p?'block':'none'});
+ ['ch','m3u','apps','ha','mw','set'].forEach(function(p){$('p-'+p).style.display=p==a.dataset.p?'block':'none'});
  $('save').classList.toggle('on',a.dataset.p=='ch'&&dirty);if(a.dataset.p!='ha')$('hasave').classList.remove('on');
- if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='ha')loadHa();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
+ if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='ha')loadHa();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='mw')loadMw();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
 // ---------- Senderliste
 var CH=[],RTL=false,dirty=false;
 var SRC={magenta:['MagentaTV','#E20074'],rtl:['RTL+ Livestream','#E4002B'],m3u:['Stream (VLC)','#FF8800'],hide:['ausgeblendet','#6b6f86']};
@@ -265,6 +278,18 @@ function tileSearch(){var q=$('tq').value.toLowerCase(),r=$('tres');if(q.length<
  r.querySelectorAll('[data-id]').forEach(function(el){el.onclick=function(){var s=sens(el.dataset.id),t={label:s.name,main:[s.id]};
   if(s.dienst)t.format='dienst';else{t.main_unit=unit(s.unit);t.decimals=isNaN(parseFloat(s.state))||String(s.state).indexOf('.')<0?0:1}
   TILES.push(t);$('tq').value='';r.innerHTML='';renderTiles();haDirty()}})}
+// ---------- Was laeuft
+function dur(ms){var m=Math.round(ms/60000);if(m<1)return '–';if(m<60)return m+' Min.';var h=Math.floor(m/60);return h+' Std.'+(m%60?' '+(m%60)+' Min.':'')}
+function ago(t){var m=Math.round((Date.now()-t)/60000);if(m<2)return 'gerade eben';if(m<60)return 'vor '+m+' Min.';var h=Math.round(m/60);if(h<24)return 'vor '+h+' Std.';var d=Math.round(h/24);return d==1?'gestern':'vor '+d+' Tagen'}
+function loadMw(){api('watch').then(function(j){
+ var n=j.now;$('mwnow').innerHTML='<h3 style="margin-top:0">JETZT</h3>'+(n?'<div style="font-size:20px;font-weight:600">'+(n.state=='pause'?'⏸ ':'▶ ')+esc(n.title||n.app)+'</div><div class="hint">'+esc(n.sub?n.sub+' · ':'')+esc(n.app)+'</div>':'<div class="hint">Gerade läuft nichts'+(j.error?' – Fehler: '+esc(j.error):'')+'</div>');
+ var mx=1;j.apps.forEach(function(a){mx=Math.max(mx,a.month)});
+ $('mwapps').innerHTML=j.apps.length?'<table style="width:100%;border-collapse:collapse;font-size:14px"><tr class="hint"><td>App</td><td style="text-align:right">Heute</td><td style="text-align:right">7 Tage</td><td style="text-align:right">30 Tage</td></tr>'+j.apps.map(function(a){return '<tr><td style="padding:6px 0">'+esc(a.app)+'<div style="height:4px;border-radius:2px;margin-top:4px;width:'+Math.max(2,Math.round(a.month*100/mx))+'%;background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4)"></div></td><td style="text-align:right">'+dur(a.today)+'</td><td style="text-align:right">'+dur(a.week)+'</td><td style="text-align:right">'+dur(a.month)+'</td></tr>'}).join('')+'</table>':'Noch keine Daten – ab jetzt wird mitgezählt.';
+ var cm=1;j.chart.forEach(function(d){cm=Math.max(cm,d.ms)});
+ $('mwchart').innerHTML=j.chart.slice().reverse().map(function(d){var h=Math.round(d.ms*120/cm);return '<div style="flex:1;text-align:center" title="'+dur(d.ms)+'"><div style="height:'+Math.max(2,h)+'px;border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,#06B6D4,#7C3AED)"></div><div class="hint" style="font-size:10px;margin-top:4px">'+d.day.slice(8)+'.</div></div>'}).join('');
+ $('mwhist').innerHTML=j.history.length?j.history.map(function(h){return '<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #2a2840"><div><b>'+esc(h.title)+'</b><div class="hint">'+esc(h.sub?h.sub+' · ':'')+esc(h.app)+'</div></div><div class="hint" style="text-align:right;white-space:nowrap">'+ago(h.last)+'<br>'+dur(h.ms)+'</div></div>'}).join(''):'Noch nichts – schau etwas in einer App, dann erscheint es hier.';
+ $('mwseen').innerHTML=j.sessions.length?'<table style="width:100%;border-collapse:collapse;font-size:14px"><tr class="hint"><td>App</td><td>Status</td><td>Gemeldeter Titel</td></tr>'+j.sessions.map(function(s){return '<tr style="border-top:1px solid #2a2840"><td style="padding:7px 0">'+esc(s.app)+'<div class="hint" style="font-size:11px">'+esc(s.pkg)+'</div></td><td>'+esc(s.state)+'</td><td>'+(s.title?'✓ '+esc(s.title)+(s.sub?' <span class="hint">· '+esc(s.sub)+'</span>':''):'<span class="hint">kein Titel</span>')+'</td></tr>'}).join('')+'</table>':'<div class="hint">'+(j.error?'Fehler beim Auslesen: '+esc(j.error)+' – ist „ADB-Debugging“ am Fire TV an?':'Keine App hat gerade eine Wiedergabe gemeldet.')+'</div>';
+})}
 // ---------- Einstellungen
 function loadSet(){api('settings').then(function(j){var sec={},order=[];j.settings.forEach(function(s){if(!sec[s.section]){sec[s.section]=[];order.push(s.section)}sec[s.section].push(s)});
  $('sets').innerHTML=order.map(function(n){return '<div class="card"><h3 style="margin-top:0">'+esc(n.toUpperCase())+'</h3>'+sec[n].map(ctl).join('')+'</div>'}).join('');

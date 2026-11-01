@@ -52,6 +52,7 @@ public class HomeActivity extends Activity {
     HorizontalScrollView scroller;
     HaPanel ha;
     EmbyRows emby;
+    AppRows appRows;
     VScroll vscroll;
     Hero hero;
     LinearLayout home;
@@ -275,6 +276,8 @@ public class HomeActivity extends Activity {
         content.addView(center, new LinearLayout.LayoutParams(-1, -2));
         emby = new EmbyRows(this);
         content.addView(emby.top, new LinearLayout.LayoutParams(-1, -2));
+        appRows = new AppRows(this);
+        content.addView(appRows.box, new LinearLayout.LayoutParams(-1, -2));
 
         // Zuhause: Home-Assistant-Werte
         home = new LinearLayout(this);
@@ -555,6 +558,7 @@ public class HomeActivity extends Activity {
         RadioService.listen(radioChanged); showRadio(); sleepTick();
         h.postDelayed(new Runnable() { public void run() { if (!isFinishing()) Morning.maybe(HomeActivity.this); } }, 1200);
         h.post(tick); ha.start(); emby.start(); tvRows.start();
+        try { appRows.refresh(); } catch (Exception ignored) {}
     }
     @Override protected void onPause() { super.onPause(); RadioService.unlisten(radioChanged); h.removeCallbacks(tick); ha.stop(); emby.stop(); tvRows.stop(); overlay.stop(); }
     @Override public void onBackPressed() {

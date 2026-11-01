@@ -47,7 +47,28 @@ public class TvRows implements MediaCard.Listener {
         {"Comedy.Central.de", "Comedy Central", "61"}, {"RTLup.de", "RTLup", "71"}, {"kabel.eins.Doku.de", "kabel eins Doku", "89"},
         {"ZDFinfo.de", "ZDFinfo", "81"}, {"ntv.de", "n-tv", "14"}, {"WELT.de", "WELT", "13"}, {"tagesschau24.de", "tagesschau24", "82"}, {"PHOENIX.de", "phoenix", "15"},
         {"SPORT1.de", "SPORT1", "56"}, {"Eurosport.1.de", "Eurosport 1", "53"}, {"KIKA.de", "KiKA", "10"}, {"Hamburg.1.de", "Hamburg 1", "0"},
+        // nur ueber RTL+ (Platz 0 = in MagentaTV unbekannt)
+        {"VOXup.de", "VOXup", "0"}, {"TOGGO.plus.de", "TOGGO plus", "0"},
+        {"RTL.Crime.de", "RTL Crime", "0"}, {"RTL.Passion.de", "RTL Passion", "0"}, {"RTL.Living.de", "RTL Living", "0"}, {"GEO.Television.de", "GEO Television", "0"},
     };
+
+    // ------------------------------------------------------------ RTL+ (Livestreams per Direktlink)
+    static final String RTLPLUS = "de.cbc.tvnow.firetv";
+    static final String[][] RTL_LIVE = {
+        {"RTL.de", "rtlde_rtl"}, {"VOX.de", "rtlde_vox"}, {"RTLZWEI.de", "rtlde_rtlzwei"}, {"NITRO.de", "rtlde_nitro"}, {"ntv.de", "rtlde_ntv"},
+        {"RTLup.de", "rtlde_rtlup"}, {"VOXup.de", "rtlde_voxup"}, {"SUPER.RTL.de", "rtlde_super_rtl"}, {"TOGGO.plus.de", "rtlde_toggo_plus"},
+        {"RTL.Crime.de", "rtlde_rtl_crime"}, {"RTL.Passion.de", "rtlde_rtl_passion"}, {"RTL.Living.de", "rtlde_rtl_living"}, {"GEO.Television.de", "rtlde_geo"},
+    };
+    static final Set<String> RTL_MAX = new HashSet<>(Arrays.asList("RTL.Crime.de", "RTL.Passion.de", "RTL.Living.de", "GEO.Television.de"));
+    static String rtlSlug(String ch) { for (String[] r : RTL_LIVE) if (r[0].equals(ch)) return r[1]; return null; }
+    static boolean hasRtl(Context c) { return Style.launchIntent(c.getPackageManager(), RTLPLUS) != null; }
+    /** Sender startet ueber RTL+ (installiert, Sender vorhanden, Einstellung an). */
+    static boolean viaRtl(Context c, String ch) { return rtlSlug(ch) != null && Style.prefs(c).getBoolean("tv_rtlplus", true) && hasRtl(c); }
+    /** Sender in der Reihe zeigen? Nur-RTL+-Sender brauchen RTL+, Max-Sender zusaetzlich die Einstellung. */
+    static boolean visible(Context c, String ch) {
+        if (RTL_MAX.contains(ch) && !Style.prefs(c).getBoolean("tv_rtlmax", false)) return false;
+        return number(c, ch) > 0 || viaRtl(c, ch) || ch.equals("Hamburg.1.de");
+    }
 
     static class Prog { long start, stop; String title, sub = "", cat = "", icon, desc = ""; }
 
@@ -98,6 +119,15 @@ public class TvRows implements MediaCard.Listener {
 
     /** MagentaTV direkt auf dem Sender starten (eigener Befehl der App), sonst nur die App oeffnen. */
     static void openTv(Context c, String channel) {
+        if (viaRtl(c, channel)) {
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://plus.rtl.de/" + rtlSlug(channel) + "/live"));
+                i.setPackage(RTLPLUS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+                return;
+            } catch (Exception e) { Style.start(c, Style.launchIntent(c.getPackageManager(), RTLPLUS)); return; }
+        }
         String app = tvApp(c);
         if (app == null) { Style.toast(c, "Keine TV-App installiert (z. B. MagentaTV, waipu.tv, Zattoo)"); return; }
         int nr = number(c, channel);
@@ -231,6 +261,7 @@ public class TvRows implements MediaCard.Listener {
         SimpleDateFormat hm = new SimpleDateFormat("HH:mm", Locale.GERMANY);
         final List<Emby.Entry> list = new ArrayList<>();
         for (String[] c : CHANNELS) {
+            if (!visible(act, c[0])) continue;
             List<Prog> l = d.get(c[0]);
             if (l == null) continue;
             Prog cur = null, next = null;
@@ -239,7 +270,7 @@ public class TvRows implements MediaCard.Listener {
             Emby.Entry e = new Emby.Entry();
             e.id = c[0] + "@" + cur.start; e.type = "TV";
             e.title = cur.title;
-            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop));
+            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop)) + (viaRtl(act, c[0]) ? "  ·  RTL+" : "");
             e.kind = "JETZT IM TV  ·  " + c[1].toUpperCase(Locale.GERMANY);
             List<String> meta = new ArrayList<>();
             meta.add(hm.format(new Date(cur.start)) + "–" + hm.format(new Date(cur.stop)));

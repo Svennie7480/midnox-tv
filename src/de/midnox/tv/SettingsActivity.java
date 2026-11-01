@@ -432,13 +432,18 @@ public class SettingsActivity extends Activity {
         }};
         app.onOk = app.onRight = cycA;
         app.onLeft = new Runnable() { public void run() { ad[0] = -1; cycA.run(); ad[0] = 1; } };
-        Row info = add("\u25C0 \u25B6 Platz \u00e4ndern  \u00b7  OK testet in MagentaTV");
+        if (TvRows.hasRtl(this)) {
+            toggle("RTL-Sender als Livestream in RTL+ öffnen", "tv_rtlplus", true, false);
+            toggle("RTL+ Max-Sender zeigen (Crime, Passion, Living, GEO)", "tv_rtlmax", false, false);
+        }
+        Row info = add("\u25C0 \u25B6 Platz \u00e4ndern  \u00b7  OK testet den Sender");
         info.setFocusable(false);
         for (final String[] ch : TvRows.CHANNELS) {
             final Row r = add(ch[1]);
             final Runnable show = new Runnable() { public void run() {
                 int n = TvRows.number(SettingsActivity.this, ch[0]);
-                r.value.setText("\u25C0  " + (n <= 0 ? "nur App \u00f6ffnen" : "Platz " + n) + "  \u25B6");
+                if (TvRows.viaRtl(SettingsActivity.this, ch[0])) { r.value.setText("RTL+ Livestream" + (n > 0 ? "   (MagentaTV Platz " + n + ")" : "")); return; }
+                r.value.setText("\u25C0  " + (n <= 0 ? (TvRows.rtlSlug(ch[0]) != null ? "nur in RTL+" : "nur App \u00f6ffnen") : "Platz " + n) + "  \u25B6");
             }};
             show.run();
             r.onRight = new Runnable() { public void run() { pr.edit().putInt("mtv_" + ch[0], Math.min(999, TvRows.number(SettingsActivity.this, ch[0]) + 1)).apply(); show.run(); } };

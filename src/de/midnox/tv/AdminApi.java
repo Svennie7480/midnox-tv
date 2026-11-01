@@ -358,6 +358,24 @@ final class AdminApi {
                 for (int i = 0; i < ids.length; i++) opts.put(new JSONObject().put("v", ids[i]).put("n", names[i]));
                 o.put("options", opts);
             }
+            if (k.equals("tv_app")) {   // jede App nur einmal; installierte Variante bevorzugen, nicht installierte kennzeichnen
+                android.content.pm.PackageManager pm = c.getPackageManager();
+                String cur = pr.getString(k, "");
+                JSONArray opts = new JSONArray().put(new JSONObject().put("v", "").put("n", "automatisch (erste installierte)"));
+                Set<String> done = new HashSet<>();
+                for (String[] x : TvRows.TV_APPS) {
+                    if (done.contains(x[1])) continue;
+                    String pick = null;
+                    for (String[] y : TvRows.TV_APPS) if (y[1].equals(x[1]) && (Style.launchIntent(pm, y[0]) != null || y[0].equals(cur))) { pick = y[0]; if (Style.launchIntent(pm, y[0]) != null) break; }
+                    boolean inst = pick != null && Style.launchIntent(pm, pick) != null;
+                    if (pick == null) pick = x[0];
+                    done.add(x[1]);
+                    String hint = x[0].equals(TvRows.TV_APP) ? " \u2013 schaltet direkt auf den Sender" : " \u2013 \u00f6ffnet nur die App";
+                    opts.put(new JSONObject().put("v", pick).put("n", x[1] + (inst ? "" : " (nicht installiert)") + hint));
+                }
+                opts.put(new JSONObject().put("v", "-").put("n", "keine"));
+                o.put("options", opts);
+            }
             a.put(o);
         }
         return new JSONObject().put("settings", a).toString();

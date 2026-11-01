@@ -1,6 +1,6 @@
 {
- "versionCode": 57,
- "versionName": "9.4",
+ "versionCode": 58,
+ "versionName": "9.5",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Handball live jetzt über die Sportschau-Daten: aktuelle Spielstände und Halbzeit-Anzeige, Vereinswappen"
+ "notes": "PC-Verwaltung: TV-App-Auswahl ohne doppelte Einträge, mit Hinweis was jede App kann"
 }

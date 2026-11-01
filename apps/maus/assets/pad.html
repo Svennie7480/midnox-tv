@@ -1,0 +1,85 @@
+<!doctype html><html lang=de><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name=theme-color content="#0b0a14"><meta name=apple-mobile-web-app-capable content=yes><meta name=mobile-web-app-capable content=yes>
+<title>midnox Maus</title>
+<style>
+:root{--g:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:#0b0a14;color:#e6e8f2;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+.app{display:flex;flex-direction:column;height:100%;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:10px;padding:2px 4px 10px}
+.top h1{margin:0;font-size:20px;font-weight:300}.top h1 b{font-weight:700;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dot{width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;box-shadow:0 0 10px #ef4444}.dot.on{background:#22c55e;box-shadow:0 0 10px #22c55e}
+#st{font-size:12px;color:#8a8fa8}
+#pad{flex:1;position:relative;border-radius:22px;background:radial-gradient(circle at 20% 10%,rgba(124,58,237,.18),transparent 55%),radial-gradient(circle at 90% 100%,rgba(6,182,212,.14),transparent 50%),#121120;border:1px solid #26243a;touch-action:none;overflow:hidden}
+#pad .hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#5d6178;font-size:13px;gap:6px;pointer-events:none;text-align:center;line-height:1.5}
+#pad .ring{position:absolute;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;border:2px solid #3B5BF0;opacity:0;pointer-events:none}
+#pad .ring.go{animation:r .35s ease-out}@keyframes r{from{opacity:.9;transform:scale(.4)}to{opacity:0;transform:scale(1.4)}}
+.bar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.bar button,.row button{height:52px;border:1px solid #26243a;border-radius:16px;background:#15141f;color:#e6e8f2;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.bar button:active,.row button:active,.dp button:active{background:var(--g);border-color:transparent}
+.bar svg{width:22px;height:22px}
+.row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+#kb{display:none;gap:8px;margin-top:10px}#kb.on{display:flex}
+#kb input{flex:1;padding:13px;border-radius:14px;border:1px solid #3B5BF0;background:#0e0d18;color:#fff;font-size:16px;user-select:text;-webkit-user-select:text}
+#kb button{padding:0 16px;border:0;border-radius:14px;background:var(--g);color:#fff;font-size:14px}
+#dp{display:none;margin-top:10px}#dp.on{display:block}
+.dp{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,50px);gap:6px;max-width:260px;margin:0 auto}
+.dp button{border:1px solid #26243a;border-radius:14px;background:#15141f;color:#e6e8f2;font-size:18px}
+.dp .ok{border-radius:50%;background:#1d1b2e}
+#msg{position:fixed;left:16px;right:16px;bottom:90px;padding:12px 14px;border-radius:14px;background:#2a1220;border:1px solid #7f1d3a;color:#fecdd3;font-size:13px;display:none}
+.sens{display:flex;align-items:center;gap:8px;font-size:12px;color:#8a8fa8;padding:8px 4px 0}
+.sens input{flex:1;accent-color:#3B5BF0}
+</style></head><body><div class=app>
+<div class=top><h1>midnox <b>Maus</b></h1><span id=st>verbinde …</span><span class=dot id=dot></span></div>
+<div id=pad><div class=hint><div style="font-size:15px;color:#8a8fa8">Wie ein Laptop-Touchpad</div>
+<div>1 Finger bewegen = Zeiger<br>kurz tippen = Klick · halten = langer Klick<br>2 Finger ziehen = scrollen / wischen</div></div><div class=ring id=ring></div></div>
+<div class=sens>Tempo <input type=range id=sp min=1 max=6 step=.5 value=2.5></div>
+<div class=bar>
+<button onclick="cmd('b')"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill=none stroke=currentColor stroke-width=2.4 stroke-linecap=round stroke-linejoin=round /></svg>Zurück</button>
+<button onclick="cmd('h')"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5" fill=none stroke=currentColor stroke-width=2.2 stroke-linecap=round stroke-linejoin=round /></svg>Home</button>
+<button onclick="key(82)"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14" fill=none stroke=currentColor stroke-width=2.2 stroke-linecap=round /></svg>Menü</button>
+<button onclick="tog('kb')"><svg viewBox="0 0 24 24"><rect x=3 y=6 width=18 height=12 rx=2.5 fill=none stroke=currentColor stroke-width=2 /><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8" stroke=currentColor stroke-width=2 stroke-linecap=round /></svg>Text</button>
+<button onclick="tog('dp')"><svg viewBox="0 0 24 24"><path d="M12 3l3 3h-6zM12 21l-3-3h6zM3 12l3-3v6zM21 12l-3 3V9z" fill=currentColor /><circle cx=12 cy=12 r=2.5 fill=currentColor /></svg>Pfeile</button>
+</div>
+<div class=row><button onclick="key(25)">Leiser</button><button onclick="key(164)">Stumm</button><button onclick="key(24)">Lauter</button><button onclick="key(85)">▶ ❚❚</button></div>
+<div id=kb><input id=tx placeholder="Text eingeben …" autocomplete=off onkeydown="if(event.key=='Enter'){sendText();event.preventDefault()}"><button onclick="sendText()">Senden</button><button onclick="key(67)">⌫</button></div>
+<div id=dp><div class=dp><span></span><button onclick="key(19)">▲</button><span></span><button onclick="key(21)">◀</button><button class=ok onclick="key(23)">OK</button><button onclick="key(22)">▶</button><span></span><button onclick="key(20)">▼</button><span></span></div></div>
+</div><div id=msg></div>
+<script>
+var ws,open=false,q=[],k=new URLSearchParams(location.search).get('k');
+var sp=document.getElementById('sp');try{sp.value=localStorage.getItem('sp')||2.5}catch(e){}
+sp.onchange=function(){try{localStorage.setItem('sp',sp.value)}catch(e){}};
+function st(t,on){document.getElementById('st').textContent=t;document.getElementById('dot').className='dot'+(on?' on':'')}
+function conn(){ws=new WebSocket('ws://'+location.host+'/ws?k='+k);
+ ws.onopen=function(){open=true;st('verbunden',1)};
+ ws.onclose=function(){open=false;st('getrennt – verbinde neu …',0);setTimeout(conn,1500)};
+ ws.onmessage=function(e){if(e.data[0]=='e'){var m=document.getElementById('msg');m.textContent=e.data.substring(2);m.style.display='block';setTimeout(function(){m.style.display='none'},5000)}}}
+conn();
+function cmd(c){if(open)ws.send(c);try{navigator.vibrate(8)}catch(e){}}
+function key(n){cmd('k '+n)}
+function tog(id){var e=document.getElementById(id);e.classList.toggle('on');if(id=='kb'&&e.classList.contains('on'))document.getElementById('tx').focus()}
+function sendText(){var t=document.getElementById('tx');if(t.value){cmd('t '+t.value);t.value=''}}
+// ---- Touchpad
+var pad=document.getElementById('pad'),ring=document.getElementById('ring');
+var pts={},start=0,sx=0,sy=0,moved=0,maxTouches=0,longT=null,longDone=false,accX=0,accY=0,scY=0,scX=0,lastScroll=0,raf=0;
+function flush(){raf=0;if(Math.abs(accX)>=0.5||Math.abs(accY)>=0.5){if(open)ws.send('m '+accX.toFixed(1)+' '+accY.toFixed(1));accX=0;accY=0}
+ var now=Date.now();if((Math.abs(scY)>2||Math.abs(scX)>2)&&now-lastScroll>60){if(open)ws.send('s '+(scY*2.2).toFixed(0)+' '+(scX*2.2).toFixed(0));scY=0;scX=0;lastScroll=now}}
+function sched(){if(!raf)raf=requestAnimationFrame(flush)}
+function showRing(x,y){var r=pad.getBoundingClientRect();ring.style.left=(x-r.left)+'px';ring.style.top=(y-r.top)+'px';ring.classList.remove('go');void ring.offsetWidth;ring.classList.add('go')}
+pad.addEventListener('pointerdown',function(e){e.preventDefault();pad.setPointerCapture(e.pointerId);pts[e.pointerId]={x:e.clientX,y:e.clientY,t:Date.now()};
+ var n=Object.keys(pts).length;maxTouches=Math.max(maxTouches,n);
+ if(n==1){start=Date.now();sx=e.clientX;sy=e.clientY;moved=0;longDone=false;clearTimeout(longT);
+  longT=setTimeout(function(){if(moved<10&&maxTouches==1){longDone=true;cmd('l');showRing(sx,sy);try{navigator.vibrate(30)}catch(e){}}},600)}});
+pad.addEventListener('pointermove',function(e){var p=pts[e.pointerId];if(!p)return;e.preventDefault();
+ var dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;var n=Object.keys(pts).length;
+ moved+=Math.abs(dx)+Math.abs(dy);
+ if(n==1&&maxTouches==1){var v=Math.sqrt(dx*dx+dy*dy),f=parseFloat(sp.value)*(1+Math.min(v,40)*0.06);accX+=dx*f;accY+=dy*f}
+ else if(n>=2){scY+=dy/n;scX+=dx/n;if(moved>10)clearTimeout(longT)}
+ if(moved>10)clearTimeout(longT);sched()});
+function up(e){var p=pts[e.pointerId];if(!p)return;delete pts[e.pointerId];
+ if(Object.keys(pts).length==0){clearTimeout(longT);var dt=Date.now()-start;
+  if(!longDone&&moved<12&&dt<300){if(maxTouches==1){cmd('c');showRing(sx,sy)}else if(maxTouches==2){cmd('b')}}
+  maxTouches=0;flush()}}
+pad.addEventListener('pointerup',up);pad.addEventListener('pointercancel',up);
+</script></body></html>

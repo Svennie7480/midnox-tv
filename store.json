@@ -2,6 +2,24 @@
  "info": "midnox Store – Katalog. Quellen: github = owner/repo (neueste Release-APK, passend zum Prozessor; match = Teil des Dateinamens), page + pattern = Dateiliste eines Servers (neueste stabile Version, {abi}/{dir} werden ersetzt), amazon = Paketname im Amazon Appstore, search = Suchbegriff im Amazon Appstore.",
  "apps": [
   {
+   "id": "midnox-radio",
+   "name": "midnox Radio",
+   "cat": "midnox",
+   "pkg": "de.midnox.radio",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-radio.apk",
+   "version": "1.0",
+   "desc": "Über 1.700 Radiosender mit Logos – midnox, ffn, 89.0 RTL, sunshine live, bigFM, RADIO BOB! und viele mehr, sortiert nach Senderfamilie, Musikrichtung und Bundesland. Dazu 50.000 Sender weltweit über die Suche."
+  },
+  {
+   "id": "midnox-maus",
+   "name": "midnox Maus",
+   "cat": "midnox",
+   "pkg": "de.midnox.maus",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-maus.apk",
+   "version": "1.0",
+   "desc": "Dein Handy als Touchpad: Mauszeiger, Tippen, Wischen und Scrollen in jeder App – macht auch Handy-Apps auf dem Fernseher bedienbar."
+  },
+  {
    "id": "emby",
    "name": "Emby",
    "cat": "Mediathek",

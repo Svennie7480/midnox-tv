@@ -34,6 +34,10 @@ public class TvRows implements MediaCard.Listener {
         String chosen = Style.prefs(c).getString("tv_app", "");
         if (chosen.equals("-")) return null;
         if (!chosen.isEmpty() && Style.launchIntent(pm, chosen) != null) return chosen;
+        if (!chosen.isEmpty()) {   // gewaehlte App in anderer Ausfuehrung installiert (z. B. Zattoo Fire TV / Android)
+            String n = tvAppName(chosen);
+            for (String[] x : TV_APPS) if (x[1].equals(n) && Style.launchIntent(pm, x[0]) != null) return x[0];
+        }
         for (String[] a : TV_APPS) if (Style.launchIntent(pm, a[0]) != null) return a[0];
         return null;
     }

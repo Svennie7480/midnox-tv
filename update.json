@@ -1,6 +1,6 @@
 {
- "versionCode": 58,
- "versionName": "9.5",
+ "versionCode": 59,
+ "versionName": "9.6",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "PC-Verwaltung: TV-App-Auswahl ohne doppelte Einträge, mit Hinweis was jede App kann"
+ "notes": "TV-App: findet auch die andere Ausführung (Fire TV/Android) der gewählten App"
 }

@@ -93,8 +93,11 @@ public class MainActivity extends Activity {
                 Adb.shell(MainActivity.this, "settings put secure enabled_accessibility_services " + cur);
                 Adb.shell(MainActivity.this, "settings put secure accessibility_enabled 1");
             } catch (Exception e) {
-                err = Adb.status != null && !Adb.status.isEmpty() && !Adb.status.equals("verbunden") ? Adb.status
-                    : "Keine Verbindung – ist ADB-Debugging eingeschaltet? (Einstellungen › Mein Fire TV › Entwickleroptionen)";
+                String why = e.getMessage() != null && e.getMessage().contains("abgelehnt") ? "Zugriff wurde am Fernseher abgelehnt – nochmal versuchen und „Zulassen“ wählen."
+                    : Adb.status != null && !Adb.status.isEmpty() && !Adb.status.equals("verbunden") ? Adb.status
+                    : "Keine ADB-Verbindung (versucht: " + android.text.TextUtils.join(", ", Adb.hosts()) + ")\nFehler: " + (Adb.lastError.isEmpty() ? e.getClass().getSimpleName() + ": " + e.getMessage() : Adb.lastError)
+                      + "\nAlternative: am PC „16_maus_einschalten.bat“ starten.";
+                err = why;
             }
             final String fe = err;
             h.post(new Runnable() { public void run() {

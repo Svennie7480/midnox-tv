@@ -28,10 +28,15 @@ public class Adb {
 
     static synchronized Adb get(Context c) throws Exception {
         if (inst != null && inst.s != null && !inst.s.isClosed()) return inst;
-        Adb a = new Adb(keys(c));
-        a.connect();
-        inst = a;
-        return a;
+        Exception last = null;
+        for (String host : hosts()) {
+            Adb a = new Adb(keys(c));
+            try { a.connect(host); inst = a; lastHost = host; return a; }
+            catch (java.net.ConnectException | java.net.SocketTimeoutException e) { last = e; try { a.s.close(); } catch (Exception ignored) {} }
+        }
+        status = "";
+        lastError = last == null ? "unbekannt" : last.getClass().getSimpleName() + ": " + last.getMessage();
+        throw last == null ? new IOException("keine Verbindung") : last;
     }
 
     /** Befehl in der Geraete-Shell ausfuehren (z. B. "input keyevent 23"). */
@@ -113,9 +118,23 @@ public class Adb {
         return cmd;
     }
 
-    void connect() throws Exception {
+    static volatile String lastHost = "", lastError = "";
+    /** Erst lokal, dann ueber die eigene WLAN-Adresse (manche Fire-OS-Versionen nehmen ADB nur dort an). */
+    static java.util.List<String> hosts() {
+        java.util.List<String> l = new java.util.ArrayList<>();
+        l.add("127.0.0.1");
+        try {
+            for (NetworkInterface ni : java.util.Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                for (InetAddress ad : java.util.Collections.list(ni.getInetAddresses()))
+                    if (ad instanceof Inet4Address && ad.isSiteLocalAddress() && !l.contains(ad.getHostAddress())) l.add(ad.getHostAddress());
+            }
+        } catch (Exception ignored) {}
+        return l;
+    }
+    void connect(String host) throws Exception {
         s = new Socket();
-        s.connect(new InetSocketAddress("127.0.0.1", 5555), 3000);
+        s.connect(new InetSocketAddress(host, 5555), 3000);
         s.setSoTimeout(5000);
         in = new DataInputStream(new BufferedInputStream(s.getInputStream()));
         out = s.getOutputStream();

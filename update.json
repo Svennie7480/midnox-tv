@@ -1,6 +1,6 @@
 {
-  "versionCode": 46,
-  "versionName": "8.3",
+  "versionCode": 47,
+  "versionName": "8.4",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Store: Kodi, Emby, Plex, Mediatheken, Streaming und mehr – nach Kategorien sortiert"
+  "notes": "Handy-Fernbedienung: ADB-Verbindung auch über die WLAN-Adresse"
 }

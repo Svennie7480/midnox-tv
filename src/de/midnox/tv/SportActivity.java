@@ -50,7 +50,7 @@ public class SportActivity extends Activity {
         head.addView(new Style.GradientText(this, "Sport", 30), new LinearLayout.LayoutParams(Style.px(120), Style.px(42)));
         tabs = new LinearLayout(this);
         head.addView(tabs);
-        tab(tabs, "1. Bundesliga", "bl1"); tab(tabs, "2. Bundesliga", "bl2"); tab(tabs, "Formel 1", "f1");
+        tab(tabs, "1. Bundesliga", "bl1"); tab(tabs, "2. Bundesliga", "bl2"); tab(tabs, "Formel 1", "f1"); tab(tabs, "Handball", "hb2");
         View sp = new View(this); head.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
         radioBtn = new Pill(this, "Konferenz hören", new Runnable() { public void run() { conference(); } });
         head.addView(radioBtn);
@@ -115,7 +115,7 @@ public class SportActivity extends Activity {
             table = new TableView();
             LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, -1, 1f); tl.leftMargin = Style.px(24);
             content.addView(table, tl);
-            status.setText("Lade " + (id.equals("bl1") ? "1." : "2.") + " Bundesliga …");
+            status.setText(id.equals("hb2") ? "Lade 2. Handball-Bundesliga …" : "Lade " + (id.equals("bl1") ? "1." : "2.") + " Bundesliga …");
         }
         reload();
     }
@@ -129,6 +129,9 @@ public class SportActivity extends Activity {
                 if (t.equals("f1")) {
                     final Sport.F1 f = Sport.loadF1();
                     h.post(new Runnable() { public void run() { if (my == gen) { f1 = f; fillF1(); } } });
+                } else if (t.equals("hb2")) {
+                    final Sport.League l = Sport.loadHb(d);
+                    h.post(new Runnable() { public void run() { if (my == gen) { league = l; fillLeague(); } } });
                 } else {
                     final Sport.League l = Sport.load(t, d);
                     long now = System.currentTimeMillis();
@@ -169,8 +172,14 @@ public class SportActivity extends Activity {
         else if (f == null || !(f instanceof Pill)) (firstLive != null ? firstLive : first != null ? first : radioBtn).requestFocus();
         table.invalidate();
         String upd = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(new Date());
+        if (l.code.equals("hb2")) {
+            String r = Style.prefs(this).getString("hb_radio", "").trim();
+            status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   " + (r.isEmpty() ? "Live-Bilder gibt es bei Dyn" : "OK = " + Sport.hbClub(this) + " live im Radio"));
+            radioBtn.setText(r.isEmpty() ? "▶  Dyn öffnen" : RadioService.isPlaying(r) ? "❚❚  Radio" : "▶  " + Sport.hbClub(this) + " hören");
+        } else {
         status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   OK auf einem Spiel = Live-Reportage im Radio (ARD Sportschau)");
         radioBtn.setText(RadioService.isPlaying(Sport.stream(l.code, "konferenz")) ? "❚❚  Konferenz" : "▶  Konferenz hören");
+        }
         h.postDelayed(refresh, live ? 30000 : 5 * 60000L);
     }
 
@@ -193,6 +202,7 @@ public class SportActivity extends Activity {
 
     void conference() {
         if (league == null) return;
+        if (league.code.equals("hb2")) { hbListen(); return; }
         String u = Sport.stream(league.code, "konferenz");
         if (RadioService.isPlaying(u)) RadioService.start(this, "stop");
         else RadioService.playCustom(this, "sport_" + league.code + "_konf", "Sportschau " + league.name + " – Konferenz", 0xFF0067B1, u);
@@ -200,7 +210,13 @@ public class SportActivity extends Activity {
         h.postDelayed(new Runnable() { public void run() { if (league != null) fillLeague(); } }, 1500);
     }
 
+    void hbListen() {
+        Style.toast(this, Handball.listen(this));
+        h.postDelayed(new Runnable() { public void run() { if (league != null) fillLeague(); } }, 1500);
+    }
+
     void playMatch(Sport.Match m) {
+        if (m.hb) { hbListen(); return; }
         String u = m.radio != null ? m.radio : Sport.stream(league.code, "konferenz");
         if (RadioService.isPlaying(u)) { RadioService.start(this, "stop"); Style.toast(this, "Radio aus"); }
         else {
@@ -240,6 +256,7 @@ public class SportActivity extends Activity {
             p.setShader(null); p.setStyle(Paint.Style.FILL); p.setColor(foc ? 0xFF1F1D30 : 0xB315141F);
             c.drawRoundRect(r, 14 * dp, 14 * dp, p);
             if (foc) { p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.5f * dp); p.setShader(Style.brand(r.left, r.right)); c.drawRoundRect(r, 14 * dp, 14 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL); }
+            if (m.hb && (Sport.isClub(getContext(), m.t1) || Sport.isClub(getContext(), m.t2))) { p.setShader(Style.brand(0, 6 * dp)); c.drawRoundRect(new RectF(dp, 10 * dp, 6 * dp, hh - 10 * dp), 3 * dp, 3 * dp, p); p.setShader(null); }
             // Status
             String st = m.status(now);
             t.setTextSize(11.5f * dp); t.setFakeBoldText(true); t.setTextAlign(Paint.Align.CENTER);
@@ -316,9 +333,9 @@ public class SportActivity extends Activity {
             for (int i = 0; i < n; i++) {
                 Sport.Row r = l.table.get(i);
                 float y = top + i * rowH, cy = y + rowH / 2;
-                boolean hl = focus != null && (r.team.name.equals(focus.t1.name) || r.team.name.equals(focus.t2.name));
+                boolean hl = focus != null && (r.team.name.equals(focus.t1.name) || r.team.name.equals(focus.t2.name)) || l.code.equals("hb2") && Sport.isClub(getContext(), r.team);
                 if (hl) { p.setShader(Style.brand(6 * dp, w - 6 * dp)); p.setAlpha(90); c.drawRoundRect(new RectF(6 * dp, y + dp, w - 6 * dp, y + rowH - dp), 8 * dp, 8 * dp, p); p.setShader(null); p.setAlpha(255); }
-                int zone = l.code.equals("bl1") ? (r.pos <= 4 ? 0xFF22C55E : r.pos <= 6 ? 0xFF06B6D4 : r.pos == 16 ? 0xFFF59E0B : r.pos >= 17 ? 0xFFEF4444 : 0)
+                int zone = l.code.equals("hb2") ? (r.pos <= 2 ? 0xFF22C55E : r.pos >= n - 1 ? 0xFFEF4444 : 0) : l.code.equals("bl1") ? (r.pos <= 4 ? 0xFF22C55E : r.pos <= 6 ? 0xFF06B6D4 : r.pos == 16 ? 0xFFF59E0B : r.pos >= 17 ? 0xFFEF4444 : 0)
                                                 : (r.pos <= 2 ? 0xFF22C55E : r.pos == 3 ? 0xFF06B6D4 : r.pos == 16 ? 0xFFF59E0B : r.pos >= 17 ? 0xFFEF4444 : 0);
                 if (zone != 0) { p.setColor(zone); c.drawRoundRect(new RectF(8 * dp, cy - 7 * dp, 11 * dp, cy + 7 * dp), 1.5f * dp, 1.5f * dp, p); }
                 t.setTextSize(12 * dp); t.setColor(hl ? Color.WHITE : 0xFFB4B8CC); t.setTextAlign(Paint.Align.RIGHT); t.setFakeBoldText(hl);

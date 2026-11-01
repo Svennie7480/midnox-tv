@@ -1,6 +1,6 @@
 {
- "versionCode": 55,
- "versionName": "9.2",
+ "versionCode": 56,
+ "versionName": "9.3",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Eigene Tor-Sounds: in der PC-Verwaltung hochladen (Tor meines Vereins, Gegentor, andere Tore, Karten)"
+ "notes": "Handball: 2. Bundesliga live mit Logos und Tabelle, Spielstand-Einblendungen für deinen Verein (VfL Lübeck-Schwartau), Dyn-Knopf"
 }

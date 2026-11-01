@@ -278,14 +278,24 @@ public final class GoalAlert {
             RectF r = new RectF(0, 0, w, hh);
             p.setShader(null); p.setStyle(Paint.Style.FILL); p.setColor(0xF5121120);
             c.drawRoundRect(r, 22 * dp, 22 * dp, p);
-            boolean goal = type.equals("goal");
+            boolean hb = type.equals("hb");
+            boolean goal = type.equals("goal") || hb;
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.5f * dp);
             if (goal) p.setShader(Style.brand(0, w)); else p.setColor(type.equals("yellow") ? 0xFFFACC15 : 0xFFEF4444);
             c.drawRoundRect(new RectF(dp, dp, w - dp, hh - dp), 22 * dp, 22 * dp, p);
             p.setShader(null); p.setStyle(Paint.Style.FILL);
             // Symbol links
             float ix = 20 * dp, iy = hh / 2;
-            if (goal) {
+            if (hb) {   // Handball: Ball mit Naehten
+                float bx = ix + 28 * dp;
+                p.setShader(Style.brand(ix, ix + 56 * dp)); c.drawCircle(bx, iy, 28 * dp, p); p.setShader(null);
+                p.setColor(Color.WHITE); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); c.drawCircle(bx, iy, 15 * dp, p);
+                p.setStrokeWidth(2 * dp);
+                c.drawArc(new RectF(bx - 26 * dp, iy - 15 * dp, bx + 4 * dp, iy + 15 * dp), -60, 120, false, p);
+                c.drawArc(new RectF(bx - 4 * dp, iy - 15 * dp, bx + 26 * dp, iy + 15 * dp), 120, 120, false, p);
+                c.drawLine(bx, iy - 15 * dp, bx, iy + 15 * dp, p);
+                p.setStyle(Paint.Style.FILL);
+            } else if (goal) {
                 p.setShader(Style.brand(ix, ix + 56 * dp)); c.drawCircle(ix + 28 * dp, iy, 28 * dp, p); p.setShader(null);
                 p.setColor(Color.WHITE); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); c.drawCircle(ix + 28 * dp, iy, 15 * dp, p);
                 Path pent = new Path();
@@ -302,10 +312,10 @@ public final class GoalAlert {
                 }
             }
             float x = ix + 76 * dp;
-            String title = goal ? "TOR!" : type.equals("yellow") ? "GELBE KARTE" : type.equals("red") ? "ROTE KARTE" : "GELB-ROT";
+            String title = hb ? "HANDBALL · " + minute : goal ? "TOR!" : type.equals("yellow") ? "GELBE KARTE" : type.equals("red") ? "ROTE KARTE" : "GELB-ROT";
             t.setTextAlign(Paint.Align.LEFT); t.setFakeBoldText(true); t.setTextSize(15 * dp);
             t.setColor(goal ? 0xFF22D3EE : type.equals("yellow") ? 0xFFFACC15 : 0xFFF87171);
-            c.drawText(title + (minute.isEmpty() ? "" : "   " + minute + "'"), x, 30 * dp, t);
+            c.drawText(title + (minute.isEmpty() || hb ? "" : "   " + minute + "'"), x, 30 * dp, t);
             // Spielstand mit Wappen
             float y = 66 * dp, cs = 24 * dp;
             t.setTextSize(17 * dp); t.setColor(Color.WHITE);

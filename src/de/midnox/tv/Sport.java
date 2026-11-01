@@ -17,7 +17,13 @@ final class Sport {
         int id; long kickoff; Team t1, t2; int s1 = -1, s2 = -1; boolean finished;
         final List<Goal> goals = new ArrayList<>();
         String radio;   // Sportschau-Stream fuer genau dieses Spiel (wenn ermittelt)
-        boolean live(long now) { return !finished && now >= kickoff && now < kickoff + 125 * 60000L; }
+        boolean hb;     // Handball: keine Minutenangabe, Spiel dauert ca. 1:45 h
+        int hbState;    // Handball laut HBL: 0 unbekannt, 1 laeuft, 2 beendet
+        boolean live(long now) {
+            if (hb && hbState == 1) return true;
+            if (hb && hbState == 2) return false;
+            return !finished && now >= kickoff && now < kickoff + (hb ? 115 : 125) * 60000L;
+        }
         boolean started(long now) { return now >= kickoff; }
         /** "LIVE 63'", "Halbzeit", "Ende", "Sa 15:30". */
         String status(long now) {
@@ -28,6 +34,7 @@ final class Sport {
                 boolean today = c.get(Calendar.DAY_OF_YEAR) == t.get(Calendar.DAY_OF_YEAR) && c.get(Calendar.YEAR) == t.get(Calendar.YEAR);
                 return new SimpleDateFormat(today ? "'heute' HH:mm" : "EE HH:mm", Locale.GERMANY).format(new Date(kickoff));
             }
+            if (hb) return "LIVE";
             long m = (now - kickoff) / 60000 + 1;
             if (m <= 46) return "LIVE " + Math.min(m, 45) + (m > 45 ? "+" : "") + "'";
             if (m <= 62) return "Halbzeit";
@@ -54,6 +61,125 @@ final class Sport {
         if (t.shortName.isEmpty()) t.shortName = t.name;
         t.icon = icon(o.optString("teamIconUrl"));
         return t;
+    }
+
+    // ------------------------------------------------------------ Handball (2. HBL, Daten von hessenschau.de / ARD)
+    static final String HB_URL = "https://www.hessenschau.de/sport/ergebnisse-tabellen/handball-2bl100";
+    static String hbClub(Context c) { return Style.prefs(c).getString("hb_team", "L\u00fcbeck-Schwartau"); }
+    static boolean isClub(Context c, Team t) {
+        String f = norm(hbClub(c));
+        return !f.isEmpty() && t != null && (norm(t.name).contains(f) || norm(t.shortName).contains(f));
+    }
+    static String strip(String s) { return android.text.Html.fromHtml(s.replaceAll("<[^>]+>", " ")).toString().replaceAll("\\s+", " ").trim(); }
+    static League loadHb(int day) throws Exception {
+        String s = Style.httpGet(HB_URL + (day > 0 ? "~_matchday-" + day : "") + ".html?t=" + (System.currentTimeMillis() / 10000), null);
+        League l = new League();
+        l.code = "hb2"; l.name = "2. Handball-Bundesliga"; l.season = season();
+        java.util.regex.Matcher dm = java.util.regex.Pattern.compile("Spielplan[^<]*?(\\d+)\\. Spieltag").matcher(s);
+        l.day = dm.find() ? Integer.parseInt(dm.group(1)) : Math.max(day, 1);
+        l.maxDay = 34;
+        java.util.regex.Matcher mx = java.util.regex.Pattern.compile("_matchday-(\\d+)\\.html").matcher(s);
+        while (mx.find()) l.maxDay = Math.max(l.maxDay, Integer.parseInt(mx.group(1)));
+        SimpleDateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.GERMANY);
+        df.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
+        int a = s.indexOf("class=\"matchdayResults\""), b = a < 0 ? -1 : s.indexOf("</table>", a);
+        long now = System.currentTimeMillis();
+        if (a >= 0 && b > a) for (String row : s.substring(a, b).split("<tr")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("-data -date[^\"]*\">\\s*([0-9.]+).*?-data -time[^\"]*\">([0-9:]+)?.*?-home\"\\s*title=\"([^\"]+)\".*?abbr__text\">([^<]+)<.*?-visitor\"\\s*title=\"([^\"]+)\".*?abbr__text\">([^<]+)<.*?-data -result\">(.*?)</span>", java.util.regex.Pattern.DOTALL).matcher(row);
+            if (!m.find()) continue;
+            Match x = new Match(); x.hb = true;
+            x.t1 = new Team(); x.t1.name = strip(m.group(3)); x.t1.shortName = strip(m.group(4));
+            x.t2 = new Team(); x.t2.name = strip(m.group(5)); x.t2.shortName = strip(m.group(6));
+            x.id = (x.t1.name + "|" + x.t2.name).hashCode();
+            try { x.kickoff = df.parse(m.group(1).trim() + " " + (m.group(2) == null ? "00:00" : m.group(2))).getTime(); } catch (Exception e) { x.kickoff = 0; }
+            java.util.regex.Matcher r = java.util.regex.Pattern.compile("(\\d+)\\s*:\\s*(\\d+)").matcher(strip(m.group(7)));
+            if (r.find()) { x.s1 = Integer.parseInt(r.group(1)); x.s2 = Integer.parseInt(r.group(2)); }
+            x.finished = x.s1 >= 0 && (now > x.kickoff + 115 * 60000L || x.kickoff == 0);
+            l.matches.add(x);
+        }
+        int ta = s.indexOf("seasonPositions"), tb = ta < 0 ? -1 : s.indexOf("</table>", ta);
+        if (ta >= 0 && tb > ta) for (String row : s.substring(ta, tb).split("<tr")) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("-position[^\"]*\">\\s*(\\d+).*?title=\"([^\"]+)\".*?abbr__text\">([^<]+)<.*?-matches\">\\s*(\\d+).*?-victories\">\\s*(\\d+).*?-ties\">\\s*(\\d+).*?-defeats\">\\s*(\\d+).*?-goals\">\\s*(\\d+):(\\d+).*?-difference\">\\s*(-?\\d+).*?-points\">\\s*(?:<b>)?\\s*(\\d+)", java.util.regex.Pattern.DOTALL).matcher(row);
+            if (!m.find()) continue;
+            Row r = new Row(); r.team = new Team();
+            r.pos = Integer.parseInt(m.group(1)); r.team.name = strip(m.group(2)); r.team.shortName = strip(m.group(3));
+            r.played = Integer.parseInt(m.group(4)); r.won = Integer.parseInt(m.group(5)); r.draw = Integer.parseInt(m.group(6)); r.lost = Integer.parseInt(m.group(7));
+            r.goals = Integer.parseInt(m.group(8)); r.against = Integer.parseInt(m.group(9)); r.diff = Integer.parseInt(m.group(10)); r.points = Integer.parseInt(m.group(11));
+            l.table.add(r);
+        }
+        if (l.matches.isEmpty() && l.table.isEmpty()) throw new Exception("keine Handball-Daten");
+        try { hblEnrich(l); } catch (Exception ignored) {}
+        return l;
+    }
+
+    // Offizielle HBL-Daten (opel-hbl.de): Logos und Live-Spielstaende
+    static final String HBL = "https://www.opel-hbl.de/api/synergy/";
+    static final String HBL2_COMPETITION = "4c5a3af0-3956-11ef-9b6c-b74f5c057367";
+    static String hblSeason; static long hblLoaded;
+    static final List<String[]> HBL_TEAMS = new ArrayList<>();   // {id, Name, Logo}
+    static synchronized void hblTeams() throws Exception {
+        if (!HBL_TEAMS.isEmpty() && System.currentTimeMillis() - hblLoaded < 12 * 3600000L) return;
+        JSONArray ss = new JSONArray(Style.httpGet(HBL + "seasons?competitionId=" + HBL2_COMPETITION, null));
+        String season = null;
+        for (int i = 0; i < ss.length(); i++) if ("ACTIVE".equals(ss.getJSONObject(i).optString("status"))) season = ss.getJSONObject(i).optString("seasonId");
+        if (season == null) return;
+        JSONObject j = new JSONObject(Style.httpGet(HBL + "season/teams-in-season?seasonId=" + season, null));
+        JSONObject ents = j.getJSONObject("includes").getJSONObject("resources").getJSONObject("entities");
+        List<String[]> out = new ArrayList<>();
+        for (Iterator<String> it = ents.keys(); it.hasNext(); ) {
+            JSONObject e = ents.getJSONObject(it.next());
+            String logo = null;
+            JSONArray im = e.optJSONArray("images");
+            for (int k = 0; im != null && k < im.length(); k++) if ("LOGO".equals(im.getJSONObject(k).optString("imageType"))) { logo = im.getJSONObject(k).optString("url"); break; }
+            out.add(new String[]{e.optString("entityId"), e.optString("nameFullLocal"), logo});
+        }
+        HBL_TEAMS.clear(); HBL_TEAMS.addAll(out); hblSeason = season; hblLoaded = System.currentTimeMillis();
+    }
+    /** Vereinsnamen von hessenschau und HBL zusammenfuehren ("Eintracht Hagen" = "VfL Eintracht Hagen"). */
+    static String[] hblTeam(Team t) {
+        String a = norm(t.name), b = norm(t.shortName);
+        String[] best = null; int score = 0;
+        for (String[] x : HBL_TEAMS) {
+            String n = norm(x[1]);
+            int s = n.equals(a) ? 100 : (n.contains(a) || a.contains(n)) ? 80 : (n.contains(b) || b.contains(n)) ? 60 : 0;
+            if (s == 0) {   // gemeinsame Wortteile, z. B. "Dessau-Rosslauer HV 06"
+                for (String w : t.name.toLowerCase(Locale.GERMANY).split("[^a-z\u00e4\u00f6\u00fc\u00df]+")) if (w.length() >= 5 && x[1].toLowerCase(Locale.GERMANY).contains(w)) s = Math.max(s, 40);
+            }
+            if (s > score) { score = s; best = x; }
+        }
+        return best;
+    }
+    static void hblEnrich(League l) throws Exception {
+        hblTeams();
+        if (HBL_TEAMS.isEmpty()) return;
+        for (Match m : l.matches) for (Team t : new Team[]{m.t1, m.t2}) { String[] x = hblTeam(t); if (x != null && x[2] != null) t.icon = x[2]; }
+        for (Row r : l.table) { String[] x = hblTeam(r.team); if (x != null && x[2] != null) r.team.icon = x[2]; }
+        long now = System.currentTimeMillis();
+        SimpleDateFormat utc = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT);
+        utc.setTimeZone(TimeZone.getTimeZone("UTC"));
+        for (Match m : l.matches) {
+            if (now < m.kickoff - 15 * 60000L || now > m.kickoff + 4 * 3600000L) continue;   // nur rund um das Spiel live abfragen
+            String[] home = hblTeam(m.t1);
+            if (home == null) continue;
+            JSONArray fx = new JSONObject(Style.httpGet(HBL + "team/season-fixtures?seasonId=" + hblSeason + "&teamId=" + home[0], null)).getJSONArray("data");
+            for (int i = 0; i < fx.length(); i++) {
+                JSONObject f = fx.getJSONObject(i);
+                long st; try { st = utc.parse(f.optString("startTimeUTC")).getTime(); } catch (Exception e) { continue; }
+                if (Math.abs(st - m.kickoff) > 3 * 3600000L) continue;
+                JSONArray cs = f.getJSONArray("competitors");
+                String rs = "";
+                for (int k = 0; k < cs.length(); k++) {
+                    JSONObject c = cs.getJSONObject(k);
+                    String sc = c.optString("score", "");
+                    if (sc.matches("\\d+")) { if (c.optBoolean("isHome")) m.s1 = Integer.parseInt(sc); else m.s2 = Integer.parseInt(sc); }
+                    rs = c.optString("resultStatus", rs);
+                }
+                String fs = f.optString("status");
+                if (rs.equals("CONFIRMED") || fs.matches("COMPLETE|CONFIRMED|FINISHED|FINAL|OFFICIAL")) { m.hbState = 2; m.finished = m.s1 >= 0; }
+                else if (rs.equals("IN_PROGRESS") || fs.equals("IN_PROGRESS")) { m.hbState = 1; m.finished = false; if (m.s1 < 0) m.s1 = 0; if (m.s2 < 0) m.s2 = 0; }
+                break;
+            }
+        }
     }
 
     static int currentDay(String code) throws Exception {

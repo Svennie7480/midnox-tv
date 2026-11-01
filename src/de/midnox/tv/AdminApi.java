@@ -125,6 +125,7 @@ final class AdminApi {
             case "sound_test": GoalSound.test(c, in.optString("slot")); return "{\"ok\":true}";
             case "sound_stop": GoalSound.stop(); return "{\"ok\":true}";
             case "sound_delete": GoalSound.delete(c, in.optString("slot")); return "{\"ok\":true}";
+            case "hb_test": ui(new Runnable() { public void run() { Handball.test(c); } }); return "{\"ok\":true}";
             case "goal_light_test": GoalAlert.jubelTest(c); return "{\"ok\":true}";
             case "goal_test": ui(new Runnable() { public void run() { GoalAlert.test(c); } }); return "{\"ok\":true}";
             case "ha": return ha(c);
@@ -259,6 +260,13 @@ final class AdminApi {
             {"Tor-Jubel mit Licht", "gl_teams", "Mein Verein (nichts gewählt = Vereine vom Tor-Alarm)", "multi", "", null, null},
             {"Tor-Jubel mit Licht", "gl_c1", "Farbe 1", "color", "", null, null},
             {"Tor-Jubel mit Licht", "gl_c2", "Farbe 2", "color", "", null, null},
+            {"Handball", "hb_team", "Mein Verein (Teil des Namens, z. B. Lübeck-Schwartau)", "text", "L\u00fcbeck-Schwartau", null, null},
+            {"Handball", "hb_alert", "Spielstand meines Vereins über jeder App einblenden", "bool", true, null, null},
+            {"Handball", "hb_start", "Anpfiff melden", "bool", true, null, null},
+            {"Handball", "hb_end", "Endstand melden", "bool", true, null, null},
+            {"Handball", "hb_every", "Zwischenstand höchstens alle … Minuten (0 = aus)", "int", 10, null, null},
+            {"Handball", "hb_radio", "Eigener Radio-Link (leer = Knopf öffnet Dyn)", "text", "", null, null},
+            {"Handball", "hb_test", "Einblendung testen", "action", "hb_test", null, null},
             {"Tor-Sounds", "gs_on", "Eigene Sounds bei Toren und Karten abspielen", "bool", true, null, null},
             {"Tor-Sounds", "gs_vol", "Lautstärke in % (relativ zur TV-Lautstärke)", "int", 80, null, null},
             {"Tor-Sounds", "gs_files", "", "sounds", "", null, null},

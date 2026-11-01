@@ -253,6 +253,8 @@ final class AdminApi {
             {"Tor-Alarm (über jeder App)", "sa_teams", "Nur diese Vereine (nichts gewählt = alle)", "multi", "", null, null},
             {"Tor-Jubel mit Licht", "gl_on", "Lampen leuchten in den Vereinsfarben, wenn dein Verein trifft", "bool", false, null, null},
             {"Tor-Jubel mit Licht", "gl_teams", "Mein Verein (nichts gewählt = Vereine vom Tor-Alarm)", "multi", "", null, null},
+            {"Tor-Jubel mit Licht", "gl_c1", "Farbe 1", "color", "", null, null},
+            {"Tor-Jubel mit Licht", "gl_c2", "Farbe 2", "color", "", null, null},
             {"Wetter", "weather_on", "Wetter unter der Uhr", "bool", true, null, null},
             {"Wetter", "weather_entity", "Wetter-Entität (leer = automatisch)", "string", "", null, null},
             {"Guten Morgen", "morning_on", "Morgens beim Einschalten anzeigen", "bool", true, null, null},
@@ -326,6 +328,7 @@ final class AdminApi {
             else if (t.equals("float")) o.put("value", pr.getFloat(k, (Float) s[4]));
             else if (t.equals("ichoice")) o.put("value", String.valueOf(pr.getInt(k, (Integer) s[4])));
             else o.put("value", pr.getString(k, (String) s[4]));
+            if (t.equals("color")) o.put("auto", GoalAlert.hex(GoalAlert.autoColors(c)[k.endsWith("2") ? 1 : 0]));
             if (t.equals("multi")) {
                 JSONArray opts = new JSONArray();
                 for (String lg : new String[]{"bl1", "bl2"}) try {

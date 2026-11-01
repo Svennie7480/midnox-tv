@@ -155,7 +155,26 @@ public final class GoalAlert {
     }
     static volatile boolean jubelt;
     /** Lampen ~9 Sekunden in den Vereinsfarben wechseln lassen, dann vorherigen Zustand wiederherstellen. */
-    static void jubel(final Context c, final int[] col) {
+    /** Vereinsfarben, ggf. durch eigene Farben aus den Einstellungen (gl_c1/gl_c2, "#rrggbb") ersetzt. */
+    static int[] custom(Context c, int[] col) {
+        int[] r = col.clone();
+        String[] k = {"gl_c1", "gl_c2"};
+        for (int i = 0; i < 2; i++) try {
+            String v = Style.prefs(c).getString(k[i], "").trim().replace("#", "");
+            if (v.length() == 6) r[i] = Integer.parseInt(v, 16);
+        } catch (Exception ignored) {}
+        return r;
+    }
+    static String hex(int v) { return String.format("#%06x", v & 0xFFFFFF); }
+    /** Automatische Farben des ersten gewählten Vereins (für die PC-Seite). */
+    static int[] autoColors(Context c) {
+        String sel = Style.prefs(c).getString("gl_teams", "");
+        if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
+        int[] col = sel.isEmpty() ? null : colors(sel.split(",")[0]);
+        return col == null ? new int[]{0x7C3AED, 0x06B6D4} : col;
+    }
+    static void jubel(final Context c, int[] colIn) {
+        final int[] col = custom(c, colIn);
         if (jubelt) return;
         jubelt = true;
         new Thread(new Runnable() { public void run() {

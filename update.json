@@ -1,6 +1,6 @@
 {
- "versionCode": 53,
- "versionName": "9.0",
+ "versionCode": 54,
+ "versionName": "9.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Tor-Jubel: Lampen leuchten in den Vereinsfarben, wenn dein Verein trifft"
+ "notes": "Tor-Jubel: eigene Lichtfarben in der PC-Verwaltung wählbar"
 }

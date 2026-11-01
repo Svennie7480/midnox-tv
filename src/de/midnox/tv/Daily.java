@@ -26,6 +26,8 @@ public class Daily {
         try { reminders(c); } catch (Exception ignored) {}
         try { GoalAlert.tick(c); } catch (Exception ignored) {}
         try { Handball.tick(c); } catch (Exception ignored) {}
+        try { Matchday.tick(c); } catch (Exception ignored) {}
+        try { LiveBar.tick(c); } catch (Exception ignored) {}
         long now = System.currentTimeMillis();
         if (now - lastShift > 60000) { lastShift = now; try { shift(c); } catch (Exception ignored) {} }
         if (now - lastCall > 3000) { lastCall = now; try { call(c); } catch (Exception ignored) {} }

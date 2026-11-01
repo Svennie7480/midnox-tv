@@ -131,6 +131,7 @@ public class Remote {
                     if (RadioService.inst != null) RadioService.inst.switchTo(Stations.byId(id)); else RadioService.start(c, "play");
                 }});
                 return "{\"ok\":true}";
+            case "bar": return new JSONObject().put("ok", true).put("msg", LiveBar.toggle(c)).toString();
             case "sleep":
                 Sleep.set(c, in.optInt("min"));
                 return "{\"ok\":true}";
@@ -173,7 +174,7 @@ public class Remote {
             + "<h3>RADIO</h3><div class=g><button onclick=\"a('radio',{})\">⏯</button></div><div class=l id=radio></div>"
             + "<h3>TV</h3><div class=l id=tv></div>"
             + "" + "<h3>APP ODER DATEI SENDEN</h3><p class=sub style='margin:0 0 10px'>Apps (.apk, .apks, .xapk) werden installiert, alle anderen Dateien landen im Download-Ordner des Fire TV.</p><input type=file id=apk onchange='up()'><label style='display:flex;gap:8px;align-items:center;font-size:14px;color:#b4b8cc;margin:0 0 10px'><input type=checkbox id=uz checked style='width:auto;margin:0'> ZIP-Dateien gleich entpacken</label><div style='height:8px;border-radius:4px;background:#15141f;overflow:hidden;margin:2px 0 8px'><div id=bar style='height:100%;width:0;background:var(--g);transition:width .2s'></div></div><div class=l id=inst></div><input id=aurl placeholder='oder Download-Link (https://\u2026/app.apk)' onkeydown=\"if(event.key=='Enter')au()\"><button onclick='au()'>Link am Fernseher installieren</button>" + "<h3>EINSCHLAF-TIMER</h3><div class=g><button onclick=\"a('sleep',{min:15})\">15</button><button onclick=\"a('sleep',{min:30})\">30</button><button onclick=\"a('sleep',{min:60})\">60</button><button onclick=\"a('sleep',{min:0})\">Aus</button></div>"
-            + "<div class=g><button onclick=\"a('morning',{})\" style='grid-column:span 2'>Mein Tag</button><button onclick=\"a('home',{})\" style='grid-column:span 2'>Startseite</button></div>",
+            + "<div class=g><button onclick=\"a('morning',{})\" style='grid-column:span 2'>Mein Tag</button><button onclick=\"a('home',{})\" style='grid-column:span 2'>Startseite</button><button onclick=\"a('bar',{})\" style='grid-column:span 4'>\u26BD Live-Leiste ein/aus</button></div>",
             "var key='" + k + "';"
             + "function k(code){try{navigator.vibrate(12)}catch(e){}fetch('/api/key?k='+key,{method:'POST',body:JSON.stringify({code:code})}).then(function(r){return r.json()}).then(function(j){if(!j.ok)st(j.msg||'Keine Verbindung')})}"
             + "(function(){var p=document.getElementById('pad'),x0,y0;p.addEventListener('touchstart',function(e){x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});"

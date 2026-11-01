@@ -125,6 +125,8 @@ final class AdminApi {
             case "sound_test": GoalSound.test(c, in.optString("slot")); return "{\"ok\":true}";
             case "sound_stop": GoalSound.stop(); return "{\"ok\":true}";
             case "sound_delete": GoalSound.delete(c, in.optString("slot")); return "{\"ok\":true}";
+            case "bar_toggle": { final String[] r = {""}; r[0] = LiveBar.toggle(c); return new JSONObject().put("ok", true).put("msg", r[0]).toString(); }
+            case "md_test": ui(new Runnable() { public void run() { Matchday.test(c); } }); return "{\"ok\":true}";
             case "hb_test": ui(new Runnable() { public void run() { Handball.test(c); } }); return "{\"ok\":true}";
             case "goal_light_test": GoalAlert.jubelTest(c); return "{\"ok\":true}";
             case "goal_test": ui(new Runnable() { public void run() { GoalAlert.test(c); } }); return "{\"ok\":true}";
@@ -267,6 +269,15 @@ final class AdminApi {
             {"Handball", "hb_every", "Zwischenstand höchstens alle … Minuten (0 = aus)", "int", 10, null, null},
             {"Handball", "hb_radio", "Eigener Radio-Link (leer = Knopf öffnet Dyn)", "text", "", null, null},
             {"Handball", "hb_test", "Einblendung testen", "action", "hb_test", null, null},
+            {"Live-Leiste", "bar_on", "Spielstände dauerhaft über jeder App, solange deine Vereine spielen", "bool", true, null, null},
+            {"Live-Leiste", "bar_pos", "Position", "choice", "bottom", new String[]{"bottom", "top"}, new String[]{"unten", "oben"}},
+            {"Live-Leiste", "bar_toggle", "Leiste jetzt ein-/ausblenden", "action", "bar_toggle", null, null},
+            {"Spieltag-Modus", "md_on", "Vor dem Anpfiff meiner Vereine erinnern (mit Sender)", "bool", true, null, null},
+            {"Spieltag-Modus", "md_before", "Minuten vor dem Anpfiff", "int", 15, null, null},
+            {"Spieltag-Modus", "md_auto", "Zum Anpfiff automatisch starten", "choice", "none", new String[]{"none", "radio", "tv"}, new String[]{"nichts", "Radio-Reportage", "Sender/App (Sky, DAZN, Dyn …)"}},
+            {"Spieltag-Modus", "md_light", "Stadion-Licht: Lampen während des Spiels in Vereinsfarben (Lampen wie beim Tor-Jubel)", "bool", false, null, null},
+            {"Spieltag-Modus", "md_after", "Nach dem Spiel Endstand und Tabellenplatz zeigen", "bool", true, null, null},
+            {"Spieltag-Modus", "md_test", "Erinnerung testen", "action", "md_test", null, null},
             {"Tor-Sounds", "gs_on", "Eigene Sounds bei Toren und Karten abspielen", "bool", true, null, null},
             {"Tor-Sounds", "gs_vol", "Lautstärke in % (relativ zur TV-Lautstärke)", "int", 80, null, null},
             {"Tor-Sounds", "gs_files", "", "sounds", "", null, null},

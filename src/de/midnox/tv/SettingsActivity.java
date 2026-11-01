@@ -174,6 +174,12 @@ public class SettingsActivity extends Activity {
         final Row sat = add("Vereine");
         sat.value.setText(pr.getString("sa_teams", "").isEmpty() ? "alle  (am PC w\u00e4hlbar)" : pr.getString("sa_teams", ""));
         sat.setFocusable(true);
+        toggle("Live-Leiste: Spielstände über jeder App, solange deine Vereine spielen", "bar_on", true, false);
+        final Row lbt = add("Live-Leiste jetzt ein-/ausblenden");
+        lbt.value.setText("OK");
+        lbt.onOk = new Runnable() { public void run() { Style.toast(SettingsActivity.this, LiveBar.toggle(SettingsActivity.this)); } };
+        toggle("Spieltag-Modus: vor dem Anpfiff meiner Vereine erinnern", "md_on", true, false);
+        toggle("Spieltag-Modus: Stadion-Licht in Vereinsfarben", "md_light", false, false);
         toggle("Handball: Spielstand von " + pr.getString("hb_team", "L\u00fcbeck-Schwartau") + " einblenden", "hb_alert", true, false);
         final Row hbt = add("Handball-Einblendung testen");
         hbt.value.setText("OK");

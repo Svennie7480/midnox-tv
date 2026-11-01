@@ -66,7 +66,9 @@ final class Handball {
         // Ende: laut HBL beendet, sonst Stand seit 8 Min. unveraendert und Spiel laeuft schon > 95 Min.
         if (sc != null && (m.hbState == 2 || m.hbState == 0 && now > m.kickoff + 95 * 60000L && now - lastChange > 8 * 60000L)) {
             announcedEnd = true;
-            if (on(c, "hb_end", true)) show(c, m, "ENDSTAND", sc, verdict(c, m));
+            String place = "";
+            for (Sport.Row r : l.table) if (Sport.isClub(c, r.team)) place = "  ·  Platz " + r.pos;
+            if (on(c, "hb_end", true)) show(c, m, "ENDSTAND", sc, verdict(c, m) + place);
             return;
         }
         if (sc != null && every > 0 && now - lastShown >= every * 60000L && changed) {

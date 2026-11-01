@@ -1,6 +1,6 @@
 {
- "versionCode": 59,
- "versionName": "9.6",
+ "versionCode": 60,
+ "versionName": "10.0",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "TV-App: findet auch die andere Ausführung (Fire TV/Android) der gewählten App"
+ "notes": "midnox TV 10: Live-Leiste über jeder App, Spieltag-Modus mit Erinnerung, Stadion-Licht und Endstand, Wo läuft das? (Sky, DAZN, RTL, Dyn …), Highlights per MENU"
 }

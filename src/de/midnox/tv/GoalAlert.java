@@ -147,6 +147,25 @@ public final class GoalAlert {
         for (Object[] c : COLORS) for (String k : ((String) c[0]).split("\\|")) if (n.contains(k)) return new int[]{(Integer) c[1], (Integer) c[2]};
         return null;
     }
+    /** Lampen fuer Tor-Jubel/Stadion-Licht (ohne Auswahl: Kino-Lampen). */
+    static JSONArray lights(Context c) {
+        try {
+            JSONArray ids = new JSONArray(Style.prefs(c).getString("goal_light_ids", "[]"));
+            if (ids.length() == 0) {
+                JSONObject m = new JSONObject(Style.prefs(c).getString("kino_lights", "{}"));
+                for (Iterator<String> it = m.keys(); it.hasNext(); ) ids.put(it.next());
+            }
+            return ids;
+        } catch (Exception e) { return new JSONArray(); }
+    }
+    /** Gewaehlte Vereine (Tor-Jubel, sonst Tor-Alarm). */
+    static Set<String> allClubs(Context c) {
+        String sel = Style.prefs(c).getString("gl_teams", "");
+        if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
+        Set<String> s = new HashSet<>();
+        for (String x : sel.split(",")) if (!x.trim().isEmpty()) s.add(x.trim());
+        return s;
+    }
     static boolean clubSelected(Context c, String team) {
         String sel = Style.prefs(c).getString("gl_teams", "");
         if (sel.isEmpty()) sel = Style.prefs(c).getString("sa_teams", "");
@@ -189,11 +208,7 @@ public final class GoalAlert {
             try {
                 JSONObject cfg = Style.loadConfig(c);
                 String base = cfg.getString("url").replaceAll("/+$", ""), tok = cfg.getString("token");
-                JSONArray ids = new JSONArray(Style.prefs(c).getString("goal_light_ids", "[]"));
-                if (ids.length() == 0) {
-                    JSONObject m = new JSONObject(Style.prefs(c).getString("kino_lights", "{}"));
-                    for (Iterator<String> it = m.keys(); it.hasNext(); ) ids.put(it.next());
-                }
+                JSONArray ids = lights(c);
                 if (ids.length() == 0) return;
                 Style.httpPost(base + "/api/services/scene/create", tok, new JSONObject().put("scene_id", "midnox_torjubel_vorher").put("snapshot_entities", ids).toString());
                 for (int i = 0; i < 10; i++) {
@@ -278,7 +293,8 @@ public final class GoalAlert {
             RectF r = new RectF(0, 0, w, hh);
             p.setShader(null); p.setStyle(Paint.Style.FILL); p.setColor(0xF5121120);
             c.drawRoundRect(r, 22 * dp, 22 * dp, p);
-            boolean hb = type.equals("hb");
+            boolean md = type.equals("md");
+            boolean hb = type.equals("hb") || md;
             boolean goal = type.equals("goal") || hb;
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.5f * dp);
             if (goal) p.setShader(Style.brand(0, w)); else p.setColor(type.equals("yellow") ? 0xFFFACC15 : 0xFFEF4444);
@@ -286,7 +302,14 @@ public final class GoalAlert {
             p.setShader(null); p.setStyle(Paint.Style.FILL);
             // Symbol links
             float ix = 20 * dp, iy = hh / 2;
-            if (hb) {   // Handball: Ball mit Naehten
+            if (md) {   // Spieltag: Uhr
+                float bx = ix + 28 * dp;
+                p.setShader(Style.brand(ix, ix + 56 * dp)); c.drawCircle(bx, iy, 28 * dp, p); p.setShader(null);
+                p.setColor(Color.WHITE); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); p.setStrokeCap(Paint.Cap.ROUND);
+                c.drawCircle(bx, iy, 15 * dp, p);
+                c.drawLine(bx, iy, bx, iy - 9 * dp, p); c.drawLine(bx, iy, bx + 7 * dp, iy + 3 * dp, p);
+                p.setStyle(Paint.Style.FILL);
+            } else if (hb) {   // Handball: Ball mit Naehten
                 float bx = ix + 28 * dp;
                 p.setShader(Style.brand(ix, ix + 56 * dp)); c.drawCircle(bx, iy, 28 * dp, p); p.setShader(null);
                 p.setColor(Color.WHITE); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); c.drawCircle(bx, iy, 15 * dp, p);
@@ -312,7 +335,7 @@ public final class GoalAlert {
                 }
             }
             float x = ix + 76 * dp;
-            String title = hb ? "HANDBALL · " + minute : goal ? "TOR!" : type.equals("yellow") ? "GELBE KARTE" : type.equals("red") ? "ROTE KARTE" : "GELB-ROT";
+            String title = md ? "SPIELTAG · " + minute : hb ? "HANDBALL · " + minute : goal ? "TOR!" : type.equals("yellow") ? "GELBE KARTE" : type.equals("red") ? "ROTE KARTE" : "GELB-ROT";
             t.setTextAlign(Paint.Align.LEFT); t.setFakeBoldText(true); t.setTextSize(15 * dp);
             t.setColor(goal ? 0xFF22D3EE : type.equals("yellow") ? 0xFFFACC15 : 0xFFF87171);
             c.drawText(title + (minute.isEmpty() || hb ? "" : "   " + minute + "'"), x, 30 * dp, t);

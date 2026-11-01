@@ -87,7 +87,7 @@ public class SportActivity extends Activity {
         tab = id;
         for (int i = 0; i < tabs.getChildCount(); i++) { Pill p = (Pill) tabs.getChildAt(i); p.active = id.equals(p.getTag()); p.invalidate(); }
         content.removeAllViews();
-        radioBtn.setVisibility(id.equals("f1") ? View.GONE : View.VISIBLE);
+        radioBtn.setVisibility(View.VISIBLE);
         if (id.equals("f1")) {
             f1v = new F1View();
             content.addView(f1v, new LinearLayout.LayoutParams(-1, -1));
@@ -174,10 +174,10 @@ public class SportActivity extends Activity {
         String upd = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(new Date());
         if (l.code.equals("hb2")) {
             String r = Style.prefs(this).getString("hb_radio", "").trim();
-            status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   " + (r.isEmpty() ? "Live-Bilder gibt es bei Dyn" : "OK = " + Sport.hbClub(this) + " live im Radio"));
+            status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   " + (r.isEmpty() ? "Live bei Dyn" : "OK = " + Sport.hbClub(this) + " live im Radio") + "   ·   MENU = Highlights & mehr");
             radioBtn.setText(r.isEmpty() ? "▶  Dyn öffnen" : RadioService.isPlaying(r) ? "❚❚  Radio" : "▶  " + Sport.hbClub(this) + " hören");
         } else {
-        status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   OK auf einem Spiel = Live-Reportage im Radio (ARD Sportschau)");
+        status.setText((live ? "● LIVE  ·  aktualisiert " + upd + " – alle 30 Sek." : "Stand " + upd) + "   ·   OK = Radio-Reportage   ·   MENU = Sender, Highlights, Live-Leiste");
         radioBtn.setText(RadioService.isPlaying(Sport.stream(l.code, "konferenz")) ? "❚❚  Konferenz" : "▶  Konferenz hören");
         }
         h.postDelayed(refresh, live ? 30000 : 5 * 60000L);
@@ -200,7 +200,15 @@ public class SportActivity extends Activity {
     }
     final Runnable hideBanner = new Runnable() { public void run() { banner.animate().alpha(0f).setDuration(500).withEndAction(new Runnable() { public void run() { banner.setVisibility(View.GONE); } }).start(); } };
 
+    /** Formel 1 2026: alles bei Sky; RTL zeigt einzelne Rennen frei (u. a. Belgien, Niederlande, Spanien/Madrid, Las Vegas). */
+    String f1Tv() {
+        String n = f1 != null && f1.next != null ? (f1.next.name + " " + f1.next.place + " " + f1.next.circuit).toLowerCase(Locale.ROOT) : "";
+        boolean rtl = n.matches(".*(belgi|dutch|netherlands|zandvoort|spanish|madrid|las vegas).*");
+        return rtl ? "Sky und frei bei RTL" : "Sky";
+    }
+
     void conference() {
+        if (tab.equals("f1")) { Style.toast(this, Watch.open(this, f1Tv().contains("RTL") ? "RTL" : "Sky")); return; }
         if (league == null) return;
         if (league.code.equals("hb2")) { hbListen(); return; }
         String u = Sport.stream(league.code, "konferenz");
@@ -208,6 +216,33 @@ public class SportActivity extends Activity {
         else RadioService.playCustom(this, "sport_" + league.code + "_konf", "Sportschau " + league.name + " – Konferenz", 0xFF0067B1, u);
         Style.toast(this, RadioService.isPlaying(u) ? "Konferenz aus" : "Bundesliga-Konferenz der ARD Sportschau");
         h.postDelayed(new Runnable() { public void run() { if (league != null) fillLeague(); } }, 1500);
+    }
+
+    /** MENU auf einem Spiel: Radio, Sender oeffnen, Highlights. */
+    void options(final Sport.Match m) {
+        if (league == null) return;
+        final List<String> labels = new ArrayList<>();
+        final List<Runnable> acts = new ArrayList<>();
+        long now = System.currentTimeMillis();
+        if (!m.finished) {
+            if (m.hb) { labels.add("\uD83D\uDCFB  " + (Style.prefs(this).getString("hb_radio", "").trim().isEmpty() ? "Dyn öffnen" : "Radio")); acts.add(new Runnable() { public void run() { hbListen(); } }); }
+            else { labels.add("\uD83D\uDCFB  Live-Reportage im Radio"); acts.add(new Runnable() { public void run() { playMatch(m); } }); }
+            for (final String w : Watch.who(league.code, m, league.day)) {
+                if (m.hb && w.equals("Dyn") && Style.prefs(this).getString("hb_radio", "").trim().isEmpty()) continue;
+                labels.add("\uD83D\uDCFA  Ansehen bei " + w);
+                acts.add(new Runnable() { public void run() { Style.toast(SportActivity.this, Watch.open(SportActivity.this, w)); } });
+            }
+        }
+        if (m.finished || m.live(now)) {
+            labels.add("\uD83C\uDFAC  Highlights auf YouTube");
+            acts.add(new Runnable() { public void run() { Style.toast(SportActivity.this, Watch.highlights(SportActivity.this, m.t1.shortName, m.t2.shortName, m.hb)); } });
+        }
+        labels.add("\u26BD  Live-Leiste ein/aus");
+        acts.add(new Runnable() { public void run() { Style.toast(SportActivity.this, LiveBar.toggle(SportActivity.this)); } });
+        new android.app.AlertDialog.Builder(this, android.app.AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+            .setTitle(m.t1.shortName + " – " + m.t2.shortName)
+            .setItems(labels.toArray(new String[0]), new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int i) { acts.get(i).run(); } })
+            .show();
     }
 
     void hbListen() {
@@ -246,6 +281,11 @@ public class SportActivity extends Activity {
             super(SportActivity.this); this.m = m;
             setFocusable(true); setClickable(true); t.setTypeface(Style.POP);
             setOnClickListener(new OnClickListener() { public void onClick(View v) { playMatch(MatchRow.this.m); } });
+            setOnLongClickListener(new OnLongClickListener() { public boolean onLongClick(View v) { options(MatchRow.this.m); return true; } });
+            setOnKeyListener(new OnKeyListener() { public boolean onKey(View v, int k, KeyEvent e) {
+                if (k == KeyEvent.KEYCODE_MENU && e.getAction() == KeyEvent.ACTION_UP) { options(MatchRow.this.m); return true; }
+                return k == KeyEvent.KEYCODE_MENU;
+            } });
             setOnFocusChangeListener(new OnFocusChangeListener() { public void onFocusChange(View v, boolean f) { invalidate(); if (f) table.focus = MatchRow.this.m; table.invalidate(); } });
         }
         @Override protected void onDraw(Canvas c) {
@@ -269,6 +309,10 @@ public class SportActivity extends Activity {
             } else t.setColor(m.finished ? 0xFF8A8FA8 : 0xFFC9CCE0);
             c.drawText(st.replace("heute ", ""), sx, cy + 4 * dp, t);
             if (!live && !m.finished && st.startsWith("heute")) { t.setTextSize(9 * dp); t.setColor(Style.MUTED); c.drawText("heute", sx, cy - 10 * dp, t); }
+            if (league != null) {   // Wo laeuft das? bzw. Highlights
+                String tv = m.finished ? (foc ? "MENU: Highlights" : "") : Watch.label(Watch.who(league.code, m, league.day));
+                if (!tv.isEmpty()) { t.setTextSize(8.5f * dp); t.setFakeBoldText(false); t.setColor(m.finished ? 0xFF22D3EE : 0xFF9EA2B8); c.drawText(TextUtils.ellipsize(tv, t, 100 * dp, TextUtils.TruncateAt.END).toString(), sx, hh - 6 * dp, t); }
+            }
             // Teams + Ergebnis
             float mid = w * 0.56f, is = 30 * dp;
             t.setFakeBoldText(foc); t.setTextSize(15 * dp); t.setColor(Color.WHITE);
@@ -360,7 +404,8 @@ public class SportActivity extends Activity {
         boolean live = f1 != null && !f1.live.isEmpty();
         String upd = new SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(new Date());
         status.setText(live ? "● LIVE  " + f1.liveSession + "  ·  Positionen von der Zeitmessung (OpenF1), aktualisiert " + upd
-                : "Stand " + upd + "   ·   Ein deutsches Live-Radio zur Formel 1 gibt es leider nicht – während der Sessions zeigt die Seite die Live-Positionen.");
+                : "Stand " + upd + "   ·   TV: " + f1Tv() + "   ·   Während der Sessions zeigt die Seite die Live-Positionen.");
+        radioBtn.setText(f1Tv().contains("RTL") ? "▶  RTL öffnen" : "▶  Sky öffnen");
         h.postDelayed(refresh, live ? 8000 : 10 * 60000L);
         if (tabs.findFocus() == null) tabs.getChildAt(2).requestFocus();
     }

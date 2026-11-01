@@ -40,7 +40,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -82,6 +82,7 @@ final class Views {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.guide(ch); return true;
             }
+            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.play(ch); return true;
@@ -135,7 +136,7 @@ final class Views {
             if (ci < cTop) cTop = ci; if (ci >= cTop + cv) cTop = ci - cv + 1;
             if (chans.isEmpty()) {
                 t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED);
-                c.drawText(group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
+                c.drawText(group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
             }
             for (int i = cTop; i < chans.size() && i < cTop + cv; i++) {
                 Model.Channel ch = chans.get(i);
@@ -177,7 +178,7 @@ final class Views {
             }
             // Hilfe
             t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setColor(U.MUTED);
-            c.drawText(col == 0 ? "OK / ▶ Sender   ▲▼ Gruppe" : "OK abspielen   ▶ TV-Guide   MENU Favorit   ◀ Gruppen", x0 + 16 * dp, h - 12 * dp, t);
+            c.drawText(col == 0 ? "\u2630 Einstellungen   OK / ▶ Sender   ▲▼ Gruppe" : "OK abspielen   ▶ TV-Guide   MENU Favorit   ◀ Gruppen", x0 + 16 * dp, h - 12 * dp, t);
         }
     }
 

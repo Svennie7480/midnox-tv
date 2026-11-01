@@ -285,6 +285,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         guide.open(l, ch, list.group());
         list.setVisibility(View.GONE); guide.setVisibility(View.VISIBLE);
     }
+    @Override public void settings() { closeList(); openMenu(); }
     @Override public void fav(Model.Channel ch) { toast(Lib.toggleFav(this, ch.id) ? "★ " + ch.name + " ist jetzt Favorit" : ch.name + " aus den Favoriten entfernt"); }
 
     // ------------------------------------------------------------ Tasten

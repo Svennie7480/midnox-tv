@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.tv" android:versionCode="50" android:versionName="8.7">
+    package="de.midnox.tv" android:versionCode="51" android:versionName="8.8">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -33,6 +33,7 @@
     <activity android:name=".SleepActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:launchMode="singleTask" android:showWhenLocked="true" android:turnScreenOn="true"/>
     <activity android:name=".MorningActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:launchMode="singleTask" android:showWhenLocked="true"/>
     <activity android:name=".ChannelListActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
+    <activity android:name=".SportActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".StoreActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".RadioActivity" android:screenOrientation="landscape" android:excludeFromRecents="true"/>
     <activity android:name=".ScreensaverActivity" android:screenOrientation="landscape" android:excludeFromRecents="true" android:theme="@style/Midnox"/>

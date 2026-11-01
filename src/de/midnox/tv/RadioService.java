@@ -30,6 +30,16 @@ public class RadioService extends Service {
     volatile String wishUrl;   // Ziel des QR-Codes fuer Musikwuensche
     AudioManager.OnAudioFocusChangeListener focus;
 
+    static volatile Stations.Station pending;
+    /** Beliebigen Stream abspielen (z. B. Sportschau-Reportage), auch wenn das Radio noch nicht laeuft. */
+    static void playCustom(Context c, String id, String name, int color, String url) {
+        Stations.Station st = new Stations.Station(id, name, color, url);
+        if (inst != null) { inst.switchTo(st); return; }
+        pending = st;
+        start(c, "custom");
+    }
+    static boolean isPlaying(String url) { RadioService r = inst; return r != null && r.station != null && r.station.url.equals(url) && (r.playing || r.preparing); }
+
     static void start(Context c, String action) {
         Intent i = new Intent(c, RadioService.class);
         if (action != null) i.setAction(action);
@@ -76,7 +86,8 @@ public class RadioService extends Service {
 
     @Override public int onStartCommand(Intent i, int flags, int id) {
         String a = i == null ? null : i.getAction();
-        if ("play".equals(a) && !playing && !preparing) play();
+        if ("custom".equals(a) && pending != null) { Stations.Station st = pending; pending = null; switchTo(st); }
+        else if ("play".equals(a) && !playing && !preparing) play();
         else if ("toggle".equals(a)) toggle();
         else if ("stop".equals(a)) stop();
         return START_NOT_STICKY;
@@ -110,7 +121,7 @@ public class RadioService extends Service {
         if (st == station && (playing || preparing)) return;
         stop();
         station = st;
-        Style.prefs(this).edit().putString("radio_station", st.id).apply();
+        if (!st.id.startsWith("sport")) Style.prefs(this).edit().putString("radio_station", st.id).apply();
         session++;
         state = null; current = null; localHistory.clear(); error = null;
         h.removeCallbacks(poll); h.post(poll);

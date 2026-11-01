@@ -1,6 +1,6 @@
 {
-  "versionCode": 50,
-  "versionName": "8.7",
+  "versionCode": 51,
+  "versionName": "8.8",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "PC-Verwaltung im Browser (Senderliste, M3U-Import mit VLC, Apps, Einstellungen); Haken für Startseiten-Apps"
+  "notes": "Neu: Sport – 1./2. Bundesliga live mit Torschützen, Tabelle und Sportschau-Radio je Spiel; Formel 1 mit Kalender, WM-Stand und Live-Positionen"
 }

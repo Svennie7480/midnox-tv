@@ -8,7 +8,7 @@ import android.widget.HorizontalScrollView;
 
 /** App-Kachel mit Banner/Icon oder gezeichnetem Symbol; leuchtet beim Fokus im Verlauf. */
 public class Tile extends View {
-    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4, GLYPH_SEARCH = 5, GLYPH_STORE = 6;
+    public static final int GLYPH_NONE = 0, GLYPH_GRID = 1, GLYPH_GEAR = 2, GLYPH_UPDATE = 3, GLYPH_HOME = 4, GLYPH_SEARCH = 5, GLYPH_STORE = 6, GLYPH_SPORT = 7;
     final String label; final Drawable banner, icon; final int glyph;
     final Runnable action, longAction;
     HorizontalScrollView scroller;
@@ -121,6 +121,16 @@ public class Tile extends View {
             g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND);
             c.drawCircle(cx - 5 * dp, cy - 5 * dp, 14 * dp, g);
             c.drawLine(cx + 6 * dp, cy + 6 * dp, cx + 18 * dp, cy + 18 * dp, g);
+            g.setStyle(Paint.Style.FILL);
+        } else if (glyph == GLYPH_SPORT) {   // Fussball
+            g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(4.5f * dp); g.setStrokeJoin(Paint.Join.ROUND); g.setStrokeCap(Paint.Cap.ROUND);
+            float r0 = 20 * dp;
+            c.drawCircle(cx, cy, r0, g);
+            Path pent = new Path();
+            for (int i = 0; i < 5; i++) { double a = Math.toRadians(-90 + i * 72); float px = cx + (float) Math.cos(a) * 7 * dp, py = cy + (float) Math.sin(a) * 7 * dp; if (i == 0) pent.moveTo(px, py); else pent.lineTo(px, py); }
+            pent.close();
+            g.setStyle(Paint.Style.FILL); c.drawPath(pent, g); g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(3 * dp);
+            for (int i = 0; i < 5; i++) { double a = Math.toRadians(-90 + i * 72); c.drawLine(cx + (float) Math.cos(a) * 7 * dp, cy + (float) Math.sin(a) * 7 * dp, cx + (float) Math.cos(a) * r0, cy + (float) Math.sin(a) * r0, g); }
             g.setStyle(Paint.Style.FILL);
         } else if (glyph == GLYPH_STORE) {   // Einkaufstasche mit Pfeil
             g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(5 * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);

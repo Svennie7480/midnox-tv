@@ -1,6 +1,6 @@
 {
-  "versionCode": 49,
-  "versionName": "8.6",
+  "versionCode": 50,
+  "versionName": "8.7",
   "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
-  "notes": "Senderliste zum Sortieren mit Quelle je Sender; beliebige Dateien vom Handy in den Download-Ordner (ZIP entpacken)"
+  "notes": "PC-Verwaltung im Browser (Senderliste, M3U-Import mit VLC, Apps, Einstellungen); Haken für Startseiten-Apps"
 }

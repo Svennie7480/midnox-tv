@@ -83,9 +83,14 @@ public class Tile extends View {
             stroke.setShader(null); stroke.setColor(banner != null ? 0x00000000 : 0x14FFFFFF); stroke.setStrokeWidth(1 * dp);
         }
         c.drawRoundRect(card, rad, rad, stroke);
-        if (pinned) { // kleiner Punkt: liegt auf der Startseite
-            g.setShader(Style.brand(card.right - 22 * dp, card.right - 10 * dp));
-            c.drawCircle(card.right - 14 * dp, card.top + 14 * dp, 6 * dp, g);
+        if (pinned) { // Haken: liegt auf der Startseite
+            float r0 = 11 * dp, cx = card.right - 16 * dp, cy = card.top + 16 * dp;
+            g.setStyle(Paint.Style.FILL); g.setShader(Style.brand(cx - r0, cx + r0));
+            c.drawCircle(cx, cy, r0, g);
+            g.setShader(null); g.setColor(Color.WHITE); g.setStyle(Paint.Style.STROKE); g.setStrokeWidth(2.4f * dp); g.setStrokeCap(Paint.Cap.ROUND); g.setStrokeJoin(Paint.Join.ROUND);
+            Path ck = new Path(); ck.moveTo(cx - 5 * dp, cy); ck.lineTo(cx - 1.5f * dp, cy + 4 * dp); ck.lineTo(cx + 5.5f * dp, cy - 4 * dp);
+            c.drawPath(ck, g);
+            g.setStyle(Paint.Style.FILL);
         }
         if (!focused) return;   // Name nur beim ausgewaehlten Element
         txt.setColor(Color.WHITE);

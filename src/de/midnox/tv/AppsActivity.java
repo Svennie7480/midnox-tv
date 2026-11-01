@@ -25,7 +25,7 @@ public class AppsActivity extends Activity {
         col.setOrientation(LinearLayout.VERTICAL);
         col.setPadding(Style.px(52), Style.px(32), Style.px(52), 0);
         col.addView(new Style.GradientText(this, "Alle Apps", 34));
-        TextView hint = Style.text(this, "OK: öffnen   ·   OK lange drücken oder ☰-Taste: auf die Startseite legen / entfernen", 12, Style.MUTED);
+        TextView hint = Style.text(this, "OK: öffnen   ·   OK lange drücken oder \u2630-Taste: Haken setzen = App erscheint auf der Startseite   ·   bequemer am PC: Einstellungen \u203a PC-Verwaltung", 12, Style.MUTED);
         hint.setPadding(Style.px(2), Style.px(6), 0, Style.px(8));
         col.addView(hint);
 

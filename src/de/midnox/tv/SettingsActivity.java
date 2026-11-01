@@ -242,6 +242,9 @@ public class SettingsActivity extends Activity {
         Row remote = add("Handy-Fernbedienung");
         remote.value.setText("QR-Code  \u203a");
         remote.onOk = new Runnable() { public void run() { showRemoteQr(SettingsActivity.this); } };
+        Row pc = add("PC-Verwaltung (im Browser öffnen)");
+        pc.value.setText("http://" + ownIp() + ":" + (Remote.port == 0 ? 8130 : Remote.port) + "/admin");
+        pc.setFocusable(true);
         final Row tvg = add("TV-Programm pr\u00fcfen (MagentaTV)");
         tvg.value.setText("\u203a");
         tvg.onOk = new Runnable() { public void run() {

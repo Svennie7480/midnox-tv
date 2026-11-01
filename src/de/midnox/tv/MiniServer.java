@@ -47,7 +47,7 @@ public class MiniServer {
                 o.write(out); o.flush();
                 return;
             }
-            byte[] b = new byte[(int) Math.min(len, 65536)]; int r = 0;
+            byte[] b = new byte[(int) Math.min(len, 16L * 1024 * 1024)]; int r = 0;
             while (r < b.length) { int n = in.read(b, r, b.length - r); if (n < 0) break; r += n; }
             String[] res = h.handle(parts[0], parts.length > 1 ? parts[1] : "/", new String(b, 0, r, "UTF-8"));
             byte[] out = res[1].getBytes("UTF-8");

@@ -63,8 +63,27 @@ public class TvRows implements MediaCard.Listener {
     static String rtlSlug(String ch) { for (String[] r : RTL_LIVE) if (r[0].equals(ch)) return r[1]; return null; }
     static boolean hasRtl(Context c) { return Style.launchIntent(c.getPackageManager(), RTLPLUS) != null; }
     /** Quelle eines Senders: "magenta", "rtl" oder "hide" (eigene Wahl in der Senderliste, sonst automatisch). */
+    /** Eingebaute Sender + eigene M3U-Sender ({id, name, platz}). */
+    static List<String[]> all(Context c) {
+        List<String[]> l = new ArrayList<>(Arrays.asList(CHANNELS));
+        for (M3u.Ch x : M3u.all(c)) l.add(new String[]{x.id, x.name, "0"});
+        return l;
+    }
+    static String streamUrl(Context c, String ch) {
+        if (ch.startsWith("m3u:")) { M3u.Ch x = M3u.get(c, ch); return x == null ? null : x.url; }
+        String u = Style.prefs(c).getString("tvurl_" + ch, "");
+        return u.isEmpty() ? null : u;
+    }
+    /** EPG-Kennung eines Senders (bei M3U die tvg-id). */
+    static String epgId(Context c, String ch) {
+        if (!ch.startsWith("m3u:")) return ch;
+        M3u.Ch x = M3u.get(c, ch); return x == null || x.tvg.isEmpty() ? ch : x.tvg;
+    }
+
     static String source(Context c, String ch) {
         String s = Style.prefs(c).getString("tvsrc_" + ch, "");
+        if (ch.startsWith("m3u:")) return s.equals("hide") || streamUrl(c, ch) == null ? "hide" : "m3u";
+        if (s.equals("m3u") && streamUrl(c, ch) != null) return "m3u";
         boolean rtlOk = rtlSlug(ch) != null && hasRtl(c);
         if (s.equals("rtl") && rtlOk) return "rtl";
         if (s.equals("magenta") || s.equals("hide")) return s;
@@ -80,9 +99,12 @@ public class TvRows implements MediaCard.Listener {
         List<String[]> out = new ArrayList<>();
         try {
             JSONArray a = new JSONArray(Style.prefs(c).getString("tv_order", "[]"));
-            for (int i = 0; i < a.length(); i++) for (String[] ch : CHANNELS) if (ch[0].equals(a.optString(i))) { out.add(ch); break; }
+            List<String[]> all = all(c);
+            for (int i = 0; i < a.length(); i++) for (String[] ch : all) if (ch[0].equals(a.optString(i))) { out.add(ch); break; }
+            for (String[] ch : all) if (!out.contains(ch)) out.add(ch);
+            return out;
         } catch (Exception ignored) {}
-        for (String[] ch : CHANNELS) if (!out.contains(ch)) out.add(ch);
+        for (String[] ch : all(c)) if (!out.contains(ch)) out.add(ch);
         return out;
     }
     static void saveOrder(Context c, List<String[]> l) {
@@ -131,6 +153,7 @@ public class TvRows implements MediaCard.Listener {
         act.startActivity(i);
     }
     static String name(String channel) { for (String[] c : CHANNELS) if (c[0].equals(channel)) return c[1]; return channel; }
+    static String name(Context ctx, String channel) { M3u.Ch x = channel.startsWith("m3u:") ? M3u.get(ctx, channel) : null; return x != null ? x.name : name(channel); }
 
     /** Senderplatz in MagentaTV (eigene Einstellung oder Standard), 0 = unbekannt. */
     static int number(Context c, String channel) {
@@ -140,6 +163,7 @@ public class TvRows implements MediaCard.Listener {
 
     /** MagentaTV direkt auf dem Sender starten (eigener Befehl der App), sonst nur die App oeffnen. */
     static void openTv(Context c, String channel) {
+        if ("m3u".equals(source(c, channel))) { M3u.play(c, streamUrl(c, channel), name(c, channel)); return; }
         if (viaRtl(c, channel)) {
             try {
                 Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://plus.rtl.de/" + rtlSlug(channel) + "/live"));
@@ -197,6 +221,7 @@ public class TvRows implements MediaCard.Listener {
     Map<String, List<Prog>> download(String url) throws Exception {
         Set<String> want = new HashSet<>();
         for (String[] c : CHANNELS) want.add(c[0]);
+        for (M3u.Ch x : M3u.all(act)) if (!x.tvg.isEmpty()) want.add(x.tvg);
         long now = System.currentTimeMillis(), until = now + 30 * 3600 * 1000L;
         SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmss Z", Locale.ROOT);
         Map<String, List<Prog>> out = new HashMap<>();
@@ -283,15 +308,27 @@ public class TvRows implements MediaCard.Listener {
         final List<Emby.Entry> list = new ArrayList<>();
         for (String[] c : ordered(act)) {
             if (!visible(act, c[0])) continue;
-            List<Prog> l = d.get(c[0]);
-            if (l == null) continue;
+            List<Prog> l = d.get(epgId(act, c[0]));
             Prog cur = null, next = null;
-            for (int i = 0; i < l.size(); i++) if (l.get(i).start <= now && l.get(i).stop > now) { cur = l.get(i); if (i + 1 < l.size()) next = l.get(i + 1); break; }
+            for (int i = 0; l != null && i < l.size(); i++) if (l.get(i).start <= now && l.get(i).stop > now) { cur = l.get(i); if (i + 1 < l.size()) next = l.get(i + 1); break; }
+            if (cur == null && c[0].startsWith("m3u:")) {   // eigener Sender ohne Programmdaten: Kachel mit Logo
+                M3u.Ch x = M3u.get(act, c[0]);
+                if (x == null) continue;
+                Emby.Entry e = new Emby.Entry();
+                e.id = c[0] + "@0"; e.type = "TV"; e.title = x.name;
+                e.sub = (x.group.isEmpty() ? "Livestream" : x.group) + "  ·  VLC";
+                e.kind = "LIVESTREAM  ·  " + x.name.toUpperCase(Locale.GERMANY);
+                e.meta = x.group; e.overview = "Eigener Sender aus deiner M3U-Liste – startet in VLC."; e.progress = 0;
+                e.img = x.logo; e.backdrop = x.logo; e.forceText = true;
+                if (x.logo != null) { Bitmap b = imgs.get(x.logo); if (b == null) { b = Emby.fetchAlpha(x.logo); if (b != null) imgs.put(x.logo, b); } e.bmp = b; }
+                list.add(e);
+                continue;
+            }
             if (cur == null) continue;
             Emby.Entry e = new Emby.Entry();
             e.id = c[0] + "@" + cur.start; e.type = "TV";
             e.title = cur.title;
-            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop)) + (viaRtl(act, c[0]) ? "  ·  RTL+" : "");
+            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop)) + (viaRtl(act, c[0]) ? "  ·  RTL+" : "m3u".equals(source(act, c[0])) ? "  ·  VLC" : "");
             e.kind = "JETZT IM TV  ·  " + c[1].toUpperCase(Locale.GERMANY);
             List<String> meta = new ArrayList<>();
             meta.add(hm.format(new Date(cur.start)) + "–" + hm.format(new Date(cur.stop)));

@@ -45,6 +45,11 @@ public class Remote {
     }
 
     static String[] handle(final Context c, String path, String body) {
+        try {   // PC-Verwaltung: Seite und Anmeldung ohne Schluessel
+            if (path.equals("/admin") || path.startsWith("/admin?") || path.startsWith("/admin/")) return new String[]{"text/html", asset(c, "admin.html")};
+            if (path.startsWith("/api/admin/pin")) return new String[]{"application/json", AdminApi.requestPin(c)};
+            if (path.startsWith("/api/admin/login")) return new String[]{"application/json", AdminApi.login(c, body)};
+        } catch (Exception e) { return new String[]{"application/json", "{\"ok\":false,\"msg\":\"" + String.valueOf(e.getMessage()).replace("\"", "'") + "\"}"}; }
         String k = key(c);
         if (!path.contains("k=" + k)) return new String[]{"text/html", MiniServer.page("midnox TV", "<h1>midnox TV</h1><p class=sub>Bitte den QR-Code am Fernseher neu scannen.</p>", "")};
         if (path.startsWith("/api/")) {
@@ -53,6 +58,8 @@ public class Remote {
         }
         return new String[]{"text/html", page(k)};
     }
+
+    static String asset(Context c, String name) throws java.io.IOException { return Style.read(c.getAssets().open(name)); }
 
     static void ui(Runnable r) { new Handler(Looper.getMainLooper()).post(r); }
     static void startAct(Context c, Intent i) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { c.startActivity(i); } catch (Exception ignored) {} }
@@ -134,6 +141,8 @@ public class Remote {
                 ui(new Runnable() { public void run() { Intent i = new Intent(c, SearchActivity.class); i.putExtra("q", in.optString("q")); startAct(c, i); } });
                 return "{\"ok\":true}";
         }
+        String r = AdminApi.handle(c, cmd, body);
+        if (r != null) return r;
         return "{\"error\":\"unbekannt\"}";
     }
 

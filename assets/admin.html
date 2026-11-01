@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox TV – Verwaltung</title>
+<style>
+:root{--g:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4);--bg:#0b0a14;--card:#15141f;--line:#26243a;--mut:#8a8fa8;--txt:#e6e8f2}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;
+ background-image:radial-gradient(circle at 8% -10%,rgba(124,58,237,.22),transparent 45%),radial-gradient(circle at 100% 110%,rgba(6,182,212,.14),transparent 45%);background-attachment:fixed}
+h1{font-weight:300;margin:0;font-size:26px}h1 b{font-weight:700;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}
+h2{font-size:20px;margin:0 0 4px}h3{font-size:12px;letter-spacing:.2em;color:var(--mut);font-weight:600;margin:22px 0 10px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 18px}
+button,.btn{font:inherit;padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer}
+button:hover{border-color:#3B5BF0}button.pri{background:var(--g);border:0;color:#fff;font-weight:600}button.sm{padding:5px 12px;font-size:13px}
+button.danger{border-color:#7f1d3a;color:#fecdd3}button:disabled{opacity:.45;cursor:default}
+input,select,textarea{font:inherit;background:#0e0d18;color:var(--txt);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#3B5BF0}
+/* Anmeldung */
+#login{max-width:420px;margin:12vh auto;padding:34px;background:rgba(21,20,31,.85);border:1px solid var(--line);border-radius:22px;text-align:center}
+#login .pin{display:flex;gap:10px;justify-content:center;margin:20px 0}
+#login .pin input{width:58px;height:66px;text-align:center;font-size:28px;border-radius:14px}
+#lmsg{min-height:22px;color:#fca5a5;font-size:14px}
+/* App */
+#app{display:none;grid-template-columns:230px 1fr;min-height:100vh}
+nav{padding:26px 16px;border-right:1px solid var(--line);background:rgba(11,10,20,.6);position:sticky;top:0;height:100vh}
+nav a{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;color:var(--txt);text-decoration:none;margin:3px 0;cursor:pointer;font-size:15px}
+nav a:hover{background:#1a1928}nav a.on{background:var(--g);color:#fff;font-weight:600}
+nav .dev{color:var(--mut);font-size:12px;margin:18px 4px 22px;line-height:1.6}
+main{padding:28px 34px 120px;max-width:1300px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.bar .grow{flex:1}
+table{width:100%;border-collapse:separate;border-spacing:0 6px}
+th{text-align:left;font-size:11px;letter-spacing:.14em;color:var(--mut);font-weight:600;padding:4px 10px}
+td{background:var(--card);padding:8px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);vertical-align:middle}
+td:first-child{border-left:1px solid var(--line);border-radius:12px 0 0 12px}td:last-child{border-right:1px solid var(--line);border-radius:0 12px 12px 0}
+tr.hid td{opacity:.45}tr.drag td{background:#241f3d}tr.over td{border-top:2px solid #3B5BF0}
+.h{cursor:grab;color:var(--mut);font-size:18px;user-select:none;width:28px;text-align:center}
+.pos{color:var(--mut);width:34px;text-align:right}
+.logo{width:40px;height:40px;border-radius:9px;object-fit:contain;background:#fff;display:block}
+.mono{width:40px;height:40px;border-radius:9px;background:var(--g);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff}
+.nm b{display:block;font-weight:600}.nm span{color:var(--mut);font-size:12px}
+.now{color:#b4b8cc;font-size:13px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-width:200px;font-size:12px}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.save{position:fixed;right:28px;bottom:24px;display:none;gap:10px;align-items:center;padding:12px 14px 12px 20px;border-radius:999px;background:#1c1b29;border:1px solid #3B5BF0;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.save.on{display:flex}
+.card{background:rgba(21,20,31,.85);border:1px solid var(--line);border-radius:18px;padding:20px 22px;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.set{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #1f1e2e}.set:last-child{border:0}
+.set label{flex:1;font-size:14px}.set input[type=number]{width:100px}.set input[type=text]{width:280px}
+.sw{position:relative;width:46px;height:26px;flex:none}.sw input{opacity:0;width:0;height:0}
+.sw span{position:absolute;inset:0;border-radius:999px;background:#2a2840;transition:.2s;cursor:pointer}
+.sw span:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+span{background:var(--g)}.sw input:checked+span:before{transform:translateX(20px)}
+.apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.app{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:var(--card);border:1px solid var(--line);cursor:pointer;user-select:none}
+.app img{width:34px;height:34px;border-radius:8px}.app span{font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app.on{border-color:#3B5BF0;background:#1b1a2c}.app .ck{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none}
+.app.on .ck{background:var(--g);border:0}
+#pinned .app{cursor:grab}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:12px 20px;border-radius:14px;background:#1c1b29;border:1px solid var(--line);display:none;z-index:9}
+.res{padding:12px 14px;border-radius:12px;background:#0f2a1c;border:1px solid #166534;color:#bbf7d0;margin-top:12px;display:none}
+.res.err{background:#2a1220;border-color:#7f1d3a;color:#fecdd3}
+.hint{color:var(--mut);font-size:13px;line-height:1.6}
+</style></head><body>
+
+<div id="login">
+ <h1>midnox <b>TV</b></h1>
+ <p class="sub" style="margin-top:8px">Verwaltung am PC</p>
+ <button class="pri" onclick="reqPin()">Code am Fernseher anzeigen</button>
+ <div class="pin" id="pin"><input maxlength=1 inputmode=numeric><input maxlength=1 inputmode=numeric><input maxlength=1 inputmode=numeric><input maxlength=1 inputmode=numeric></div>
+ <div id="lmsg"></div>
+ <p class="hint">Der Code erscheint 3 Minuten lang auf dem Fernseher.</p>
+</div>
+
+<div id="app">
+ <nav>
+  <h1 style="padding:0 8px">midnox <b>TV</b></h1>
+  <div class="dev" id="dev"></div>
+  <a data-p="ch" class="on">📺 Senderliste</a>
+  <a data-p="m3u">📥 M3U-Import</a>
+  <a data-p="apps">▦ Apps auf der Startseite</a>
+  <a data-p="set">⚙ Einstellungen</a>
+  <a onclick="logout()" style="margin-top:30px;color:var(--mut)">⎋ Abmelden</a>
+ </nav>
+ <main>
+  <section id="p-ch">
+   <h2>Senderliste</h2><p class="sub">Reihenfolge und Quelle für „Jetzt im TV“. Zeilen mit der Maus an ⠿ ziehen.</p>
+   <div class="bar"><input id="q" placeholder="Sender suchen …" oninput="renderCh()" style="width:240px">
+    <select id="grp" onchange="renderCh()"><option value="">alle Gruppen</option></select>
+    <label class="hint"><input type="checkbox" id="showHid" checked onchange="renderCh()"> ausgeblendete zeigen</label>
+    <span class="grow"></span>
+    <button class="sm" onclick="bulk('hide')">Gefilterte ausblenden</button><button class="sm" onclick="bulk('show')">Gefilterte einblenden</button>
+    <button class="sm danger" onclick="resetCh()">Zurücksetzen</button></div>
+   <table><thead><tr><th></th><th>#</th><th></th><th>Sender</th><th>Läuft gerade</th><th>Quelle</th><th>MagentaTV-Platz</th><th>Stream-Adresse (für VLC)</th><th></th></tr></thead><tbody id="chb"></tbody></table>
+  </section>
+
+  <section id="p-m3u" style="display:none">
+   <h2>M3U-Import</h2><p class="sub">Eigene Sender aus einer M3U-/M3U8-Liste. Sie laufen am Fernseher in VLC.</p>
+   <div class="card">
+    <h3 style="margin-top:0">LISTE PER LINK</h3>
+    <div class="bar"><input id="murl" placeholder="https://…/playlist.m3u" style="flex:1"><button class="pri" onclick="imp('url')">Importieren</button></div>
+    <h3>ODER DATEI VOM PC</h3>
+    <div class="bar"><input type="file" id="mfile" accept=".m3u,.m3u8,.txt"><button class="pri" onclick="imp('file')">Importieren</button></div>
+    <label class="hint"><input type="checkbox" id="mrep" checked> bisherige eigene Sender ersetzen</label>
+    <div class="res" id="mres"></div>
+   </div>
+   <div class="card hint">
+    <b style="color:var(--txt)">So funktioniert's</b><br>
+    • Sender, die es schon gibt (z. B. „Das Erste HD“), werden erkannt – ihre Stream-Adresse wird hinterlegt, und du kannst in der Senderliste als Quelle „Stream (VLC)“ wählen.<br>
+    • Neue Sender erscheinen unten in der Senderliste. Bei großen Listen (über 40 Sender) sind sie zunächst ausgeblendet – in der Senderliste einfach einblenden.<br>
+    • Passt die <code>tvg-id</code> zu den TV-Daten (z. B. <code>RTL.de</code>), zeigt die Kachel auch, was gerade läuft.<br>
+    • <span id="vlcinfo"></span>
+    <div style="margin-top:14px"><button class="sm danger" onclick="clearM3u()">Alle eigenen Sender löschen</button></div>
+   </div>
+  </section>
+
+  <section id="p-apps" style="display:none">
+   <h2>Apps auf der Startseite</h2><p class="sub">Anklicken = auf die Startseite legen oder entfernen. Oben die Reihenfolge per Ziehen ändern.</p>
+   <h3>AUF DER STARTSEITE</h3><div class="apps" id="pinned"></div>
+   <h3>ALLE APPS</h3><div class="apps" id="allapps"></div>
+  </section>
+
+  <section id="p-set" style="display:none">
+   <h2>Einstellungen</h2><p class="sub">Änderungen werden sofort gespeichert und beim nächsten Öffnen der Startseite übernommen.</p>
+   <div class="grid2" id="sets"></div>
+  </section>
+ </main>
+</div>
+<div class="save" id="save"><span>Ungespeicherte Änderungen</span><button class="sm" onclick="loadCh()">Verwerfen</button><button class="pri" onclick="saveCh()">Speichern</button></div>
+<div id="toast"></div>
+
+<script>
+var key=null;try{key=localStorage.getItem('midnoxKey')}catch(e){}
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function toast(t){var e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(function(){e.style.display='none'},2600)}
+function api(c,o){return fetch('/api/'+c+'?k='+encodeURIComponent(key||''),{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.text()}).then(function(t){
+ try{return JSON.parse(t)}catch(e){showLogin();throw new Error('login')}})}
+// ---------- Anmeldung
+function showLogin(){$('app').style.display='none';$('login').style.display='block'}
+function reqPin(){fetch('/api/admin/pin',{method:'POST'}).then(function(){$('lmsg').style.color='#86efac';$('lmsg').textContent='Code steht jetzt auf dem Fernseher.';$('pin').children[0].focus()})}
+var pins=$('pin').children;
+for(var i=0;i<pins.length;i++)(function(i){pins[i].oninput=function(){this.value=this.value.replace(/\D/g,'');if(this.value&&i<3)pins[i+1].focus();if(i==3&&this.value)login()};
+ pins[i].onkeydown=function(e){if(e.key=='Backspace'&&!this.value&&i>0)pins[i-1].focus()}})(i);
+function login(){var p='';for(var i=0;i<4;i++)p+=pins[i].value;
+ fetch('/api/admin/login',{method:'POST',body:JSON.stringify({pin:p})}).then(function(r){return r.json()}).then(function(j){
+  if(j.ok){key=j.key;try{localStorage.setItem('midnoxKey',key)}catch(e){}start()}else{$('lmsg').style.color='#fca5a5';$('lmsg').textContent=j.msg;for(var i=0;i<4;i++)pins[i].value='';pins[0].focus()}})}
+function logout(){try{localStorage.removeItem('midnoxKey')}catch(e){}key=null;showLogin()}
+function start(){api('info').then(function(i){$('login').style.display='none';$('app').style.display='grid';
+ $('dev').innerHTML=esc(i.device)+' · '+esc(i.ip)+'<br>midnox TV '+esc(i.version);
+ $('vlcinfo').innerHTML=i.vlc?'VLC ist installiert ✓':'<b style="color:#fbbf24">VLC ist noch nicht installiert</b> – am Fernseher im midnox Store unter „Video“.';
+ loadCh()}).catch(function(){})}
+document.querySelectorAll('nav a[data-p]').forEach(function(a){a.onclick=function(){
+ document.querySelectorAll('nav a').forEach(function(x){x.classList.remove('on')});a.classList.add('on');
+ ['ch','m3u','apps','set'].forEach(function(p){$('p-'+p).style.display=p==a.dataset.p?'block':'none'});
+ $('save').classList.toggle('on',a.dataset.p=='ch'&&dirty);
+ if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
+// ---------- Senderliste
+var CH=[],RTL=false,dirty=false;
+var SRC={magenta:['MagentaTV','#E20074'],rtl:['RTL+ Livestream','#E4002B'],m3u:['Stream (VLC)','#FF8800'],hide:['ausgeblendet','#6b6f86']};
+function loadCh(){api('channels').then(function(j){CH=j.channels;RTL=j.rtl;dirty=false;$('save').classList.remove('on');
+ var g={};CH.forEach(function(c){if(c.group)g[c.group]=1});var s=$('grp'),cur=s.value;s.innerHTML='<option value="">alle Gruppen</option><option value="#builtin">nur eingebaute Sender</option><option value="#m3u">nur eigene (M3U)</option>'+Object.keys(g).sort().map(function(x){return '<option>'+esc(x)+'</option>'}).join('');s.value=cur;renderCh()})}
+function sources(c){var l=[];if(!c.builtin)return['m3u','hide'];l.push('magenta');if(c.rtl&&RTL)l.push('rtl');if(c.url)l.push('m3u');l.push('hide');return l}
+function match(c){var q=$('q').value.toLowerCase(),g=$('grp').value;
+ if(q&&c.name.toLowerCase().indexOf(q)<0&&(c.group||'').toLowerCase().indexOf(q)<0)return false;
+ if(g=='#builtin'&&!c.builtin)return false;if(g=='#m3u'&&c.builtin)return false;if(g&&g[0]!='#'&&c.group!=g)return false;
+ if(!$('showHid').checked&&c.src=='hide')return false;return true}
+function renderCh(){var b=$('chb'),h='';CH.forEach(function(c,i){if(!match(c))return;
+ var lg=c.logo?'<img class="logo" src="'+esc(c.logo)+'" onerror="this.style.visibility=\'hidden\'">':'<div class="mono">'+esc(c.name.replace(/^(das|die|der)\s/i,'').substr(0,2).toUpperCase())+'</div>';
+ h+='<tr draggable="true" data-i="'+i+'" class="'+(c.src=='hide'?'hid':'')+'"><td class="h" title="ziehen">⠿</td><td class="pos">'+(i+1)+'</td><td>'+lg+'</td>'+
+ '<td class="nm"><b>'+esc(c.name)+'</b><span>'+(c.builtin?'eingebaut':'M3U'+(c.group?' · '+esc(c.group):''))+'</span></td><td class="now">'+esc(c.now||'')+'</td>'+
+ '<td><select onchange="setF('+i+',\'src\',this.value)">'+sources(c).map(function(s){return '<option value="'+s+'"'+(s==c.src?' selected':'')+'>'+SRC[s][0]+'</option>'}).join('')+'</select></td>'+
+ '<td>'+(c.builtin?'<input class="nr" type="number" min="0" value="'+c.number+'" onchange="setF('+i+',\'number\',+this.value)"'+(c.src=='magenta'?'':' disabled')+'>':'')+'</td>'+
+ '<td>'+(c.builtin?'<input class="url" placeholder="optional: http://…" value="'+esc(c.url)+'" onchange="setF('+i+',\'url\',this.value)">':'<span class="hint" style="font-size:12px;word-break:break-all">'+esc(c.url.substr(0,60))+'</span>')+'</td>'+
+ '<td style="white-space:nowrap"><button class="sm" title="nach oben" onclick="mv('+i+',-1)">↑</button> <button class="sm" title="nach unten" onclick="mv('+i+',1)">↓</button> <button class="sm" onclick="test(\''+esc(c.id)+'\')" title="am Fernseher starten">▶ TV</button></td></tr>'});
+ b.innerHTML=h||'<tr><td colspan=9 class="hint" style="text-align:center;padding:30px">Keine Sender.</td></tr>';dnd()}
+function setF(i,f,v){CH[i][f]=v;if(f=='url'&&!v&&CH[i].src=='m3u')CH[i].src='magenta';mark();if(f!='number')renderCh()}
+function mark(){dirty=true;$('save').classList.add('on')}
+function mv(i,d){var j=i+d;if(j<0||j>=CH.length)return;var t=CH[i];CH[i]=CH[j];CH[j]=t;mark();renderCh()}
+function bulk(m){CH.forEach(function(c){if(!match(c))return;if(m=='hide')c.src='hide';else if(c.src=='hide')c.src=c.builtin?(c.rtl&&RTL?'rtl':'magenta'):'m3u'});mark();renderCh()}
+var dragI=null;
+function dnd(){document.querySelectorAll('#chb tr[draggable]').forEach(function(tr){
+ tr.ondragstart=function(e){dragI=+tr.dataset.i;tr.classList.add('drag');e.dataTransfer.effectAllowed='move'};
+ tr.ondragend=function(){tr.classList.remove('drag')};
+ tr.ondragover=function(e){e.preventDefault();tr.classList.add('over')};tr.ondragleave=function(){tr.classList.remove('over')};
+ tr.ondrop=function(e){e.preventDefault();tr.classList.remove('over');var to=+tr.dataset.i;if(dragI==null||dragI==to)return;var it=CH.splice(dragI,1)[0];CH.splice(dragI<to?to:to,0,it);dragI=null;mark();renderCh()}})}
+function saveCh(){api('channels_save',{order:CH.map(function(c){return c.id}),items:CH.map(function(c){return{id:c.id,src:c.src,number:c.number,url:c.builtin?c.url:''}})}).then(function(){dirty=false;$('save').classList.remove('on');toast('Senderliste gespeichert ✓')})}
+function resetCh(){if(confirm('Reihenfolge, Quellen und Senderplätze zurücksetzen?'))api('channels_reset').then(function(){toast('Zurückgesetzt');loadCh()})}
+function test(id){api('test',{id:id}).then(function(){toast('Läuft am Fernseher …')})}
+window.onbeforeunload=function(){if(dirty)return 'Ungespeichert'};
+// ---------- M3U
+function imp(how){var r=$('mres');r.className='res';r.style.display='block';r.textContent='Importiere …';
+ var go=function(o){o.replace=$('mrep').checked;api('m3u_import',o).then(function(j){if(!j.ok){r.className='res err';r.textContent=j.msg||'Fehler';return}
+  r.innerHTML='✓ '+j.added+' Sender importiert'+(j.linked?', '+j.linked+' davon mit eingebauten Sendern verknüpft':'')+'. Insgesamt '+j.total+' eigene Sender.'+(j.hiddenByDefault?'<br>Große Liste: neue Sender sind zunächst ausgeblendet – in der Senderliste einblenden.':'')}).catch(function(){r.className='res err';r.textContent='Import fehlgeschlagen'})};
+ if(how=='url'){var u=$('murl').value.trim();if(!u){r.style.display='none';return}go({url:u})}
+ else{var f=$('mfile').files[0];if(!f){r.style.display='none';return}var fr=new FileReader();fr.onload=function(){go({text:fr.result})};fr.readAsText(f)}}
+function clearM3u(){if(confirm('Alle eigenen M3U-Sender löschen?'))api('m3u_clear').then(function(){toast('Eigene Sender gelöscht')})}
+// ---------- Apps
+var APPS=[],FAV=[];
+function loadApps(){api('apps').then(function(j){APPS=j.apps;FAV=APPS.filter(function(a){return a.pinned>=0}).sort(function(a,b){return a.pinned-b.pinned}).map(function(a){return a.pkg});renderApps()})}
+function app(p){for(var i=0;i<APPS.length;i++)if(APPS[i].pkg==p)return APPS[i];return{pkg:p,label:p}}
+function tile(a,on){return '<div class="app'+(on?' on':'')+'" data-p="'+esc(a.pkg)+'"'+(on?' draggable="true"':'')+'>'+(a.icon?'<img src="'+a.icon+'">':'')+'<span title="'+esc(a.pkg)+'">'+esc(a.label)+'</span><i class="ck"></i></div>'}
+function renderApps(){$('pinned').innerHTML=FAV.map(function(p){return tile(app(p),true)}).join('')||'<span class="hint">Noch keine Apps auf der Startseite.</span>';
+ $('allapps').innerHTML=APPS.slice().sort(function(a,b){return a.label.localeCompare(b.label)}).map(function(a){return tile(a,FAV.indexOf(a.pkg)>=0)}).join('');
+ document.querySelectorAll('.app').forEach(function(el){el.onclick=function(){var p=el.dataset.p,i=FAV.indexOf(p);if(i>=0)FAV.splice(i,1);else FAV.push(p);saveApps()}});
+ var dragP=null;document.querySelectorAll('#pinned .app').forEach(function(el){el.ondragstart=function(){dragP=el.dataset.p};el.ondragover=function(e){e.preventDefault()};
+  el.ondrop=function(e){e.preventDefault();var to=FAV.indexOf(el.dataset.p),from=FAV.indexOf(dragP);if(from<0||from==to)return;FAV.splice(from,1);FAV.splice(to,0,dragP);saveApps()}})}
+function saveApps(){renderApps();api('apps_save',{favs:FAV}).then(function(){toast('Startseite aktualisiert ✓')})}
+// ---------- Einstellungen
+function loadSet(){api('settings').then(function(j){var sec={},order=[];j.settings.forEach(function(s){if(!sec[s.section]){sec[s.section]=[];order.push(s.section)}sec[s.section].push(s)});
+ $('sets').innerHTML=order.map(function(n){return '<div class="card"><h3 style="margin-top:0">'+esc(n.toUpperCase())+'</h3>'+sec[n].map(ctl).join('')+'</div>'}).join('');
+ document.querySelectorAll('[data-k]').forEach(function(el){el.onchange=function(){var o={},t=el.dataset.t,v;
+  if(t=='bool'||t=='inv')v=el.checked;else if(t=='int'||t=='float')v=parseFloat(el.value.replace(',','.'));else v=el.value;
+  if((t=='int'||t=='float')&&isNaN(v))return;o[el.dataset.k]=v;api('settings_save',o).then(function(){toast('Gespeichert ✓')})}})})}
+function ctl(s){var id='s_'+s.key,c;
+ if(s.type=='bool'||s.type=='inv')c='<span class="sw"><input type="checkbox" id="'+id+'" data-k="'+s.key+'" data-t="'+s.type+'"'+(s.value?' checked':'')+'><span onclick="this.previousSibling.click()"></span></span>';
+ else if(s.options)c='<select data-k="'+s.key+'" data-t="'+s.type+'">'+s.options.map(function(o){return '<option value="'+esc(o.v)+'"'+(String(o.v)==String(s.value)?' selected':'')+'>'+esc(o.n)+'</option>'}).join('')+'</select>';
+ else if(s.type=='int'||s.type=='float')c='<input type="number" step="'+(s.type=='float'?'0.5':'1')+'" data-k="'+s.key+'" data-t="'+s.type+'" value="'+s.value+'">';
+ else c='<input type="text" data-k="'+s.key+'" data-t="'+s.type+'" value="'+esc(s.value)+'">';
+ return '<div class="set"><label for="'+id+'">'+esc(s.label)+'</label>'+c+'</div>'}
+if(key)start();else showLogin();
+</script></body></html>

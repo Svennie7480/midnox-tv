@@ -30,6 +30,7 @@ public class QuizActivity extends Activity {
             Bank.load(QuizActivity.this);
             h.post(new Runnable() { public void run() { stage.invalidate(); } });
             Bank.update(QuizActivity.this);
+            Bank.loadExtra(QuizActivity.this);
             Scores.flush(QuizActivity.this);
             h.post(new Runnable() { public void run() { stage.invalidate(); } });
         }}).start();
@@ -41,7 +42,7 @@ public class QuizActivity extends Activity {
 
     final Runnable tick = new Runnable() { public void run() {
         stage.tick();
-        h.postDelayed(this, 100);
+        h.postDelayed(this, 40);   // 25 Bilder/s fuer die Animationen
     }};
     void beep(boolean ok) { Audio.fx(ok ? "right" : "wrong"); }
 
@@ -158,6 +159,7 @@ public class QuizActivity extends Activity {
                 case PROFILE: drawProfile(c); break;
             }
             if (screen != HOME) drawToast(c);
+            drawConfetti(c);
         }
         String wantMusic() {
             switch (screen) {
@@ -243,7 +245,7 @@ public class QuizActivity extends Activity {
                 c.drawText(ell(lab[i], r.width() - 40 * dp), r.left + 20 * dp, r.centerY() + 6 * dp, t);
                 final int ii = i; hit(r, new Runnable() { public void run() { hf = NT + ii; bottomAction(ii); } });
             }
-            text(c, Bank.all.size() + " Fragen in " + Bank.cats.size() + " Kategorien  ·  Bestenliste auch im Browser: " + Scores.WEB, pad, H - 30 * dp, 14 * dp, U.MUTED, false);
+            text(c, Bank.all.size() + Bank.extra.size() + Bank.special.size() + " Fragen in " + Bank.cats.size() + " Kategorien  ·  Eigene Frage einreichen: " + Scores.WEB + "/?einreichen", pad, H - 30 * dp, 14 * dp, U.MUTED, false);
             drawToast(c);
         }
         void bottomAction(int i) { if (i == 0) askName(null); else if (i == 1) cycleSound(); else toggleVoice(); }
@@ -264,13 +266,68 @@ public class QuizActivity extends Activity {
         }
         String voiceLabel() {
             if (!Voice.available) return "🎙   Moderator: nicht eingerichtet";
-            return U.prefs(QuizActivity.this).getBoolean("voice", true) ? "🎙   Moderator: an" : "🎙   Moderator: aus";
+            SharedPreferences pr = U.prefs(QuizActivity.this);
+            return !pr.getBoolean("voice", true) ? "🎙   Moderator: aus" : pr.getBoolean("voice_ans", false) ? "🎙   Moderator: liest auch Antworten" : "🎙   Moderator: an";
+        }
+        /** Frage (und auf Wunsch die Antworten A–D) als Sprach-Schluessel. */
+        List<String> readKeys(Bank.Q q) {
+            List<String> l = new ArrayList<>(); l.add("q:" + q.id);
+            if (q.type.equals("mc") && U.prefs(QuizActivity.this).getBoolean("voice_ans", false)) {
+                String[] let = {"p:la", "p:lb", "p:lc", "p:ld"};
+                for (int i = 0; i < 4; i++) { l.add(let[i]); l.add("q:" + q.id + "_" + q.orig[i]); }
+            }
+            return l;
+        }
+        void sayList(String pre, Bank.Q q, String... more) {
+            List<String> l = new ArrayList<>(); if (pre != null) l.add(pre); for (String m : more) if (m != null) l.add(m); l.addAll(readKeys(q));
+            Voice.say(l.toArray(new String[0]));
         }
         void toggleVoice() {
             if (!Voice.available) { toast("Stimme in der Verwaltung auf " + Scores.WEB + "?admin einrichten"); return; }
             SharedPreferences pr = U.prefs(QuizActivity.this);
-            pr.edit().putBoolean("voice", !pr.getBoolean("voice", true)).apply();
+            boolean on = pr.getBoolean("voice", true), ans = pr.getBoolean("voice_ans", false);
+            if (on && !ans) pr.edit().putBoolean("voice_ans", true).apply();                       // an -> mit Antworten
+            else if (on) pr.edit().putBoolean("voice", false).putBoolean("voice_ans", false).apply();  // -> aus
+            else pr.edit().putBoolean("voice", true).apply();                                         // -> an
             if (Voice.on()) Voice.say("p:right1"); else Voice.stop();
+        }
+        // ------------------------------------------------------------ Animationen
+        long mQAt, mEndAt, dEndAt, pQAt; float ladderY = -1;
+        float ease(float f) { f = Math.max(0, Math.min(1, f)); return 1 - (1 - f) * (1 - f) * (1 - f); }
+        /** Antwortkarte aufploppen lassen (versetzt). false = noch unsichtbar. Bei true muss c.restore() folgen. */
+        boolean popBegin(Canvas c, RectF r, long since, int i) {
+            float f = (System.currentTimeMillis() - since - 350 - i * 140) / 260f;
+            if (f <= 0) return false;
+            c.save();
+            if (f < 1) { float e = ease(f), sc = 0.7f + 0.3f * e + (float) Math.sin(e * Math.PI) * 0.06f; c.scale(sc, sc, r.centerX(), r.centerY()); }
+            return true;
+        }
+        int countUp(int target, long since) {
+            if (since <= 0) return target;
+            float f = (System.currentTimeMillis() - since - 300) / 1600f;
+            return f >= 1 ? target : Math.round(target * ease(f));
+        }
+        final int[] CONF = {0xFF7C3AED, 0xFF06B6D4, 0xFFFACC15, 0xFFEC4899, 0xFF22C55E, 0xFFF97316, 0xFFFFFFFF};
+        final List<float[]> parts = new ArrayList<>();   // x, y, vx, vy, rot, vrot, farbe, groesse
+        long confAt;
+        void confetti(int n) {
+            Random r = new Random(); confAt = System.currentTimeMillis();
+            float w = Math.max(1, getWidth()), dpx = U.dp;
+            for (int i = 0; i < n; i++) parts.add(new float[]{r.nextFloat() * w, -r.nextFloat() * 300 * dpx, (r.nextFloat() - 0.5f) * 3 * dpx, (2 + r.nextFloat() * 4) * dpx, r.nextFloat() * 360, (r.nextFloat() - 0.5f) * 20, r.nextInt(CONF.length), (5 + r.nextFloat() * 7) * dpx});
+            invalidate();
+        }
+        void drawConfetti(Canvas c) {
+            if (parts.isEmpty()) return;
+            for (Iterator<float[]> it = parts.iterator(); it.hasNext(); ) {
+                float[] q = it.next();
+                q[0] += q[2] + (float) Math.sin((q[1] + q[4]) / 40) * 0.8f * dp; q[1] += q[3]; q[3] += 0.04f * dp; q[4] += q[5];
+                if (q[1] > H + 20 * dp) { it.remove(); continue; }
+                p.setColor(CONF[(int) q[6]]);
+                c.save(); c.rotate(q[4], q[0], q[1]);
+                c.drawRect(q[0] - q[7] / 2, q[1] - q[7] / 4, q[0] + q[7] / 2, q[1] + q[7] / 4, p);
+                c.restore();
+            }
+            postInvalidateOnAnimation();
         }
         // Kurze Einblendung oben (Abzeichen, Hinweise)
         String toastText; long toastAt;
@@ -289,7 +346,7 @@ public class QuizActivity extends Activity {
             if (nb.isEmpty()) return;
             StringBuilder sb = new StringBuilder("Neues Abzeichen: ");
             for (int i = 0; i < nb.size(); i++) sb.append(i > 0 ? ", " : "").append(nb.get(i).icon).append(" ").append(nb.get(i).title);
-            toast(sb.toString());
+            toast(sb.toString()); confetti(90);
         }
         String soundLabel() {
             SharedPreferences pr = U.prefs(QuizActivity.this);
@@ -322,16 +379,17 @@ public class QuizActivity extends Activity {
 
         void startMillion() {
             mq = Bank.million(QuizActivity.this); mi = 0; msel = 0; mrow = 0; mjf = 0;
-            mJoker = new boolean[3]; mStart = System.currentTimeMillis(); mResult = null; mQuit = false;
+            mJoker = new boolean[3]; mStart = System.currentTimeMillis(); mResult = null; mQuit = false; ladderY = -1;
             go(MILLION);
             newQuestion();
         }
         void newQuestion() {
+            mQAt = System.currentTimeMillis();
             mHidden = new boolean[4]; mAudience = null; mPhone = null; mPhoneAns = -1; mState = M_ASK; msel = 0; mrow = 0; Bank.markSeen(QuizActivity.this, mq.get(mi).id);
             String pre = mi == 0 ? Voice.pick("p:welcome_million", "p:welcome_million2", "p:welcome_million3") : mi == 5 ? Voice.pick("p:safety5", "p:safety5_2") : mi == 10 ? Voice.pick("p:safety10", "p:safety10_2")
                 : mi == 14 ? Voice.pick("p:last", "p:last2") : mi >= 11 && new Random().nextBoolean() ? Voice.pick("p:tense1", "p:tense2", "p:tense3") : null;
-            if (pre != null) Voice.say(pre, "q:" + mq.get(mi).id); else Voice.say("q:" + mq.get(mi).id);
-            if (mi + 1 < mq.size()) Voice.prefetch("q:" + mq.get(mi + 1).id);
+            sayList(pre, mq.get(mi));
+            if (mi + 1 < mq.size()) Voice.prefetch(readKeys(mq.get(mi + 1)).toArray(new String[0]));
         }
         String rightPhrase() { return Voice.pick("p:right1", "p:right2", "p:right3", "p:right4", "p:right5", "p:right6", "p:right7", "p:right8"); }
         String wrongPhrase() { return Voice.pick("p:wrong1", "p:wrong2", "p:wrong3", "p:wrong4", "p:wrong5"); }
@@ -352,7 +410,8 @@ public class QuizActivity extends Activity {
             }
         }
         void endMillion(int won, String msg) {
-            mWon = won; mEndMsg = msg; mState = M_END; mjf = 0;
+            mWon = won; mEndMsg = msg; mState = M_END; mjf = 0; mEndAt = System.currentTimeMillis();
+            if (won >= 16000) confetti(won >= 1000000 ? 260 : 120);
             if (won >= 16000) Audio.fx("win");
             if (won >= 1000000) Voice.say(Voice.pick("p:million", "p:million2")); else if (mQuit) Voice.say(Voice.pick("p:quit", "p:quit2"));
             boolean usedJ = mJoker[0] || mJoker[1] || mJoker[2];
@@ -435,11 +494,16 @@ public class QuizActivity extends Activity {
             RectF lr = new RectF(lx, 40 * dp, W - pad, H - 40 * dp);
             card(c, lr, 0xCC15141F, 20 * dp);
             float rh = (lr.height() - 24 * dp) / 15;
+            if (mState != M_END) {   // Markierung gleitet zur aktuellen Stufe
+                float target = lr.top + 12 * dp + (15 - (mi + 1)) * rh;
+                ladderY = ladderY < 0 ? target : ladderY + (target - ladderY) * 0.18f;
+                RectF hr = new RectF(lr.left + 10 * dp, ladderY + 1 * dp, lr.right - 10 * dp, ladderY + rh - 1 * dp);
+                p.setShader(U.brand(hr.left, hr.right)); c.drawRoundRect(hr, 10 * dp, 10 * dp, p); p.setShader(null);
+            }
             for (int i = 15; i >= 1; i--) {
                 float y = lr.top + 12 * dp + (15 - i) * rh;
                 boolean cur = mState != M_END && i == mi + 1, done = i <= (mState == M_END ? -1 : mi);
                 RectF rr = new RectF(lr.left + 10 * dp, y + 1 * dp, lr.right - 10 * dp, y + rh - 1 * dp);
-                if (cur) { p.setShader(U.brand(rr.left, rr.right)); c.drawRoundRect(rr, 10 * dp, 10 * dp, p); p.setShader(null); }
                 boolean safe = i == 5 || i == 10 || i == 15;
                 int col = cur ? Color.WHITE : done ? U.OK : safe ? U.GOLD : 0xFFC9CCE0;
                 text(c, String.valueOf(i), rr.left + 12 * dp, rr.centerY() + 5 * dp, 14 * dp, cur ? Color.WHITE : U.MUTED, false);
@@ -502,7 +566,9 @@ public class QuizActivity extends Activity {
             float ay = qr.bottom + 22 * dp, gap = 18 * dp, bw = (aw - gap) / 2, bh = Math.min(96 * dp, (H - 40 * dp - ay - gap) / 2);
             for (int i = 0; i < 4; i++) {
                 RectF r = new RectF(pad + (i % 2) * (bw + gap), ay + (i / 2) * (bh + gap), pad + (i % 2) * (bw + gap) + bw, ay + (i / 2) * (bh + gap) + bh);
+                if (!popBegin(c, r, mQAt, i)) continue;
                 drawAnswer(c, r, i, q, true);
+                c.restore();
                 final int ii = i;
                 hit(r, new Runnable() { public void run() { if (mState != M_ASK || mHidden[ii]) return; if (msel == ii && mrow == 0) { mState = M_LOCK; mStateAt = System.currentTimeMillis(); Voice.stop(); Audio.fx("lock"); } else { msel = ii; mrow = 0; } } });
             }
@@ -546,7 +612,7 @@ public class QuizActivity extends Activity {
             centerText(c, mWon >= 1000000 ? "🏆" : mWon > 0 ? "🎉" : "😬", pad + aw / 2, y, 60 * dp, Color.WHITE, false);
             centerText(c, mEndMsg, pad + aw / 2, y + 60 * dp, 22 * dp, 0xFFC9CCE0, false);
             t.setTypeface(U.BOLD); t.setTextSize(64 * dp);
-            String m = U.money(mWon); float mw = t.measureText(m);
+            String m = U.money(countUp(mWon, mEndAt)); float mw = t.measureText(U.money(mWon));
             t.setShader(U.brand(pad + aw / 2 - mw / 2, pad + aw / 2 + mw / 2)); c.drawText(m, pad + aw / 2 - mw / 2, y + 150 * dp, t); t.setShader(null);
             if (!mQuit && mState == M_END && mi < 15 && mEndMsg.startsWith("Leider")) {
                 Bank.Q q = mq.get(mi);
@@ -577,7 +643,7 @@ public class QuizActivity extends Activity {
             dDay = Scores.today();
             JSONObject done = dailyResult(dDay);
             dq = Bank.daily(dDay);
-            if (done != null) { dScore = done.optInt("s"); dCorrect = done.optInt("c"); dTotalMs = done.optLong("t") * 1000; dRes = done.has("rank") ? done : null; dState = D_END; dFocus = 0; dGain = null; go(DAILY); return; }
+            if (done != null) { dEndAt = 0; dScore = done.optInt("s"); dCorrect = done.optInt("c"); dTotalMs = done.optLong("t") * 1000; dRes = done.has("rank") ? done : null; dState = D_END; dFocus = 0; dGain = null; go(DAILY); return; }
             di = 0; dScore = 0; dCorrect = 0; dTotalMs = 0; dGain = new int[dq.size()]; dRes = null; dFocus = 0;
             // sofort sperren: Abbrechen zaehlt als gespielt (sonst koennte man die Fragen vorab ansehen)
             saveDaily(false);
@@ -613,7 +679,7 @@ public class QuizActivity extends Activity {
             if (dState == D_ASK && System.currentTimeMillis() - dStart >= D_MS) dailyAnswer(-1);
             else if (dState == D_SHOW && System.currentTimeMillis() - dStateAt > 2200) {
                 if (di + 1 >= dq.size()) {
-                    dState = D_END; saveDaily(true); Audio.fx("win"); Voice.say(dChallenge != null ? "p:challenge_end" : Voice.pick("p:daily_end", "p:daily_end2"));
+                    dState = D_END; dEndAt = System.currentTimeMillis(); confetti(140); saveDaily(true); Audio.fx("win"); Voice.say(dChallenge != null ? "p:challenge_end" : Voice.pick("p:daily_end", "p:daily_end2"));
                     if (dChallenge != null) { finishChallenge(); return; }
                     Stats.dailyEnd(QuizActivity.this, dScore, dCorrect); checkBadges();
                     final int s = dScore; final long sec = Math.max(10, dTotalMs / 1000);
@@ -671,6 +737,7 @@ public class QuizActivity extends Activity {
             float ay = qr.bottom + 22 * dp, gap = 18 * dp, bw = (W - 2 * pad - gap) / 2, bh = Math.min(100 * dp, (H - 30 * dp - ay - gap) / 2);
             for (int i = 0; i < 4; i++) {
                 RectF r = new RectF(pad + (i % 2) * (bw + gap), ay + (i / 2) * (bh + gap), pad + (i % 2) * (bw + gap) + bw, ay + (i / 2) * (bh + gap) + bh);
+                if (!popBegin(c, r, dStart, i)) continue;
                 int fill = U.ANS[i];
                 if (dState == D_SHOW) fill = i == q.correct ? U.OK : i == dsel ? U.BAD : 0xFF23212F;
                 card(c, r, fill, 22 * dp);
@@ -681,6 +748,7 @@ public class QuizActivity extends Activity {
                 int ln = Math.min(2, U.wrap(t, q.answers[i], r.width() - 90 * dp).size()); float l2 = t.getTextSize() * 1.28f;
                 U.multi(c, t, q.answers[i], r.left + 70 * dp, r.centerY() - ln * l2 / 2 + t.getTextSize() * 0.95f, r.width() - 90 * dp, 2, false);
                 if (dState == D_SHOW && i == dsel && dGain[di] > 0) { t.setTextSize(20 * dp); String g = "+" + dGain[di]; c.drawText(g, r.right - 24 * dp - t.measureText(g), r.top + 32 * dp, t); }
+                c.restore();
                 final int ii = i; hit(r, new Runnable() { public void run() { if (dsel == ii) dailyAnswer(ii); else dsel = ii; } });
             }
         }
@@ -688,7 +756,7 @@ public class QuizActivity extends Activity {
             float cx = W / 2, y = 150 * dp;
             centerText(c, "Geschafft!", cx, y, 30 * dp, Color.WHITE, true);
             t.setTypeface(U.BOLD); t.setTextSize(70 * dp);
-            String s = U.num(dScore); float sw = t.measureText(s);
+            String s = U.num(countUp(dScore, dEndAt)); float sw = t.measureText(U.num(dScore));
             t.setShader(U.brand(cx - sw / 2, cx + sw / 2)); c.drawText(s, cx - sw / 2, y + 90 * dp, t); t.setShader(null);
             centerText(c, dCorrect + " von " + dq.size() + " richtig  ·  Zeit " + U.dur(Math.max(1, dTotalMs / 1000)), cx, y + 130 * dp, 19 * dp, 0xFFC9CCE0, false);
             JSONObject done = dailyResult(dDay);
@@ -768,7 +836,7 @@ public class QuizActivity extends Activity {
             go(DAILY);
         }
         void showChallengeResult(String code, String from, JSONObject r) {
-            dChallenge = code; dFrom = from; dState = D_END; dFocus = 0; dGain = null;
+            dChallenge = code; dFrom = from; dState = D_END; dFocus = 0; dGain = null; dEndAt = 0;
             JSONObject mine = null; try { mine = new JSONObject(U.prefs(QuizActivity.this).getString("ch_" + code, "{}")); } catch (Exception ignored) {}
             dScore = mine == null ? 0 : mine.optInt("s"); dCorrect = mine == null ? 0 : mine.optInt("c"); dTotalMs = mine == null ? 0 : mine.optLong("t") * 1000;
             dRes = r; if (dq == null) dq = new ArrayList<>();
@@ -798,7 +866,7 @@ public class QuizActivity extends Activity {
             float lx = pad, lw = (W - 2 * pad) * 0.42f;
             text(c, "Dein Ergebnis", lx, 120 * dp, 18 * dp, U.MUTED, false);
             t.setTypeface(U.BOLD); t.setTextSize(58 * dp);
-            String sc = U.num(dScore); float sw = t.measureText(sc);
+            String sc = U.num(countUp(dScore, dEndAt)); float sw = t.measureText(U.num(dScore));
             t.setShader(U.brand(lx, lx + sw)); c.drawText(sc, lx, 186 * dp, t); t.setShader(null);
             text(c, dCorrect + " richtig  ·  Zeit " + U.dur(Math.max(1, dTotalMs / 1000)), lx, 218 * dp, 18 * dp, 0xFFC9CCE0, false);
             text(c, "Code für deine Freunde:", lx, 270 * dp, 17 * dp, U.MUTED, false);
@@ -822,7 +890,8 @@ public class QuizActivity extends Activity {
         }
 
         // ============================================================ Party: Lobby
-        int lf = 3, lCount = 10, lCat = 0, lMode = 0; // lf: 0 Fragen, 1 Kategorie, 2 Modus, 3 Start
+        int lf = 3, lCount = 10, lCat = 0, lMode = 0;
+        final String[] MODES = {"Klassisch", "Klassisch + Schätzen & Sortieren", "🔔 Buzzer – wer zuerst drückt", "👥 Teams (Lila gegen Türkis)", "👥 Teams + Schätzen & Sortieren"}; // lf: 0 Fragen, 1 Kategorie, 2 Modus, 3 Start
         final int[] COUNTS = {5, 10, 15, 20};
         io.nayuki.qrcodegen.QrCode qr; String qrUrl = "";
         final int[] PCOL = {0xFF7C3AED, 0xFF06B6D4, 0xFFF59E0B, 0xFFEC4899, 0xFF22C55E, 0xFF3B82F6, 0xFFEF4444, 0xFFA855F7};
@@ -857,7 +926,7 @@ public class QuizActivity extends Activity {
                 int d = k == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
                 if (lf == 0) { int i = 0; for (int j = 0; j < COUNTS.length; j++) if (COUNTS[j] == lCount) i = j; lCount = COUNTS[(i + d + COUNTS.length) % COUNTS.length]; }
                 else if (lf == 1) { int n = catKeys().size(); lCat = (lCat + d + n) % n; }
-                else if (lf == 2) lMode = 1 - lMode;
+                else if (lf == 2) lMode = (lMode + d + MODES.length) % MODES.length;
             }
             else if (ok && lf == 3) startParty();
             else if (ok && lf == 1 && "#pack".equals(catKeys().get(lCat))) askPack();
@@ -869,8 +938,9 @@ public class QuizActivity extends Activity {
             String cat = catKeys().get(lCat);
             if ("#pack".equals(cat) && lPack == null) { askPack(); return; }
             int n = Math.min(lCount, catCount(cat));
-            Party.mode = lMode;
-            Party.begin("#pack".equals(cat) ? Groups.packQuestions(lPack, n) : Bank.party(QuizActivity.this, cat, n));
+            Party.mode = lMode == 2 ? 1 : lMode >= 3 ? 2 : 0;
+            boolean specials = lMode == 1 || lMode == 4;
+            Party.begin("#pack".equals(cat) ? Groups.packQuestions(lPack, n) : Bank.party(QuizActivity.this, cat, n, specials));
             partyWelcome = true;
             pStateAt = System.currentTimeMillis(); pf = 0;
             go(PARTY);
@@ -909,7 +979,7 @@ public class QuizActivity extends Activity {
             // Einstellungen
             float sy = H - 226 * dp;
             String[] lab = {"Fragen", "Kategorie", "Modus"};
-            String cur = catKeys().get(lCat); String[] val = {String.valueOf(lCount), catName(cur) + ("#pack".equals(cur) && lPack == null ? "" : "  (" + catCount(cur) + ")"), lMode == 0 ? "Klassisch – alle antworten" : "🔔 Buzzer – wer zuerst drückt"};
+            String cur = catKeys().get(lCat); String[] val = {String.valueOf(lCount), catName(cur) + ("#pack".equals(cur) && lPack == null ? "" : "  (" + catCount(cur) + ")"), MODES[lMode]};
             for (int i = 0; i < 3; i++) {
                 RectF r = new RectF(rx, sy + i * 50 * dp, rx + rw, sy + i * 50 * dp + 42 * dp);
                 card(c, r, lf == i ? U.CARD2 : U.CARD, 23 * dp);
@@ -939,22 +1009,31 @@ public class QuizActivity extends Activity {
                     Voice.stop();
                     boolean anyRight = false;
                     if (Party.mode == 1) { for (Party.Player pp : new ArrayList<>(Party.players.values())) if (pp.gained > 0) anyRight = true; }
+                    else if (!Party.qs.get(Party.qn).type.equals("mc")) { for (Party.Player pp : new ArrayList<>(Party.players.values())) if (pp.gained > 0) anyRight = true; }
                     else anyRight = Party.votes()[Party.qs.get(Party.qn).correct] > 0;
                     Audio.fx(anyRight ? "right" : "wrong");
-                    if (!anyRight) Voice.say("p:nobody");
+                    boolean exact = false; Bank.Q rq = Party.qs.get(Party.qn);
+                    if (rq.type.equals("est")) for (Party.Player pp : new ArrayList<>(Party.players.values())) if (pp.answeredQn == Party.qn && pp.est == rq.num) exact = true;
+                    if (exact) Voice.say("p:est_exact"); else if (!anyRight) Voice.say("p:nobody");
                 } else if (ph == Party.SCORES) {
                     List<Party.Player> rk = Party.ranking();
                     String lead = rk.isEmpty() || rk.get(0).score <= 0 ? null : rk.get(0).id;
                     if (Party.qn + 1 == Party.qs.size() / 2) Voice.say("p:halfway");
                     else if (lead != null && lastLeader != null && !lead.equals(lastLeader)) Voice.say(Voice.pick("p:lead1", "p:lead2"));
                     lastLeader = lead;
-                } else if (ph == Party.END) { Audio.fx("win"); Voice.say(Voice.pick("p:party_end", "p:party_end2")); Stats.partyEnd(QuizActivity.this); checkBadges(); }
+                } else if (ph == Party.END) { Audio.fx("win"); confetti(220);
+                    if (Party.mode == 2) { int[] ts = Party.teamScores(); Voice.say(ts[0] == ts[1] ? "p:team_draw" : ts[0] > ts[1] ? "p:team_win_a" : "p:team_win_b"); }
+                    else Voice.say(Voice.pick("p:party_end", "p:party_end2")); Stats.partyEnd(QuizActivity.this); checkBadges(); }
                 else if (ph == Party.ANSWERING) { Voice.stop(); Audio.blip("click"); Voice.say(Voice.pick("p:buzz1", "p:buzz2", "p:buzz3")); }
                 else if (ph == Party.QUESTION) {
+                    if (prev != Party.ANSWERING) pQAt = now;
                     if (prev == Party.ANSWERING) { Audio.fx("wrong"); Voice.say(Voice.pick("p:buzz_wrong1", "p:buzz_wrong2")); }
                     else {
-                        String q = "q:" + Party.qs.get(Party.qn).id;
-                        if (partyWelcome) { partyWelcome = false; lastLeader = null; Voice.say(Party.mode == 1 ? "p:welcome_buzz" : Voice.pick("p:welcome_party", "p:welcome_party2", "p:welcome_party3"), q); } else Voice.say(q);
+                        Bank.Q cq = Party.qs.get(Party.qn);
+                        String q = "q:" + cq.id;
+                        String intro = cq.type.equals("est") ? Voice.pick("p:est_intro", "p:est_intro2") : cq.type.equals("ord") ? Voice.pick("p:ord_intro", "p:ord_intro2") : null;
+                        if (partyWelcome) { partyWelcome = false; lastLeader = null; String w = Party.mode == 1 ? "p:welcome_buzz" : Party.mode == 2 ? "p:teams" : Voice.pick("p:welcome_party", "p:welcome_party2", "p:welcome_party3"); sayList(w, cq, intro); }
+                        else sayList(intro, cq);
                         if (Party.qn + 1 < Party.qs.size()) Voice.prefetch("q:" + Party.qs.get(Party.qn + 1).id);
                     }
                 }
@@ -991,14 +1070,15 @@ public class QuizActivity extends Activity {
             if (ph == Party.END) { drawPodium(c); return; }
             if (ph == Party.SCORES) { drawRanking(c, false); return; }
             Bank.Q q = Party.qs.get(Party.qn);
-            text(c, "Frage " + (Party.qn + 1) + " / " + Party.qs.size(), pad, 52 * dp, 18 * dp, U.MUTED, false);
+            text(c, "Frage " + (Party.qn + 1) + " / " + Party.qs.size() + (q.by.isEmpty() ? "" : "  ·  eingereicht von " + q.by), pad, 52 * dp, 18 * dp, U.MUTED, false);
+            if (Party.mode == 2) { int[] ts = Party.teamScores(); text(c, "Lila " + U.num(ts[0]) + "  :  " + U.num(ts[1]) + " Türkis", pad, 76 * dp, 15 * dp, 0xFFC9CCE0, true); }
             String cat = Bank.cats.containsKey(q.cat) ? Bank.cats.get(q.cat) : "pack".equals(q.cat) && lPack != null ? lPack.optString("name") : q.cat;
             t.setTypeface(U.BOLD); t.setTextSize(14 * dp); t.setColor(0xFF9EC5FF); c.drawText(cat.toUpperCase(Locale.GERMAN), W / 2 - t.measureText(cat.toUpperCase(Locale.GERMAN)) / 2, 52 * dp, t);
             // Zeit-Kreis
             long left = ph == Party.QUESTION || ph == Party.ANSWERING ? Party.left() : 0;
             float cx = W - pad - 34 * dp, cy = 50 * dp;
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(6 * dp); p.setColor(0x22FFFFFF); c.drawCircle(cx, cy, 30 * dp, p);
-            p.setShader(U.brand(cx - 30 * dp, cx + 30 * dp)); c.drawArc(new RectF(cx - 30 * dp, cy - 30 * dp, cx + 30 * dp, cy + 30 * dp), -90, 360f * left / Party.Q_MS, false, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
+            p.setShader(U.brand(cx - 30 * dp, cx + 30 * dp)); c.drawArc(new RectF(cx - 30 * dp, cy - 30 * dp, cx + 30 * dp, cy + 30 * dp), -90, 360f * left / Party.qMs, false, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
             centerText(c, String.valueOf((left + 999) / 1000), cx, cy + 9 * dp, 24 * dp, Color.WHITE, true);
             // Frage
             RectF qr = new RectF(pad, 92 * dp, W - pad, 262 * dp);
@@ -1008,14 +1088,16 @@ public class QuizActivity extends Activity {
             int lines = Math.min(3, U.wrap(t, q.text, qr.width() - 60 * dp).size()); float lh = t.getTextSize() * 1.28f;
             U.multi(c, t, q.text, qr.left + 30 * dp, qr.centerY() - lines * lh / 2 + t.getTextSize() * 0.95f, qr.width() - 60 * dp, 3, true);
             // Antworten
+            if (!q.type.equals("mc")) drawSpecial(c, q, qr, pad, ph); else {
             int[] votes = Party.votes(); int total = Math.max(1, Party.players.size());
             float ay = qr.bottom + 22 * dp, gap = 18 * dp, bw = (W - 2 * pad - gap) / 2, bh = Math.min(104 * dp, (H - 70 * dp - ay - gap) / 2);
             for (int i = 0; i < 4; i++) {
                 RectF r = new RectF(pad + (i % 2) * (bw + gap), ay + (i / 2) * (bh + gap), pad + (i % 2) * (bw + gap) + bw, ay + (i / 2) * (bh + gap) + bh);
                 boolean rev = ph == Party.REVEAL;
+                if (!popBegin(c, r, pQAt, i)) continue;
                 int fill = rev ? (i == q.correct ? U.OK : 0xFF23212F) : U.ANS[i];
                 card(c, r, fill, 22 * dp);
-                if (rev && Party.mode == 0) { // Anteil der Stimmen als Balken
+                if (rev && Party.mode != 1) { // Anteil der Stimmen als Balken
                     RectF vb = new RectF(r.left, r.bottom - 8 * dp, r.left + r.width() * votes[i] / total, r.bottom);
                     p.setColor(0x66FFFFFF); c.drawRect(vb, p);
                 }
@@ -1024,7 +1106,9 @@ public class QuizActivity extends Activity {
                 U.fit(t, q.answers[i], r.width() - 130 * dp, 2, 24 * dp, 14 * dp);
                 int ln = Math.min(2, U.wrap(t, q.answers[i], r.width() - 130 * dp).size()); float l2 = t.getTextSize() * 1.28f;
                 U.multi(c, t, q.answers[i], r.left + 72 * dp, r.centerY() - ln * l2 / 2 + t.getTextSize() * 0.95f, r.width() - 130 * dp, 2, false);
-                if (rev && Party.mode == 0) { t.setTextSize(24 * dp); t.setColor(Color.WHITE); String v = String.valueOf(votes[i]); c.drawText(v, r.right - 26 * dp - t.measureText(v), r.centerY() + 9 * dp, t); }
+                if (rev && Party.mode != 1) { t.setTextSize(24 * dp); t.setColor(Color.WHITE); String v = String.valueOf(votes[i]); c.drawText(v, r.right - 26 * dp - t.measureText(v), r.centerY() + 9 * dp, t); }
+                c.restore();
+            }
             }
             if (Party.mode == 1 && ph == Party.ANSWERING) {   // wer gebuzzert hat
                 RectF br = new RectF(W / 2 - 260 * dp, qr.bottom - 30 * dp, W / 2 + 260 * dp, qr.bottom + 60 * dp);
@@ -1044,12 +1128,67 @@ public class QuizActivity extends Activity {
                 : ph == Party.QUESTION ? Party.answeredCount() + " von " + Party.players.size() + " haben geantwortet" : "OK = weiter";
             t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED); c.drawText(st, W - pad - t.measureText(st), fy, t);
         }
+        /** Schaetz- und Sortierfragen am Fernseher. */
+        void drawSpecial(Canvas c, Bank.Q q, RectF qr, float pad, int ph) {
+            float y = qr.bottom + 22 * dp; boolean rev = ph == Party.REVEAL;
+            if (q.type.equals("est")) {
+                if (!rev) {
+                    RectF r = new RectF(pad, y, W - pad, y + 120 * dp); card(c, r, U.CARD, 22 * dp);
+                    centerText(c, "🔢  Schätzfrage", W / 2, r.top + 52 * dp, 30 * dp, Color.WHITE, true);
+                    centerText(c, "Tippt eure Zahl ins Handy" + (q.unit.isEmpty() ? "" : " (in " + q.unit + ")") + " – wer am nächsten dran ist, gewinnt!", W / 2, r.top + 90 * dp, 17 * dp, 0xFFC9CCE0, false);
+                    return;
+                }
+                String target = fmtNum(q.num) + (q.unit.isEmpty() ? "" : " " + q.unit);
+                RectF r = new RectF(pad, y, pad + 330 * dp, H - 60 * dp); card(c, r, U.OK, 22 * dp);
+                centerText(c, "Richtig:", r.centerX(), r.top + 50 * dp, 20 * dp, Color.WHITE, false);
+                t.setTypeface(U.BOLD); t.setColor(Color.WHITE); U.fit(t, target, r.width() - 30 * dp, 1, 50 * dp, 20 * dp);
+                c.drawText(target, r.centerX() - t.measureText(target) / 2, r.centerY() + 24 * dp, t);
+                List<Party.Player> l = Party.estimates();
+                float lx = r.right + 24 * dp, lw = W - pad - lx, rh = Math.min(40 * dp, (r.height()) / Math.max(1, Math.min(6, l.size())));
+                if (l.isEmpty()) text(c, "Keiner hat geschätzt", lx, y + 40 * dp, 18 * dp, U.MUTED, false);
+                for (int i = 0; i < l.size() && i < 6; i++) {
+                    Party.Player pp = l.get(i);
+                    RectF rr = new RectF(lx, y + i * rh, lx + lw, y + i * rh + rh - 6 * dp); card(c, rr, i == 0 ? U.CARD2 : U.CARD, 12 * dp);
+                    if (i == 0) focus(c, rr, 12 * dp);
+                    text(c, pp.estRank + ".  " + pp.name, rr.left + 16 * dp, rr.centerY() + 6 * dp, 17 * dp, Color.WHITE, true);
+                    String v = fmtNum(pp.est) + "   (" + (pp.est == q.num ? "genau!" : "±" + fmtNum(Math.abs(pp.est - q.num))) + ")   +" + pp.gained;
+                    t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(0xFFC9CCE0); c.drawText(v, rr.right - 16 * dp - t.measureText(v), rr.centerY() + 6 * dp, t);
+                }
+                return;
+            }
+            // Reihenfolge
+            float bh = Math.min(56 * dp, (H - 70 * dp - y) / 4 - 8 * dp);
+            int full = 0; if (rev) for (Party.Player pp : new ArrayList<>(Party.players.values())) if (pp.gained >= 1250) full++;
+            for (int k = 0; k < 4; k++) {
+                int idx = rev ? q.order[k] : k;
+                RectF r = new RectF(pad, y + k * (bh + 8 * dp), W - pad, y + k * (bh + 8 * dp) + bh);
+                card(c, r, rev ? U.OK : U.ANS[k], 16 * dp);
+                text(c, rev ? (k + 1) + "." : U.SHAPE[k], r.left + 22 * dp, r.centerY() + 9 * dp, 24 * dp, Color.WHITE, true);
+                t.setTypeface(U.BOLD); t.setColor(Color.WHITE); U.fit(t, q.answers[idx], r.width() - 120 * dp, 1, 22 * dp, 14 * dp);
+                c.drawText(q.answers[idx], r.left + 70 * dp, r.centerY() + 8 * dp, t);
+            }
+            if (!rev) text(c, "📋  Sortieraufgabe – tippt die Begriffe am Handy in der richtigen Reihenfolge an", pad, H - 50 * dp, 15 * dp, U.MUTED, false);
+            else text(c, full == 0 ? "Keiner hatte alles richtig – je richtige Position gibt es 250 Punkte." : full + (full == 1 ? " Spieler hatte" : " Spieler hatten") + " alles richtig (+1.250)", pad, H - 50 * dp, 15 * dp, U.MUTED, false);
+        }
+        String fmtNum(double v) { return v == Math.rint(v) ? U.num((int) Math.round(v)) : String.format(Locale.GERMANY, "%,.2f", v); }
         void drawRanking(Canvas c, boolean fin) {
             float pad = 60 * dp;
             centerText(c, "Zwischenstand", W / 2, 70 * dp, 30 * dp, Color.WHITE, true);
             centerText(c, "nach Frage " + (Party.qn + 1) + " von " + Party.qs.size() + "  ·  OK = weiter", W / 2, 100 * dp, 16 * dp, U.MUTED, false);
             List<Party.Player> l = Party.ranking();
-            float y = 130 * dp, rh = Math.min(56 * dp, (H - y - 30 * dp) / Math.max(1, Math.min(8, l.size())));
+            float y = 130 * dp;
+            if (Party.mode == 2) {   // Teamwertung oben
+                int[] ts = Party.teamScores(); int tm = Math.max(1, Math.max(Math.abs(ts[0]), Math.abs(ts[1])));
+                for (int k = 0; k < 2; k++) {
+                    RectF r = new RectF(pad + 120 * dp, y + k * 44 * dp, W - pad - 120 * dp, y + k * 44 * dp + 36 * dp);
+                    card(c, r, U.CARD, 18 * dp);
+                    p.setColor(k == 0 ? 0xAA7C3AED : 0xAA06B6D4); c.drawRoundRect(new RectF(r.left, r.top, r.left + r.width() * Math.max(0, ts[k]) / tm, r.bottom), 18 * dp, 18 * dp, p);
+                    text(c, Party.TEAM[k] + "  (" + Party.teamSize(k) + ")", r.left + 18 * dp, r.centerY() + 7 * dp, 18 * dp, Color.WHITE, true);
+                    t.setTypeface(U.BOLD); t.setTextSize(18 * dp); String v = U.num(ts[k]) + " Ø"; c.drawText(v, r.right - 18 * dp - t.measureText(v), r.centerY() + 7 * dp, t);
+                }
+                y += 100 * dp;
+            }
+            float rh = Math.min(56 * dp, (H - y - 30 * dp) / Math.max(1, Math.min(8, l.size())));
             int max = Math.max(1, l.isEmpty() ? 1 : l.get(0).score);
             for (int i = 0; i < l.size() && i < 8; i++) {
                 Party.Player pp = l.get(i);
@@ -1066,7 +1205,8 @@ public class QuizActivity extends Activity {
         }
         void drawPodium(Canvas c) {
             List<Party.Player> l = Party.ranking();
-            centerText(c, "🏆  Siegerehrung", W / 2, 70 * dp, 32 * dp, Color.WHITE, true);
+            if (Party.mode == 2) { int[] ts = Party.teamScores(); centerText(c, ts[0] == ts[1] ? "🤝  Unentschieden!" : "🏆  " + Party.TEAM[ts[0] > ts[1] ? 0 : 1] + " gewinnt  –  " + U.num(ts[0]) + " : " + U.num(ts[1]), W / 2, 70 * dp, 30 * dp, Color.WHITE, true); }
+            else centerText(c, "🏆  Siegerehrung", W / 2, 70 * dp, 32 * dp, Color.WHITE, true);
             float base = H - 150 * dp, pw = 200 * dp, cx = W / 2;
             int[] order = {1, 0, 2}; float[] hgt = {150 * dp, 210 * dp, 110 * dp};
             for (int k = 0; k < 3; k++) {

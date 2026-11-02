@@ -363,6 +363,7 @@ public class HomeActivity extends Activity {
                         buildTiles(false);
                     } });
             t.tag = p;
+            if (QuizStatus.PKG.equals(p)) t.badge = QuizStatus.read(this).badge();
             addTile(t, Style.px(tileW), tileH);
             if (first == null) first = t;
             if (p.equals(focusedTag)) toFocus = t;
@@ -459,7 +460,22 @@ public class HomeActivity extends Activity {
     }
 
     /** Hinweise aus Home Assistant oben in der Mitte anzeigen. */
+    List<String> lastAlerts = new ArrayList<>();
+    String quizAlert;
+    /** Quiz-Status auf Kachel und als Hinweis aktualisieren (beim Zurueckkehren auf die Startseite). */
+    void refreshQuiz() {
+        QuizStatus q = QuizStatus.read(this);
+        boolean asTile = false;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View v = row.getChildAt(i);
+            if (v instanceof Tile && QuizStatus.PKG.equals(((Tile) v).tag)) { ((Tile) v).badge = q.badge(); v.invalidate(); asTile = true; }
+        }
+        String a = asTile ? null : q.alert();
+        if (a == null ? quizAlert != null : !a.equals(quizAlert)) { quizAlert = a; setAlerts(lastAlerts); }
+    }
     void setAlerts(List<String> alerts) {
+        lastAlerts = new ArrayList<>(alerts);
+        if (quizAlert != null) { alerts = new ArrayList<>(alerts); alerts.add(0, quizAlert); }
         alertBox.removeAllViews();
         if (message != null) {
             AlertPill mp = new AlertPill(this, message);
@@ -549,6 +565,7 @@ public class HomeActivity extends Activity {
         // ohne Home Assistant keine leere "Zuhause"-Reihe
         home.setVisibility(Style.prefs(this).getBoolean("hide_home", false) || Style.loadConfig(this) == null || !Style.loadConfig(this).has("url") ? View.GONE : View.VISIBLE);
         buildTiles(false);
+        refreshQuiz();
         if (System.currentTimeMillis() - lastUpdateCheck > 6 * 3600 * 1000L) {
             lastUpdateCheck = System.currentTimeMillis();
             Updater.check(this, new Updater.Callback() { public void result(org.json.JSONObject u) {

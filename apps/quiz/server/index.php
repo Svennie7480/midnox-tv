@@ -74,6 +74,18 @@ const PHRASES = [
     'lead1' => 'Wir haben eine neue Spitze!', 'lead2' => 'Es gibt einen neuen Führenden!',
     'nobody' => 'Das wusste wohl keiner!',
     'halfway' => 'Halbzeit! Mal sehen, wie es steht.',
+    // Antworten vorlesen
+    'la' => 'A:', 'lb' => 'B:', 'lc' => 'C:', 'ld' => 'D:',
+    // Sonderfragen und Teams
+    'est_intro' => 'Schätzfrage! Wer kommt am nächsten ran?',
+    'est_intro2' => 'Jetzt wird geschätzt! Tippt eure Zahl ins Handy.',
+    'est_exact' => 'Volltreffer! Ganz genau richtig geschätzt!',
+    'ord_intro' => 'Bringt die Antworten in die richtige Reihenfolge!',
+    'ord_intro2' => 'Sortieraufgabe! Was kommt zuerst?',
+    'teams' => 'Team-Runde! Team Lila gegen Team Türkis. Jeder Punkt zählt für euer Team!',
+    'team_win_a' => 'Team Lila gewinnt! Glückwunsch!',
+    'team_win_b' => 'Team Türkis gewinnt! Glückwunsch!',
+    'team_draw' => 'Unentschieden! Beide Teams sind gleich stark.',
 ];
 const MODEL = 'eleven_multilingual_v2';
 
@@ -208,9 +220,10 @@ function bank(): array {
     }
     $b = json_decode((string)@file_get_contents($f), true);
     $m = [];
-    foreach (($b['q'] ?? []) as $q) $m[$q['id']] = $q['q'];
+    foreach (($b['q'] ?? []) as $q) $m[$q['id']] = $q;
     return $m;
 }
+function bankCats(): array { global $DATA; bank(); $b = json_decode((string)@file_get_contents("$DATA/bank.json"), true); return $b['cats'] ?? []; }
 function elevenCall(string $path, ?array $body, string $key, string $accept = 'application/json') {
     $ch = curl_init('https://api.elevenlabs.io' . $path);
     $hd = ['xi-api-key: ' . $key, 'Accept: ' . $accept];
@@ -236,15 +249,19 @@ function autoVoice(string $key): string {
     }
     return preg_replace('/[^A-Za-z0-9]/', '', $best);
 }
+/** Text zu einer ID: Frage („abc12345“) oder Antwort („abc12345_2“), auch für Pakete (p_CODE_n) und Einsendungen (c_n). */
 function ttsText(): ?string {
     if (isset($_GET['p'])) return PHRASES[$_GET['p']] ?? null;
     $id = (string)($_GET['q'] ?? '');
-    if (preg_match('/^p_([A-Z0-9]{6})_(\d+)$/', $id, $m)) {
-        $pk = load('packs', [])[$m[1]] ?? null;
-        return $pk['q'][(int)$m[2]]['q'] ?? null;
-    }
-    if (!preg_match('/^[a-f0-9]{8}$/', $id)) return null;
-    return bank()[$id] ?? null;
+    $k = null;
+    if (preg_match('/^([a-f0-9]{8}|c_\d+|p_[A-Z0-9]{6}_\d+)_([0-3])$/', $id, $mm)) { $id = $mm[1]; $k = (int)$mm[2]; }
+    $row = null;
+    if (preg_match('/^p_([A-Z0-9]{6})_(\d+)$/', $id, $m)) { $pk = load('packs', [])[$m[1]] ?? null; $row = $pk['q'][(int)$m[2]] ?? null; }
+    elseif (preg_match('/^c_\d+$/', $id)) { foreach (load('community', []) as $q) if ($q['id'] === $id) $row = $q; }
+    elseif (preg_match('/^[a-f0-9]{8}$/', $id)) $row = bank()[$id] ?? null;
+    if (!$row) return null;
+    if ($k === null) return $row['q'] ?? null;
+    return $row['a'][$k] ?? null;
 }
 if ($a === 'tts') {
     $cfg = load('config', []);
@@ -393,9 +410,58 @@ if ($a === 'ch_result') {
     foreach ($l as $i => $x) if ($x['dev'] === $hd) { $rank = $i + 1; break; }
     out(['ok' => true, 'rank' => $rank, 'list' => $l]);
 }
+// ---------------------------------------------------------------- Einsendungen und freigegebene Community-Fragen
+if ($a === 'extra') {
+    $l = [];
+    foreach (load('community', []) as $q) $l[] = ['id' => $q['id'], 'c' => $q['c'], 'l' => $q['l'], 'q' => $q['q'], 'a' => $q['a'], 'by' => $q['by'] ?? ''];
+    out(['ok' => true, 'q' => $l]);
+}
 if ($a === 'streak') {
     $dev = devOk((string)($_GET['dev'] ?? ''));
     out(['ok' => true, 'streak' => $dev ? streak(load('daily', []), $dev) : 0]);
+}
+
+// ---------------------------------------------------------------- Frage einreichen (öffentlich)
+if (isset($_GET['einreichen'])) {
+    $msg = ''; $ok = false;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $f = fn($k, $n = 200) => mb_substr(trim(preg_replace('/[\x00-\x1F<>]/u', '', (string)($_POST[$k] ?? ''))), 0, $n);
+        $q = $f('q'); $ans = [$f('a0', 60), $f('a1', 60), $f('a2', 60), $f('a3', 60)]; $cat = $f('c', 20); $by = $f('by', 16);
+        $lk = lockAll();
+        $lim = load('sublimits', []); $now = time();
+        foreach ($lim as $k => $e) if ($now - $e['t'] > 3600) unset($lim[$k]);
+        $e = $lim[ip()] ?? ['n' => 0, 't' => $now];
+        if (!empty($_POST['website'])) $ok = true;   // Spam-Falle: still „danke“ sagen
+        elseif ($e['n'] >= 10) $msg = 'Danke! Für diese Stunde reicht es – später gern mehr.';
+        elseif (mb_strlen($q) < 10 || in_array('', $ans, true)) $msg = 'Bitte die Frage und alle vier Antworten ausfüllen.';
+        elseif (count(array_unique(array_map('mb_strtolower', $ans))) !== 4) $msg = 'Die vier Antworten müssen verschieden sein.';
+        else {
+            $subs = load('submissions', []);
+            $subs[] = ['id' => bin2hex(random_bytes(5)), 'q' => $q, 'a' => $ans, 'c' => $cat, 'by' => $by, 'at' => $now, 'ip' => hash('sha256', ip())];
+            save('submissions', array_slice($subs, -500));
+            $e['n']++; $lim[ip()] = $e; save('sublimits', $lim);
+            $ok = true;
+        }
+    }
+    $cats = bankCats();
+    ?><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>midnox Quiz – Frage einreichen</title>
+<style>body{margin:0;background:#0B0A14;color:#E6E8F2;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}.w{max-width:620px;margin:0 auto;padding:28px 16px}
+h1{font-size:26px;margin:0 0 4px}h1 b{background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4);-webkit-background-clip:text;background-clip:text;color:transparent}.sub{color:#8A8FA8}
+label{display:block;margin:14px 0 4px;color:#C9CCE0;font-size:14px}input,select{width:100%;box-sizing:border-box;font:inherit;padding:12px 14px;border-radius:12px;border:1px solid #2E2B4A;background:#15141F;color:#fff}
+input.ok{border-color:#22C55E}button{margin-top:18px;width:100%;padding:14px;border:0;border-radius:999px;font:inherit;font-weight:600;color:#fff;background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4)}
+.m{color:#fca5a5}.done{background:#15141F;border-radius:14px;padding:18px;margin-top:16px}.hp{position:absolute;left:-5000px}a{color:#9EC5FF}</style></head><body><div class="w">
+<h1><b>midnox</b> Quiz</h1><p class="sub">Schlag eine Frage vor! Nach der Prüfung landet sie im Quiz – mit deinem Namen.</p>
+<?php if ($ok) { ?><div class="done">✅ Danke! Deine Frage wird geprüft. <a href="?einreichen">Noch eine einreichen</a></div><?php } else { ?>
+<form method="post"><p class="m"><?= h($msg) ?></p>
+<label>Frage</label><input name="q" maxlength="200" required value="<?= h($_POST['q'] ?? '') ?>" placeholder="Wie heißt …?">
+<label>Richtige Antwort</label><input class="ok" name="a0" maxlength="60" required value="<?= h($_POST['a0'] ?? '') ?>">
+<label>Falsche Antworten</label><input name="a1" maxlength="60" required value="<?= h($_POST['a1'] ?? '') ?>"><input name="a2" maxlength="60" required style="margin-top:8px" value="<?= h($_POST['a2'] ?? '') ?>"><input name="a3" maxlength="60" required style="margin-top:8px" value="<?= h($_POST['a3'] ?? '') ?>">
+<label>Kategorie</label><select name="c"><?php foreach ($cats as $k => $v) echo '<option value="' . h($k) . '">' . h($v) . '</option>'; ?></select>
+<label>Dein Name (optional, wird im Quiz angezeigt)</label><input name="by" maxlength="16" value="<?= h($_POST['by'] ?? '') ?>">
+<input class="hp" name="website" tabindex="-1" autocomplete="off">
+<button>Frage einreichen</button></form><?php } ?>
+<p class="sub" style="margin-top:24px"><a href="./">← zur Bestenliste</a></p></div></body></html><?php
+    exit;
 }
 
 // ---------------------------------------------------------------- Verwaltung
@@ -440,6 +506,20 @@ if (isset($_GET['admin'])) {
             else { $packs[$c] = ['name' => $nm, 'q' => $qs, 'at' => time()]; save('packs', $packs); $msg = "Paket „{$nm}“ gespeichert – Code $c, " . count($qs) . ' Fragen.' . ($err ? ' Übersprungen: ' . implode(' · ', $err) : ''); $_GET['pk'] = $c; }
         }
         if (isset($_POST['pk_del'])) { $lk = lockAll(); $packs = load('packs', []); unset($packs[(string)$_POST['pk_del']]); save('packs', $packs); $msg = 'Paket gelöscht.'; }
+        if (isset($_POST['sub_ok']) || isset($_POST['sub_no'])) {
+            $lk = lockAll(); $subs = load('submissions', []); $sid = (string)($_POST['sub_ok'] ?? $_POST['sub_no']);
+            foreach ($subs as $i => $x) if ($x['id'] === $sid) {
+                if (isset($_POST['sub_ok'])) {
+                    $com = load('community', []); $n = 1; foreach ($com as $q) $n = max($n, (int)substr($q['id'], 2) + 1);
+                    $f = fn($k, $d, $len) => mb_substr(trim((string)($_POST[$k] ?? $d)), 0, $len);
+                    $com[] = ['id' => 'c_' . $n, 'c' => $f('c', $x['c'], 20), 'l' => max(1, min(3, (int)($_POST['l'] ?? 2))), 'q' => $f('q', $x['q'], 200),
+                              'a' => [$f('a0', $x['a'][0], 60), $f('a1', $x['a'][1], 60), $f('a2', $x['a'][2], 60), $f('a3', $x['a'][3], 60)], 'by' => $x['by'], 'at' => time()];
+                    save('community', $com); $msg = 'Freigegeben – die Frage ist ab sofort im Quiz.';
+                } else $msg = 'Abgelehnt.';
+                unset($subs[$i]); save('submissions', array_values($subs)); break;
+            }
+        }
+        if (isset($_POST['com_del'])) { $lk = lockAll(); $com = array_values(array_filter(load('community', []), fn($q) => $q['id'] !== $_POST['com_del'])); save('community', $com); $msg = 'Community-Frage entfernt.'; }
         if (isset($_POST['gr_del'])) { $lk = lockAll(); $g = load('groups', []); unset($g[(string)$_POST['gr_del']]); save('groups', $g); $msg = 'Gruppe gelöscht.'; }
     }
 }
@@ -491,6 +571,23 @@ function adminPacks(): void {
     echo '<textarea name="pk_text" rows="14" style="width:100%" placeholder="Wie heißt der Busbetrieb in Lübeck? | SWL mobil | HVV | Autokraft | Rhenus">' . h($txt) . '</textarea>';
     echo '<button name="pk_save" value="1">Speichern</button>' . ($p ? ' <a href="?admin&s=packs">neues Paket anlegen</a>' : '') . '</form>';
 }
+function adminSubs(): void {
+    $subs = load('submissions', []); $cats = bankCats(); $com = load('community', []);
+    echo '<div class="card"><h3>Eingereichte Fragen</h3><p class="hint">Öffentliche Seite zum Einreichen: <a href="?einreichen" style="color:#9EC5FF">' . h(($_SERVER['HTTP_HOST'] ?? '') . strtok($_SERVER['REQUEST_URI'] ?? '', '?')) . '?einreichen</a> – vor dem Freigeben kannst du alles korrigieren.</p></div>';
+    if (!$subs) echo '<div class="card"><p class="hint">Keine offenen Einsendungen.</p></div>';
+    foreach (array_reverse($subs) as $x) {
+        echo '<form method="post" class="card"><label>Frage' . ($x['by'] ? ' · von ' . h($x['by']) : '') . ' · ' . date('d.m.Y H:i', $x['at']) . '</label><input name="q" value="' . h($x['q']) . '" style="width:100%">';
+        echo '<label>Richtig / falsch / falsch / falsch</label>';
+        for ($i = 0; $i < 4; $i++) echo '<input name="a' . $i . '" value="' . h($x['a'][$i]) . '" style="width:24%;margin-right:1%' . ($i === 0 ? ';border-color:#22C55E' : '') . '">';
+        echo '<label>Kategorie und Schwierigkeit</label><select name="c">';
+        foreach ($cats as $k => $v) echo '<option value="' . h($k) . '"' . ($k === $x['c'] ? ' selected' : '') . '>' . h($v) . '</option>';
+        echo '</select> <select name="l"><option value="1">leicht</option><option value="2" selected>mittel</option><option value="3">schwer</option></select><br>';
+        echo '<button name="sub_ok" value="' . h($x['id']) . '">✓ Freigeben</button> <button class="x" name="sub_no" value="' . h($x['id']) . '">Ablehnen</button></form>';
+    }
+    echo '<div class="card"><h3>Freigegebene Community-Fragen (' . count($com) . ')</h3>';
+    foreach (array_reverse($com) as $q) echo '<div class="row">' . h($q['q']) . ' <span class="hint">→ ' . h($q['a'][0]) . ($q['by'] ? ' · von ' . h($q['by']) : '') . '</span> <form method="post" style="display:inline"><button class="x" name="com_del" value="' . h($q['id']) . '">entfernen</button></form></div>';
+    echo '</div>';
+}
 function adminGroups(): void {
     $g = load('groups', []);
     echo '<div class="card"><h3>Freundesgruppen</h3><p class="hint">Gruppen werden in der App gegründet und per Code geteilt.</p>';
@@ -519,7 +616,7 @@ input,button{font:inherit;padding:10px 14px;border-radius:10px;border:1px solid 
 label{display:block;margin:12px 0 4px;color:#C9CCE0;font-size:14px}label.ck{display:flex;gap:8px;align-items:center}select,textarea{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid #2E2B4A;background:#0B0A14;color:#fff;box-sizing:border-box}
 .card button{margin-top:12px}.row{padding:8px 0;border-top:1px solid #23212F}.row a{color:#9EC5FF;margin-left:8px}.code{font-family:monospace;background:#23212F;padding:2px 8px;border-radius:6px;letter-spacing:2px}audio{width:100%;margin-top:6px}
 </style></head><body><div class="w">
-<h1><b>midnox</b> Quiz</h1><p class="sub">Weltweite Bestenliste – gespielt wird am Fernseher mit der midnox Quiz App.</p>
+<h1><b>midnox</b> Quiz</h1><p class="sub">Weltweite Bestenliste – gespielt wird am Fernseher mit der midnox Quiz App. <a href="?einreichen" style="color:#9EC5FF">Eigene Frage einreichen →</a></p>
 <?php if (isset($_GET['admin']) && !$admin) { $cfg = load('config', []); ?>
 <form method="post"><p class="m"><?= h($msg) ?></p>
 <?php if (empty($cfg['pw'])) { ?><p>Erster Aufruf: Lege ein Verwaltungs-Passwort fest.</p><input type="password" name="pw1" placeholder="Neues Passwort (mind. 8 Zeichen)"> <button>Festlegen</button>
@@ -530,12 +627,14 @@ label{display:block;margin:12px 0 4px;color:#C9CCE0;font-size:14px}label.ck{disp
     $sec = $admin ? ($_GET['s'] ?? 'list') : 'list';
     if ($admin) {
         echo '<div class="tabs">';
-        foreach (['list' => 'Bestenliste', 'voice' => 'Stimme', 'packs' => 'Fragenpakete', 'groups' => 'Gruppen'] as $k => $v) echo '<a class="' . ($sec === $k ? 'on' : '') . '" href="?admin&s=' . $k . '">' . $v . '</a>';
+        $nsub = count(load('submissions', []));
+        foreach (['list' => 'Bestenliste', 'voice' => 'Stimme', 'packs' => 'Fragenpakete', 'subs' => 'Einsendungen' . ($nsub ? " ($nsub)" : ''), 'groups' => 'Gruppen'] as $k => $v) echo '<a class="' . ($sec === $k ? 'on' : '') . '" href="?admin&s=' . $k . '">' . $v . '</a>';
         echo '</div>';
     }
     if ($sec === 'voice') { adminVoice(); echo '</div></body></html>'; exit; }
     if ($sec === 'packs') { adminPacks(); echo '</div></body></html>'; exit; }
     if ($sec === 'groups') { adminGroups(); echo '</div></body></html>'; exit; }
+    if ($sec === 'subs') { adminSubs(); echo '</div></body></html>'; exit; }
     echo '<div class="tabs"><a class="' . ($tab === 'daily' ? 'on' : '') . '" href="?t=daily' . $q . '">Tages-Duell heute</a><a class="' . ($tab === 'week' ? 'on' : '') . '" href="?t=week' . $q . '">Die Million · Woche</a><a class="' . ($tab === 'all' ? 'on' : '') . '" href="?t=all' . $q . '">Die Million · Ewig</a></div>';
     $daily = $tab === 'daily';
     $l = $daily ? topDaily(date('Y-m-d')) : topMillion($tab === 'week' ? 'week' : 'all');

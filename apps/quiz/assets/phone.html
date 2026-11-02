@@ -32,7 +32,10 @@ var id=localStorage.getItem('mq_id')||'',st=null,lastKey='',sent=-1,busy=false;
 function $(s){return document.getElementById(s)}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function api(p,b){return fetch('/api/'+p,b?{method:'POST',body:JSON.stringify(b)}:{}).then(function(r){return r.json()})}
-function head(){return '<div class="me"><div class="dot" style="background:'+COLORS[st.color||0]+'">'+esc((st.name||'?').charAt(0).toUpperCase())+'</div><div class="n">'+esc(st.name)+'</div><div class="s">'+num(st.score)+' P</div></div>'}
+var TEAMS=['Team Lila','Team Türkis'],TC=['#7C3AED','#06B6D4'];
+function head(){return '<div class="me"><div class="dot" style="background:'+COLORS[st.color||0]+'">'+esc((st.name||'?').charAt(0).toUpperCase())+'</div><div class="n">'+esc(st.name)+(st.team!=null?' <span style="font-size:13px;padding:2px 10px;border-radius:999px;background:'+TC[st.team]+'">'+TEAMS[st.team]+'</span>':'')+'</div><div class="s">'+num(st.score)+' P</div></div>'}
+function pct(){return Math.max(0,Math.min(100,st.left/(st.dur||20000)*100))}
+var ordSel=[];
 function num(v){return (v||0).toLocaleString('de-DE')}
 function joinView(msg){
   $('app').innerHTML='<h1><b>midnox</b> Quiz</h1><p class="sub">Mitspielen – gib deinen Namen ein.</p><input id="nm" maxlength="14" placeholder="Dein Name" autocomplete="nickname" value="'+esc(localStorage.getItem('mq_name')||'')+'"><button class="btn" id="go">Los geht’s</button><div class="m" id="msg">'+esc(msg||'')+'</div>';
@@ -41,15 +44,15 @@ function joinView(msg){
 }
 function render(){
   if(!st.joined){if(lastKey!=='join'){lastKey='join';joinView(id?'Das Spiel wurde neu gestartet – bitte nochmal anmelden.':'')}return}
-  var key=st.phase+'|'+st.qn+'|'+(st.my!=null?st.my:'')+'|'+(st.phase===2?st.correct:'')+'|'+(st.locked?1:0)+'|'+(st.answering?1:0)+'|'+(st.buzzer||'');
-  if(st.phase===1){var b=document.querySelector('.bar div');if(b)b.style.width=(st.left/200)+'%'}
+  var key=st.phase+'|'+st.qn+'|'+(st.done?1:0)+'|'+(st.my!=null?st.my:'')+'|'+(st.phase===2?st.correct:'')+'|'+(st.locked?1:0)+'|'+(st.answering?1:0)+'|'+(st.buzzer||'');
+  if(st.phase===1){var b=document.querySelector('.bar div');if(b)b.style.width=pct()+'%'}
   if(st.phase===5&&st.answering){var b2=document.querySelector('.bar div');if(b2)b2.style.width=(st.aleft/80)+'%'}
   if(key===lastKey){var s=document.querySelector('.me .s');if(s)s.textContent=num(st.score)+' P';return}
   lastKey=key;var h=head();
   if(st.phase===0){$('app').innerHTML=h+'<div class="mid"><div class="big">Du bist drin! 🎉</div><p class="hint">'+st.players+' Spieler · Gleich geht’s los – schau auf den Fernseher.</p></div>';return}
   if(st.mode===1&&st.phase===1){
     if(st.locked){$('app').innerHTML=h+'<div class="mid"><div style="font-size:60px">🔒</div><div class="big">Gesperrt</div><p class="hint">Du hast bei dieser Frage falsch geantwortet.<br>Warte auf die anderen …</p></div>';return}
-    $('app').innerHTML=h+'<div class="bar"><div style="width:'+(st.left/200)+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="buzz"><button id="bz">BUZZ!</button></div><p class="hint" style="text-align:center">Wer zuerst drückt, darf antworten. Falsch kostet 500 Punkte.</p>';
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+pct()+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="buzz"><button id="bz">BUZZ!</button></div><p class="hint" style="text-align:center">Wer zuerst drückt, darf antworten. Falsch kostet 500 Punkte.</p>';
     $('bz').onclick=function(){if(busy)return;busy=true;if(navigator.vibrate)navigator.vibrate(80);api('buzz',{id:id,qn:st.qn}).then(function(){busy=false;lastKey='';poll()}).catch(function(){busy=false})};
     return;
   }
@@ -60,12 +63,39 @@ function render(){
     document.querySelectorAll('.a').forEach(function(b){b.onclick=function(){if(busy)return;busy=true;var a=+b.dataset.i;document.querySelectorAll('.a').forEach(function(x){x.classList.add(x===b?'pick':'off')});api('answer',{id:id,qn:st.qn,a:a}).then(function(){busy=false;poll()}).catch(function(){busy=false})}});
     return;
   }
+  if(st.phase===1&&st.type==='est'){
+    if(st.done){$('app').innerHTML=h+'<div class="mid"><div style="font-size:54px">🔢</div><div class="big">Tipp ist raus</div><p class="hint">Warte auf die anderen …</p></div>';return}
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+pct()+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><p class="hint">Schätzfrage – wer am nächsten dran ist, gewinnt'+(st.unit?' (Angabe in '+esc(st.unit)+')':'')+'.</p><input id="ev" inputmode="decimal" placeholder="Deine Zahl" style="font-size:30px;text-align:center"><button class="btn" id="es">Tipp abgeben</button><div class="m" id="em"></div>';
+    var send=function(){var v=$('ev').value.trim();if(!v)return;if(busy)return;busy=true;api('answer',{id:id,qn:st.qn,v:v}).then(function(r){busy=false;if(!r.ok){$('em').textContent=r.msg||'Bitte eine Zahl';return}lastKey='';poll()}).catch(function(){busy=false})};
+    $('es').onclick=send;$('ev').onkeydown=function(e){if(e.key==='Enter')send()};$('ev').focus();
+    return;
+  }
+  if(st.phase===1&&st.type==='ord'){
+    if(st.done){$('app').innerHTML=h+'<div class="mid"><div style="font-size:54px">📋</div><div class="big">Reihenfolge ist raus</div><p class="hint">Warte auf die anderen …</p></div>';return}
+    if(st.qn!==ordSel.qn){ordSel=[];ordSel.qn=st.qn}
+    var rows='';for(var i=0;i<4;i++){var pos=ordSel.indexOf(i);rows+='<button class="a" data-i="'+i+'" style="min-height:64px;flex-direction:row;justify-content:flex-start;gap:12px;background:'+(pos>=0?'#2E2B4A':AC[i])+'"><i style="width:32px">'+(pos>=0?(pos+1)+'.':SH[i])+'</i>'+esc(st.answers[i])+'</button>'}
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+pct()+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><p class="hint">Tippe die Begriffe nacheinander in der richtigen Reihenfolge an.</p><div style="display:flex;flex-direction:column;gap:10px">'+rows+'</div><div style="display:flex;gap:10px"><button class="btn" id="or" style="background:#23212F">Zurücksetzen</button><button class="btn" id="os"'+(ordSel.length<4?' disabled style="opacity:.4"':'')+'>Senden</button></div>';
+    document.querySelectorAll('.a').forEach(function(b){b.onclick=function(){var i=+b.dataset.i;if(ordSel.indexOf(i)<0&&ordSel.length<4){ordSel.push(i);lastKey='';render()}}});
+    $('or').onclick=function(){ordSel=[];ordSel.qn=st.qn;lastKey='';render()};
+    $('os').onclick=function(){if(ordSel.length<4||busy)return;busy=true;api('answer',{id:id,qn:st.qn,o:ordSel.slice(0,4)}).then(function(){busy=false;lastKey='';poll()}).catch(function(){busy=false})};
+    return;
+  }
   if(st.phase===1){
     var mine=st.my;
     if(mine>=0){$('app').innerHTML=h+'<div class="mid"><div style="font-size:54px;color:'+AC[mine]+'">'+SH[mine]+'</div><div class="big">Antwort ist raus</div><p class="hint">'+esc(st.answers[mine])+'<br>Warte auf die anderen …</p></div>';return}
     var g='';for(var i=0;i<4;i++)g+='<button class="a" style="background:'+AC[i]+'" data-i="'+i+'"><i>'+SH[i]+'</i>'+esc(st.answers[i])+'</button>';
-    $('app').innerHTML=h+'<div class="bar"><div style="width:'+(st.left/200)+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="grid">'+g+'</div>';
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+pct()+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="grid">'+g+'</div>';
     document.querySelectorAll('.a').forEach(function(b){b.onclick=function(){if(busy)return;busy=true;var a=+b.dataset.i;document.querySelectorAll('.a').forEach(function(x){x.classList.add(x===b?'pick':'off')});api('answer',{id:id,qn:st.qn,a:a}).then(function(){busy=false;poll()}).catch(function(){busy=false})}});
+    return;
+  }
+  if(st.phase===2&&st.type==='est'){
+    var g=st.gained||0;if(navigator.vibrate)navigator.vibrate(g>=1000?[60]:[30]);
+    $('app').innerHTML=h+'<div class="mid"><div style="font-size:60px">'+(st.estrank===1?'🎯':g>0?'👍':'🤷')+'</div><div class="big">Richtig: '+num(st.num)+(st.unit?' '+esc(st.unit):'')+'</div><p class="hint">'+(st.myest!=null?'Dein Tipp: '+num(st.myest)+' · Platz '+st.estrank+' · <b class="ok">+'+num(g)+'</b>':'Kein Tipp abgegeben')+'</p><p class="hint">Platz '+st.rank+' von '+st.players+'</p></div>';
+    return;
+  }
+  if(st.phase===2&&st.type==='ord'){
+    var g2=st.gained||0,lst='';for(var k=0;k<4;k++){var ok=st.myord&&st.myord[k]===st.order[k];lst+='<div style="padding:10px 14px;border-radius:12px;background:'+(ok?'#14532d':'#23212F')+';margin:6px 0;text-align:left">'+(k+1)+'. '+esc(st.answers[st.order[k]])+(st.myord?(ok?' ✓':' ✗'):'')+'</div>'}
+    $('app').innerHTML=h+'<div class="mid" style="justify-content:flex-start"><div class="big '+(g2>=1250?'ok':'')+'">'+(g2>=1250?'Alles richtig! +1.250':g2>0?'+'+num(g2)+' Punkte':'Leider keine Punkte')+'</div><div style="width:100%">'+lst+'</div><p class="hint">Platz '+st.rank+' von '+st.players+'</p></div>';
     return;
   }
   if(st.phase===2&&st.mode===1){
@@ -81,7 +111,8 @@ function render(){
     return;
   }
   if(st.phase===3){$('app').innerHTML=h+'<div class="mid"><div class="big">Platz '+st.rank+'</div><p class="hint">'+num(st.score)+' Punkte · nächste Frage kommt gleich</p></div>';return}
-  if(st.phase===4){var m=['','🥇','🥈','🥉'][st.rank]||'🎈';$('app').innerHTML=h+'<div class="mid"><div style="font-size:70px">'+m+'</div><div class="big">Platz '+st.rank+' von '+st.players+'</div><p class="hint">'+num(st.score)+' Punkte – danke fürs Mitspielen!</p></div>'}
+  if(st.phase===4){var m=['','🥇','🥈','🥉'][st.rank]||'🎈';var tl='';if(st.teams){var w=st.teams[0]===st.teams[1]?-1:(st.teams[0]>st.teams[1]?0:1);tl='<div class="big" style="color:'+(w<0?'#fff':TC[w])+'">'+(w<0?'Unentschieden!':(w===st.team?'🏆 Dein Team gewinnt!':TEAMS[w]+' gewinnt'))+'</div><p class="hint">Lila '+num(st.teams[0])+' : '+num(st.teams[1])+' Türkis</p>'}
+    $('app').innerHTML=h+'<div class="mid">'+tl+'<div style="font-size:70px">'+m+'</div><div class="big">Platz '+st.rank+' von '+st.players+'</div><p class="hint">'+num(st.score)+' Punkte – danke fürs Mitspielen!</p></div>'}
 }
 function poll(){api('state?id='+encodeURIComponent(id)).then(function(r){st=r;render()}).catch(function(){})}
 if(id)poll();else{st={joined:false};render()}

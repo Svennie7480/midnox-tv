@@ -14,6 +14,7 @@ public class Tile extends View {
     HorizontalScrollView scroller;
     boolean pinned;
     String tag;
+    String badge;   // kleiner Hinweis unten auf der Karte (z. B. Quiz: „Tages-Duell wartet“)
     final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), stroke = new Paint(Paint.ANTI_ALIAS_FLAG),
             glow = new Paint(Paint.ANTI_ALIAS_FLAG), txt = new Paint(Paint.ANTI_ALIAS_FLAG), g = new Paint(Paint.ANTI_ALIAS_FLAG);
     boolean focused;
@@ -91,6 +92,16 @@ public class Tile extends View {
             Path ck = new Path(); ck.moveTo(cx - 5 * dp, cy); ck.lineTo(cx - 1.5f * dp, cy + 4 * dp); ck.lineTo(cx + 5.5f * dp, cy - 4 * dp);
             c.drawPath(ck, g);
             g.setStyle(Paint.Style.FILL);
+        }
+        if (badge != null) {   // Hinweis-Pille unten links auf der Karte
+            txt.setTextSize(11 * dp);
+            float bw = Math.min(card.width() - 12 * dp, txt.measureText(badge) + 16 * dp), bh = 20 * dp;
+            RectF br = new RectF(card.left + 6 * dp, card.bottom - bh - 6 * dp, card.left + 6 * dp + bw, card.bottom - 6 * dp);
+            g.setStyle(Paint.Style.FILL); g.setShader(Style.brand(br.left, br.right)); c.drawRoundRect(br, bh / 2, bh / 2, g); g.setShader(null);
+            txt.setColor(Color.WHITE);
+            String bt = badge; if (txt.measureText(bt) > bw - 12 * dp) bt = android.text.TextUtils.ellipsize(bt, new android.text.TextPaint(txt), bw - 12 * dp, android.text.TextUtils.TruncateAt.END).toString();
+            c.drawText(bt, br.centerX(), br.centerY() + 4 * dp, txt);
+            txt.setTextSize(14 * dp);
         }
         if (!focused) return;   // Name nur beim ausgewaehlten Element
         txt.setColor(Color.WHITE);

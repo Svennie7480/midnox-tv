@@ -13,12 +13,15 @@ import java.util.*;
 final class Party {
     static final int LOBBY = 0, QUESTION = 1, REVEAL = 2, SCORES = 3, END = 4, ANSWERING = 5;
     static final long Q_MS = 20000, BUZZ_ANSWER_MS = 8000;
-    static int mode;   // 0 = klassisch, 1 = Buzzer
+    static int mode;   // 0 = klassisch, 1 = Buzzer, 2 = Teams
+    static long qMs = Q_MS;   // Zeit fuer die aktuelle Frage (Schaetzen/Sortieren dauert laenger)
+    static final String[] TEAM = {"Team Lila", "Team Türkis"};
     static String buzzer; static long buzzAt, remaining; static final Set<String> locked = new HashSet<>();
     static int lastWrongQn = -1; static long lastWrongAt;   // fuer Ansage „falsch“ am Fernseher
 
     static final class Player {
-        String id, name; int color, score, gained, answer = -1, streak; long answerMs; int answeredQn = -1; long seen;
+        String id, name; int color, score, gained, answer = -1, streak, team; long answerMs; int answeredQn = -1; long seen;
+        double est; int[] ord; int estRank;
     }
 
     static ServerSocket server; static int port;
@@ -104,10 +107,15 @@ final class Party {
         if (me == null) return o;
         me.seen = System.currentTimeMillis();
         o.put("name", me.name).put("color", me.color).put("score", me.score).put("rank", rank(me)).put("players", players.size());
+        if (mode == 2) { int[] ts = teamScores(); o.put("team", me.team).put("teams", new JSONArray().put(ts[0]).put(ts[1])); }
         if (phase == QUESTION || phase == REVEAL || phase == ANSWERING) {
             Bank.Q q = qs.get(qn);
-            o.put("q", q.text).put("answers", new JSONArray(Arrays.asList(q.answers))).put("left", left())
-             .put("my", me.answeredQn == qn ? me.answer : -1);
+            o.put("q", q.text).put("type", q.type).put("left", left()).put("dur", qMs)
+             .put("my", me.answeredQn == qn ? me.answer : -1).put("done", me.answeredQn == qn);
+            if (!q.type.equals("est")) o.put("answers", new JSONArray(Arrays.asList(q.answers)));
+            else o.put("unit", q.unit);
+            if (phase == REVEAL && q.type.equals("est")) o.put("num", q.num).put("myest", me.answeredQn == qn ? me.est : JSONObject.NULL).put("estrank", me.estRank);
+            if (phase == REVEAL && q.type.equals("ord")) { JSONArray a = new JSONArray(); for (int k : q.order) a.put(k); o.put("order", a); if (me.ord != null && me.answeredQn == qn) { JSONArray b = new JSONArray(); for (int k : me.ord) b.put(k); o.put("myord", b); } }
             if (mode == 1) {
                 o.put("locked", locked.contains(me.id)).put("answering", me.id.equals(buzzer));
                 Player b = buzzer == null ? null : players.get(buzzer);
@@ -121,9 +129,22 @@ final class Party {
         if (mode == 1) return buzzAnswer(in);
         Player p = players.get(in.optString("id"));
         if (p == null || phase != QUESTION || in.optInt("qn", -2) != qn || p.answeredQn == qn) return new JSONObject().put("ok", false);
-        int a = in.optInt("a", -1); if (a < 0 || a > 3) return new JSONObject().put("ok", false);
         long t = System.currentTimeMillis() - qStart;
-        if (t > Q_MS + 500) return new JSONObject().put("ok", false).put("msg", "Zu spät");
+        if (t > qMs + 500) return new JSONObject().put("ok", false).put("msg", "Zu spät");
+        Bank.Q q = qs.get(qn);
+        if (q.type.equals("est")) {
+            double v; try { v = Double.parseDouble(in.optString("v").replace(".", "").replace(",", ".").trim()); } catch (Exception e) { return new JSONObject().put("ok", false).put("msg", "Bitte eine Zahl"); }
+            p.est = v; p.answer = 0; p.answeredQn = qn; p.answerMs = t;
+            return new JSONObject().put("ok", true);
+        }
+        if (q.type.equals("ord")) {
+            JSONArray o = in.optJSONArray("o"); if (o == null || o.length() != 4) return new JSONObject().put("ok", false);
+            int[] ord = new int[4]; Set<Integer> seen = new HashSet<>();
+            for (int i = 0; i < 4; i++) { ord[i] = o.optInt(i, -1); if (ord[i] < 0 || ord[i] > 3 || !seen.add(ord[i])) return new JSONObject().put("ok", false); }
+            p.ord = ord; p.answer = 0; p.answeredQn = qn; p.answerMs = t;
+            return new JSONObject().put("ok", true);
+        }
+        int a = in.optInt("a", -1); if (a < 0 || a > 3) return new JSONObject().put("ok", false);
         p.answer = a; p.answeredQn = qn; p.answerMs = t;
         return new JSONObject().put("ok", true);
     }
@@ -152,7 +173,7 @@ final class Party {
         }
         buzzer = null;
         if (right || locked.size() >= players.size()) { phase = REVEAL; return; }
-        phase = QUESTION; qStart = System.currentTimeMillis() - (Q_MS - remaining);   // Uhr laeuft dort weiter, wo sie stand
+        phase = QUESTION; qStart = System.currentTimeMillis() - (qMs - remaining);   // Uhr laeuft dort weiter, wo sie stand
     }
     static synchronized void buzzTick() { if (phase == ANSWERING && System.currentTimeMillis() - buzzAt > BUZZ_ANSWER_MS) { Player p = players.get(buzzer); if (p != null) { p.answer = -1; p.answeredQn = qn; } resolveBuzz(false); } }
     static synchronized String buzzerName() { Player p = buzzer == null ? null : players.get(buzzer); return p == null ? "" : p.name; }
@@ -160,12 +181,24 @@ final class Party {
     // ------------------------------------------------------------ Ablauf (vom Fernseher)
     static synchronized void reset() { phase = LOBBY; qn = -1; qs.clear(); buzzer = null; locked.clear(); for (Player p : players.values()) { p.score = 0; p.gained = 0; p.answer = -1; p.answeredQn = -1; p.streak = 0; } }
     static synchronized void kick(String id) { players.remove(id); }
-    static synchronized void begin(List<Bank.Q> l) { qs = l; qn = -1; for (Player p : players.values()) { p.score = 0; p.streak = 0; p.answeredQn = -1; } next(); }
+    static synchronized void begin(List<Bank.Q> l) {
+        qs = l; qn = -1; int i = 0;
+        for (Player p : players.values()) { p.score = 0; p.streak = 0; p.answeredQn = -1; p.team = i++ % 2; }
+        next();
+    }
+    /** Teamwertung: Durchschnitt je Mitglied (fair bei ungleich grossen Teams). */
+    static synchronized int[] teamScores() {
+        int[] sum = new int[2], n = new int[2];
+        for (Player p : players.values()) { sum[p.team] += p.score; n[p.team]++; }
+        return new int[]{n[0] == 0 ? 0 : Math.round(sum[0] / (float) n[0]), n[1] == 0 ? 0 : Math.round(sum[1] / (float) n[1])};
+    }
+    static synchronized int teamSize(int t) { int n = 0; for (Player p : players.values()) if (p.team == t) n++; return n; }
     static synchronized void next() {
         if (qn + 1 >= qs.size()) { phase = END; return; }
         qn++; phase = QUESTION; qStart = System.currentTimeMillis();
+        qMs = qs.get(qn).type.equals("mc") ? Q_MS : 30000;
         buzzer = null; locked.clear();
-        for (Player p : players.values()) { p.gained = 0; p.answer = -1; }
+        for (Player p : players.values()) { p.gained = 0; p.answer = -1; p.ord = null; p.estRank = 0; }
         Bank.markSeen(ctx, qs.get(qn).id);
     }
     static synchronized boolean allAnswered() {
@@ -179,15 +212,49 @@ final class Party {
         if (mode == 1) { if (phase == QUESTION || phase == ANSWERING) { buzzer = null; phase = REVEAL; } return; }
         if (phase != QUESTION) return;
         Bank.Q q = qs.get(qn);
+        if (q.type.equals("est")) { revealEstimate(q); phase = REVEAL; return; }
+        if (q.type.equals("ord")) { revealOrder(q); phase = REVEAL; return; }
         for (Player p : players.values()) {
             boolean ok = p.answeredQn == qn && p.answer == q.correct;
             if (ok) {
                 p.streak++;
-                p.gained = 500 + (int) Math.round(500.0 * Math.max(0, Q_MS - p.answerMs) / Q_MS) + (p.streak >= 3 ? 100 : 0);
+                p.gained = 500 + (int) Math.round(500.0 * Math.max(0, qMs - p.answerMs) / qMs) + (p.streak >= 3 ? 100 : 0);
                 p.score += p.gained;
             } else { p.streak = 0; p.gained = 0; }
         }
         phase = REVEAL;
+    }
+    static final int[] EST_POINTS = {1000, 750, 500, 350, 250, 150};
+    /** Schaetzen: wer am naechsten dran ist, bekommt am meisten; ein Volltreffer gibt 500 extra. */
+    static void revealEstimate(Bank.Q q) {
+        final double target = q.num;
+        List<Player> l = new ArrayList<>();
+        for (Player p : players.values()) { p.gained = 0; p.estRank = 0; if (p.answeredQn == qn) l.add(p); else p.streak = 0; }
+        Collections.sort(l, new Comparator<Player>() { public int compare(Player a, Player b) { return Double.compare(Math.abs(a.est - target), Math.abs(b.est - target)); } });
+        int rank = 0; double last = -1;
+        for (int i = 0; i < l.size(); i++) {
+            Player p = l.get(i); double d = Math.abs(p.est - target);
+            if (i == 0 || d != last) rank = i; last = d;
+            p.estRank = rank + 1;
+            p.gained = (rank < EST_POINTS.length ? EST_POINTS[rank] : 100) + (d == 0 ? 500 : 0);
+            p.score += p.gained;
+            if (rank == 0) p.streak++; else p.streak = 0;
+        }
+    }
+    /** Sortieren: 250 Punkte je richtiger Position, alles richtig = 1250. */
+    static void revealOrder(Bank.Q q) {
+        for (Player p : players.values()) {
+            p.gained = 0;
+            if (p.answeredQn != qn || p.ord == null) { p.streak = 0; continue; }
+            int ok = 0; for (int k = 0; k < 4; k++) if (p.ord[k] == q.order[k]) ok++;
+            p.gained = ok * 250 + (ok == 4 ? 250 : 0); p.score += p.gained;
+            if (ok == 4) p.streak++; else p.streak = 0;
+        }
+    }
+    static synchronized List<Player> estimates() {
+        List<Player> l = new ArrayList<>(); for (Player p : players.values()) if (p.answeredQn == qn) l.add(p);
+        Collections.sort(l, new Comparator<Player>() { public int compare(Player a, Player b) { return a.estRank - b.estRank; } });
+        return l;
     }
     static synchronized void scores() { phase = qn + 1 >= qs.size() ? END : SCORES; }
     static synchronized int[] votes() {
@@ -201,5 +268,5 @@ final class Party {
         return l;
     }
     static synchronized int rank(Player me) { int r = 1; for (Player p : players.values()) if (p.score > me.score) r++; return r; }
-    static synchronized long left() { return phase == ANSWERING ? remaining : Math.max(0, Q_MS - (System.currentTimeMillis() - qStart)); }
+    static synchronized long left() { return phase == ANSWERING ? remaining : Math.max(0, qMs - (System.currentTimeMillis() - qStart)); }
 }

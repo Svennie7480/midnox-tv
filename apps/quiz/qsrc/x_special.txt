@@ -1,0 +1,55 @@
+# Schätzfragen: est|Kategorie|Stufe|Frage|Zahl|Einheit
+est|de|2|Wie hoch ist die Zugspitze?|2962|m
+est|de|2|Wie hoch ist der Brocken im Harz?|1141|m
+est|de|2|Wie hoch ist der Berliner Fernsehturm?|368|m
+est|de|2|Wie hoch ist die Elbphilharmonie in Hamburg?|110|m
+est|de|3|Wie lang ist der Nord-Ostsee-Kanal?|98|km
+est|de|3|Wie groß ist der Bodensee?|536|km²
+est|de|3|Wie viele Stufen führen auf den Südturm des Kölner Doms?|533|Stufen
+est|de|2|In welchem Jahr wurde der Kölner Dom vollendet?|1880|
+est|nord|3|In welchem Jahr wurde das Lübecker Holstentor fertiggestellt?|1478|
+est|geo|2|Wie hoch ist der Mount Everest?|8849|m
+est|geo|2|Wie lang ist der Rhein?|1233|km
+est|geo|2|Wie lang ist die Elbe?|1094|km
+est|geo|3|Wie weit ist der Mond im Durchschnitt von der Erde entfernt?|384400|km
+est|geo|2|Wie viele Mitgliedstaaten hat die Europäische Union (Stand 2025)?|27|Staaten
+est|geo|3|Wie viele Mitgliedstaaten haben die Vereinten Nationen?|193|Staaten
+est|gesch|1|In welchem Jahr fiel die Berliner Mauer?|1989|
+est|gesch|1|In welchem Jahr landeten die ersten Menschen auf dem Mond?|1969|
+est|gesch|2|In welchem Jahr ging die Titanic unter?|1912|
+est|gesch|2|In welchem Jahr wurde die Bundesrepublik Deutschland gegründet?|1949|
+est|gesch|3|Um welches Jahr erfand Gutenberg den Buchdruck mit beweglichen Lettern?|1450|
+est|musik|2|In welchem Jahr wurde Wolfgang Amadeus Mozart geboren?|1756|
+est|musik|1|Wie viele Tasten hat ein normales Klavier?|88|Tasten
+est|natur|2|Wie viele Knochen hat ein erwachsener Mensch?|206|Knochen
+est|natur|3|Wie schnell ist das Licht im Vakuum (in km pro Sekunde)?|299792|km/s
+est|natur|3|Bei wie viel Grad Fahrenheit kocht Wasser?|212|°F
+est|technik|2|In welchem Jahr kam das erste iPhone auf den Markt?|2007|
+est|technik|3|In welchem Jahr ließ Alexander Graham Bell das Telefon patentieren?|1876|
+est|sport|2|In welchem Jahr wurde der FC Bayern München gegründet?|1900|
+est|sport|3|In welchem Jahr wurde der Hamburger SV (Vorgängerverein) gegründet?|1887|
+est|allg|1|Wie viele Sterne sind auf der Europaflagge?|12|Sterne
+est|geo|3|Wie hoch ist der Eiffelturm (mit Antennen) ungefähr?|330|m
+# Reihenfolge: ord|Kategorie|Stufe|Frage|1.|2.|3.|4. (in richtiger Reihenfolge)
+ord|gesch|2|Sortiere vom frühesten zum spätesten Ereignis!|Erste Mondlandung|Fall der Berliner Mauer|Euro als Bargeld|Erstes iPhone
+ord|gesch|2|Sortiere die Bundeskanzler nach ihrer Amtszeit – vom ersten zum letzten!|Konrad Adenauer|Willy Brandt|Helmut Kohl|Angela Merkel
+ord|de|2|Sortiere die Städte von Nord nach Süd!|Flensburg|Hamburg|Hannover|Kassel
+ord|de|2|Sortiere die Städte von Nord nach Süd!|Kiel|Bremen|Frankfurt am Main|München
+ord|de|2|Sortiere die Städte von West nach Ost!|Aachen|Köln|Kassel|Dresden
+ord|de|3|Sortiere die Bundesländer nach Fläche – vom kleinsten zum größten!|Bremen|Saarland|Hessen|Bayern
+ord|de|3|Sortiere die Städte nach Einwohnern – von wenigen zu vielen!|Lübeck|Hannover|Köln|Hamburg
+ord|de|2|Sortiere die Berge nach Höhe – vom niedrigsten zum höchsten!|Brocken|Feldberg (Schwarzwald)|Zugspitze|Mont Blanc
+ord|geo|2|Sortiere die Flüsse nach Länge – vom kürzesten zum längsten!|Weser|Elbe|Rhein|Donau
+ord|geo|2|Sortiere die Hauptstädte von Nord nach Süd!|Oslo|Kopenhagen|Berlin|Rom
+ord|geo|3|Sortiere die Kontinente nach Fläche – vom kleinsten zum größten!|Australien|Europa|Afrika|Asien
+ord|geo|3|Sortiere die Ozeane nach Größe – vom kleinsten zum größten!|Arktischer Ozean|Indischer Ozean|Atlantischer Ozean|Pazifischer Ozean
+ord|geo|3|Sortiere die Länder nach Einwohnern – von wenigen zu vielen!|Österreich|Niederlande|Frankreich|Deutschland
+ord|natur|1|Sortiere die Planeten nach ihrem Abstand zur Sonne – vom nächsten aus!|Merkur|Venus|Erde|Mars
+ord|natur|2|Sortiere die Planeten nach ihrem Abstand zur Sonne – vom nächsten aus!|Jupiter|Saturn|Uranus|Neptun
+ord|natur|1|Sortiere die Tiere nach Größe – vom kleinsten zum größten!|Maus|Katze|Pferd|Elefant
+ord|musik|3|Sortiere die Komponisten nach Geburtsjahr – vom frühesten an!|Johann Sebastian Bach|Wolfgang Amadeus Mozart|Ludwig van Beethoven|Richard Wagner
+ord|technik|2|Sortiere die Erfindungen vom ältesten zur neuesten!|Buchdruck|Dampfmaschine (Watt)|Telefon|World Wide Web
+ord|film|2|Sortiere die Filme nach Erscheinungsjahr – vom ältesten an!|Der weiße Hai|Star Wars|Titanic|Avatar
+ord|sport|2|Sortiere die deutschen WM-Titel der Männer – vom ersten zum letzten!|WM in der Schweiz|WM in Deutschland|WM in Italien|WM in Brasilien
+ord|allg|1|Sortiere die Monate im Jahresverlauf!|März|Juni|September|Dezember
+ord|allg|2|Sortiere die römischen Zahlen vom kleinsten zum größten Wert!|X|L|C|M

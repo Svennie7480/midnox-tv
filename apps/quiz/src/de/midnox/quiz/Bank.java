@@ -10,11 +10,16 @@ final class Bank {
     static final String UPDATE = "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/quiz/questions.json";
 
     static final class Q {
-        String id, cat, text; int level;
-        String[] answers = new String[4];   // bereits gemischt
+        String id, cat, text, type = "mc", unit = "", by = ""; int level;
+        String[] answers = new String[4];   // bereits gemischt (bei „ord“: Begriffe in Anzeige-Reihenfolge)
         int correct;                         // Index der richtigen Antwort in answers
+        int[] orig = {0, 1, 2, 3};           // Original-Index je angezeigter Antwort (fuer die Sprachdateien)
+        int[] order;                         // „ord“: richtige Reihenfolge als Indizes in answers
+        double num;                          // „est“: richtige Zahl
     }
-    static final class Raw { String id, cat, text; int level; String[] a; }
+    static final class Raw { String id, cat, text, type = "mc", unit = "", by = ""; int level; String[] a; double num; }
+    static List<Raw> extra = new ArrayList<>();      // freigegebene Community-Fragen (nur Million und Party)
+    static List<Raw> special = new ArrayList<>();    // Schaetz- und Reihenfolge-Fragen (nur Party)
 
     static List<Raw> all = new ArrayList<>();
     static LinkedHashMap<String, String> cats = new LinkedHashMap<>();
@@ -31,20 +36,41 @@ final class Bank {
         if (best != null) parse(best);
     }
     static void parse(JSONObject o) {
-        List<Raw> l = new ArrayList<>();
+        List<Raw> l = new ArrayList<>(), sp = new ArrayList<>();
         LinkedHashMap<String, String> cs = new LinkedHashMap<>();
         JSONObject co = o.optJSONObject("cats");
         if (co != null) for (Iterator<String> it = co.keys(); it.hasNext(); ) { String k = it.next(); cs.put(k, co.optString(k)); }
         JSONArray a = o.optJSONArray("q");
         for (int i = 0; a != null && i < a.length(); i++) {
             JSONObject q = a.optJSONObject(i); if (q == null) continue;
+            String t = q.optString("t", "mc");
+            if (t.equals("est") || t.equals("ord")) {
+                Raw r = new Raw(); r.id = q.optString("id"); r.cat = q.optString("c"); r.text = q.optString("q"); r.level = q.optInt("l", 2); r.type = t;
+                if (t.equals("est")) { r.num = q.optDouble("n"); r.unit = q.optString("u"); }
+                else { JSONArray oo = q.optJSONArray("o"); if (oo == null || oo.length() != 4) continue; r.a = new String[]{oo.optString(0), oo.optString(1), oo.optString(2), oo.optString(3)}; }
+                sp.add(r); continue;
+            }
             JSONArray an = q.optJSONArray("a"); if (an == null || an.length() != 4) continue;
             Raw r = new Raw(); r.id = q.optString("id"); r.cat = q.optString("c"); r.text = q.optString("q"); r.level = q.optInt("l", 2);
             r.a = new String[]{an.optString(0), an.optString(1), an.optString(2), an.optString(3)};
             l.add(r);
         }
         Collections.sort(l, new Comparator<Raw>() { public int compare(Raw x, Raw y) { return x.id.compareTo(y.id); } });
-        all = l; cats = cs; version = o.optInt("v");
+        all = l; cats = cs; version = o.optInt("v"); special = sp;
+    }
+    /** Freigegebene Einsendungen vom Server (Million und Party). */
+    static void loadExtra(Context c) {
+        try {
+            JSONArray a = new JSONObject(U.http(Scores.SERVER + "?a=extra", null)).optJSONArray("q");
+            List<Raw> l = new ArrayList<>();
+            for (int i = 0; a != null && i < a.length(); i++) {
+                JSONObject q = a.optJSONObject(i); JSONArray an = q.optJSONArray("a"); if (an == null || an.length() != 4) continue;
+                Raw r = new Raw(); r.id = q.optString("id"); r.cat = q.optString("c"); r.text = q.optString("q"); r.level = q.optInt("l", 2); r.by = q.optString("by");
+                r.a = new String[]{an.optString(0), an.optString(1), an.optString(2), an.optString(3)};
+                l.add(r);
+            }
+            extra = l;
+        } catch (Exception ignored) {}
     }
     /** Im Hintergrund: neuere Fragen holen. */
     static void update(Context c) {
@@ -58,17 +84,22 @@ final class Bank {
     }
 
     static Q make(Raw r, Random rnd) {
-        Q q = new Q(); q.id = r.id; q.cat = r.cat; q.text = r.text; q.level = r.level;
+        Q q = new Q(); q.id = r.id; q.cat = r.cat; q.text = r.text; q.level = r.level; q.type = r.type; q.unit = r.unit; q.num = r.num; q.by = r.by;
+        if (r.type.equals("est")) return q;
         Integer[] idx = {0, 1, 2, 3};
         List<Integer> l = Arrays.asList(idx);
         Collections.shuffle(l, rnd);
-        for (int i = 0; i < 4; i++) { q.answers[i] = r.a[l.get(i)]; if (l.get(i) == 0) q.correct = i; }
+        for (int i = 0; i < 4; i++) { q.answers[i] = r.a[l.get(i)]; q.orig[i] = l.get(i); if (l.get(i) == 0) q.correct = i; }
+        if (r.type.equals("ord")) { q.order = new int[4]; for (int i = 0; i < 4; i++) q.order[l.get(i)] = i; }   // order[k] = Anzeige-Index des k-ten Begriffs
         return q;
     }
 
     // ------------------------------------------------------------ Auswahl
-    static Set<String> seen(Context c) { return new HashSet<>(Arrays.asList(U.prefs(c).getString("seen", "").split(","))); }
+    static Set<String> seen(Context c) { if (c == null) return new HashSet<>();
+        return seen0(c); }
+    static Set<String> seen0(Context c) { return new HashSet<>(Arrays.asList(U.prefs(c).getString("seen", "").split(","))); }
     static void markSeen(Context c, String id) {
+        if (c == null) return;
         LinkedList<String> l = new LinkedList<>(Arrays.asList(U.prefs(c).getString("seen", "").split(",")));
         l.remove(""); l.remove(id); l.add(id);
         while (l.size() > Math.max(40, all.size() * 2 / 3)) l.removeFirst();
@@ -93,7 +124,7 @@ final class Bank {
     static List<Q> million(Context c) {
         Random rnd = new Random();
         List<Q> out = new ArrayList<>(); Set<String> ex = new HashSet<>();
-        for (int lv = 1; lv <= 3; lv++) for (Raw r : pick(c, byLevel(lv, null), 5, rnd, ex)) { ex.add(r.id); out.add(make(r, rnd)); }
+        for (int lv = 1; lv <= 3; lv++) { List<Raw> pool = byLevel(lv, null); for (Raw r : extra) if (r.level == lv) pool.add(r); for (Raw r : pick(c, pool, 5, rnd, ex)) { ex.add(r.id); out.add(make(r, rnd)); } }
         // Ersatz, falls eine Stufe zu wenige Fragen hat
         if (out.size() < 15) for (Raw r : pick(c, all, 15 - out.size(), rnd, ex)) out.add(make(r, rnd));
         return out;
@@ -128,15 +159,21 @@ final class Bank {
         return out;
     }
     /** Party: gemischt nach Kategorie, Schwierigkeit steigt leicht an. */
-    static List<Q> party(Context c, String cat, int n) {
+    static List<Q> party(Context c, String cat, int n) { return party(c, cat, n, false); }
+    static List<Q> party(Context c, String cat, int n, boolean specials) {
         Random rnd = new Random();
         List<Raw> from = new ArrayList<>();
         for (Raw r : all) if (cat == null || r.cat.equals(cat)) from.add(r);
-        List<Raw> l = pick(c, from, n, rnd, new HashSet<String>());
+        for (Raw r : extra) if (cat == null || r.cat.equals(cat)) from.add(r);
+        int ns = 0;
+        List<Raw> sp = new ArrayList<>();
+        if (specials) { for (Raw r : special) if (cat == null || r.cat.equals(cat)) sp.add(r); ns = Math.min(sp.size(), Math.max(1, n / 4)); }
+        List<Raw> l = pick(c, from, n - ns, rnd, new HashSet<String>());
+        if (ns > 0) l.addAll(pick(c, sp, ns, rnd, new HashSet<String>()));
         Collections.sort(l, new Comparator<Raw>() { public int compare(Raw a, Raw b) { return a.level - b.level; } });
         List<Q> out = new ArrayList<>();
         for (Raw r : l) out.add(make(r, rnd));
         return out;
     }
-    static int count(String cat) { int n = 0; for (Raw r : all) if (cat == null || r.cat.equals(cat)) n++; return n; }
+    static int count(String cat) { int n = 0; for (Raw r : all) if (cat == null || r.cat.equals(cat)) n++; for (Raw r : extra) if (cat == null || r.cat.equals(cat)) n++; return n; }
 }

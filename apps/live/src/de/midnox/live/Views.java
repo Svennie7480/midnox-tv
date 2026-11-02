@@ -257,51 +257,63 @@ final class Views {
     static final class Banner extends View {
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        Model.Channel ch; String badge = "", msg = "", via = "";
+        Model.Channel ch; String badge = "", msg = "", via = "", tech = "";
         Banner(Context c) { super(c); }
         @Override protected void onDraw(Canvas c) {
             if (ch == null) return;
             float dp = U.dp, w = getWidth(), h = getHeight();
             long now = System.currentTimeMillis();
-            float cwid = Math.min(w - 80 * dp, 620 * dp);
-            RectF card = new RectF(40 * dp, h - 26 * dp - 116 * dp, 40 * dp + cwid, h - 26 * dp);
-            p.setShader(null); p.setColor(U.osd(0x121120)); c.drawRoundRect(card, 18 * dp, 18 * dp, p);
-            p.setShader(U.brand(card.left, card.right)); c.drawRect(card.left + 18 * dp, card.top, card.right - 18 * dp, card.top + 2.5f * dp, p); p.setShader(null);
-            float x = card.left + 16 * dp, top = card.top;
-            logo(c, p, t, ch, new RectF(x, top + 20 * dp, x + 100 * dp, top + 20 * dp + 58 * dp), this);
-            float tx = x + 116 * dp, right = card.right - 18 * dp, tw = right - tx;
-            // Zeile 1: Platz, Name, Quelle, Bildqualitaet, Uhrzeit
-            t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setTextAlign(Paint.Align.RIGHT); t.setColor(0xFFC9CCE0);
-            String r1 = hm(now);
-            float rw = t.measureText(r1);
-            c.drawText(r1, right, top + 26 * dp, t);
-            float rx = right - rw - 12 * dp;
+            Model.Prog pr = Epg.now(ch), nx = Epg.next(ch);
+            boolean desc = pr != null && pr.desc != null && !pr.desc.isEmpty();
+            float cwid = Math.min(w - 100 * dp, 900 * dp), ch2 = desc ? 150 * dp : 132 * dp;
+            RectF card = new RectF((w - cwid) / 2, h - 24 * dp - ch2, (w + cwid) / 2, h - 24 * dp);
+            p.setShader(null); p.setColor(U.osd(0x121120)); c.drawRoundRect(card, 20 * dp, 20 * dp, p);
+            p.setShader(U.brand(card.left, card.right)); c.drawRect(card.left + 20 * dp, card.top, card.right - 20 * dp, card.top + 2.5f * dp, p); p.setShader(null);
+            float x = card.left + 18 * dp, top = card.top;
+            logo(c, p, t, ch, new RectF(x, top + 22 * dp, x + 116 * dp, top + 22 * dp + 66 * dp), this);
+            t.setTypeface(U.BOLD); t.setTextSize(13 * dp); t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.CENTER);
+            c.drawText(String.valueOf(ch.num), x + 58 * dp, top + 108 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            float tx = x + 134 * dp, right = card.right - 20 * dp, tw = right - tx;
+            // Zeile 1: Name und Gruppe | Quelle, Qualitaet, Uhrzeit
+            t.setTypeface(U.POP); t.setTextSize(12.5f * dp); t.setTextAlign(Paint.Align.RIGHT); t.setColor(0xFFE6E8F2);
+            String clock = hm(now);
+            c.drawText(clock, right, top + 26 * dp, t);
+            float rx = right - t.measureText(clock) - 12 * dp;
             if (!badge.isEmpty()) {
-                t.setTypeface(U.BOLD); t.setTextSize(10 * dp);
-                float bw = t.measureText(badge) + 12 * dp;
-                p.setColor(0x40FFFFFF); c.drawRoundRect(new RectF(rx - bw, top + 14 * dp, rx, top + 30 * dp), 5 * dp, 5 * dp, p);
-                t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.LEFT); c.drawText(badge, rx - bw + 6 * dp, top + 26 * dp, t);
-                rx -= bw + 10 * dp;
+                t.setTypeface(U.BOLD); t.setTextSize(10.5f * dp);
+                float bw = t.measureText(badge) + 14 * dp;
+                p.setShader(U.brand(rx - bw, rx)); c.drawRoundRect(new RectF(rx - bw, top + 13 * dp, rx, top + 30 * dp), 6 * dp, 6 * dp, p); p.setShader(null);
+                t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.LEFT); c.drawText(badge, rx - bw + 7 * dp, top + 26 * dp, t);
+                rx -= bw + 12 * dp;
             }
             t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setTextAlign(Paint.Align.RIGHT);
-            if (!via.isEmpty()) { t.setColor(0xFF9EC5FF); String vv = ell(t, "\u25CF " + via, Math.min(260 * dp, tw * 0.45f)); c.drawText(vv, rx, top + 26 * dp, t); rx -= t.measureText(vv) + 12 * dp; }
-            t.setTextAlign(Paint.Align.LEFT); t.setColor(0xFFC9CCE0);
-            c.drawText(ell(t, ch.num + "  " + ch.name, rx - tx), tx, top + 26 * dp, t);
-            // Zeile 2: laufende Sendung
-            Model.Prog pr = Epg.now(ch), nx = Epg.next(ch);
-            t.setTypeface(U.BOLD); t.setTextSize(19 * dp); t.setColor(Color.WHITE);
-            c.drawText(ell(t, msg.isEmpty() ? (pr == null ? ch.name : pr.title) : msg, tw), tx, top + 54 * dp, t);
-            // Zeile 3: Fortschritt
-            t.setTypeface(U.POP); t.setTextSize(11.5f * dp); t.setColor(0xFFB4B8CC);
+            if (!via.isEmpty()) { t.setColor(0xFF9EC5FF); String vv = ell(t, "\u25CF " + via, Math.min(300 * dp, tw * 0.45f)); c.drawText(vv, rx, top + 26 * dp, t); rx -= t.measureText(vv) + 14 * dp; }
+            t.setTextAlign(Paint.Align.LEFT); t.setTypeface(U.BOLD); t.setTextSize(13 * dp); t.setColor(Color.WHITE);
+            String nm = ch.name; float nw = Math.min(t.measureText(nm), (rx - tx) * 0.6f);
+            c.drawText(ell(t, nm, rx - tx), tx, top + 26 * dp, t);
+            if (!ch.group.isEmpty()) { t.setTypeface(U.POP); t.setColor(U.MUTED); c.drawText(ell(t, "  ·  " + ch.group, rx - tx - nw - 4 * dp), tx + nw, top + 26 * dp, t); }
+            // Zeile 2: Sendung
+            t.setTypeface(U.BOLD); t.setTextSize(21 * dp); t.setColor(Color.WHITE);
+            c.drawText(ell(t, msg.isEmpty() ? (pr == null ? ch.name : pr.title) : msg, tw), tx, top + 56 * dp, t);
+            float y = top + 56 * dp;
+            // Zeile 3: Beschreibung (eine Zeile)
+            if (desc) { y += 22 * dp; t.setTypeface(U.POP); t.setTextSize(12.5f * dp); t.setColor(0xFFB4B8CC); c.drawText(ell(t, pr.desc.replace('\n', ' '), tw), tx, y, t); }
+            // Zeile 4: Fortschritt
+            y += 24 * dp;
+            t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setColor(0xFFC9CCE0);
             if (pr != null) {
-                String a1 = hm(pr.start), a2 = hm(pr.stop) + "  · noch " + Math.max(0, (pr.stop - now) / 60000) + " Min.";
-                c.drawText(a1, tx, top + 78 * dp, t);
-                t.setTextAlign(Paint.Align.RIGHT); c.drawText(a2, right, top + 78 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+                String a1 = hm(pr.start), a2 = hm(pr.stop) + "   noch " + Math.max(0, (pr.stop - now) / 60000) + " Min.";
+                c.drawText(a1, tx, y, t);
+                t.setTextAlign(Paint.Align.RIGHT); c.drawText(a2, right, y, t); t.setTextAlign(Paint.Align.LEFT);
                 float bx = tx + t.measureText(a1) + 10 * dp, bw2 = tw - (bx - tx) - t.measureText(a2) - 12 * dp;
-                bar(c, p, bx, top + 73 * dp, bw2, 3.5f * dp, pr.progress(now));
-            } else c.drawText("Kein Programm verfügbar", tx, top + 78 * dp, t);
-            // Zeile 4: danach
-            if (nx != null) { t.setColor(U.MUTED); t.setTextSize(12 * dp); c.drawText(ell(t, "Danach  " + hm(nx.start) + "   " + nx.title, tw), tx, top + 100 * dp, t); }
+                bar(c, p, bx, y - 5 * dp, bw2, 4 * dp, pr.progress(now));
+            } else c.drawText("Kein Programm verfügbar", tx, y, t);
+            // Zeile 5: danach | Technik
+            y += 24 * dp;
+            t.setTextSize(12 * dp);
+            float techW = 0;
+            if (!tech.isEmpty()) { t.setColor(0xFF67E8F9); t.setTextAlign(Paint.Align.RIGHT); String tt = ell(t, tech, tw * 0.62f); techW = t.measureText(tt); c.drawText(tt, right, y, t); t.setTextAlign(Paint.Align.LEFT); }
+            if (nx != null) { t.setColor(U.MUTED); c.drawText(ell(t, "Danach  " + hm(nx.start) + "  " + nx.title, tw - techW - 16 * dp), tx, y, t); }
         }
     }
 

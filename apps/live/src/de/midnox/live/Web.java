@@ -137,6 +137,47 @@ final class Web {
                 new Thread(new Runnable() { public void run() { Epg.reload(c); changed(); } }).start();
                 return "{\"ok\":true,\"msg\":\"Programm wird neu geladen …\"}";
             }
+            case "map_list": {
+                JSONArray a = new JSONArray();
+                for (Mapping.Group g : Mapping.load(c)) {
+                    JSONArray ch = new JSONArray();
+                    for (String id : g.ids) { Model.Channel x = Lib.byId(id); ch.put(x != null ? Mapping.channelJson(x) : new JSONObject().put("id", id).put("name", "(nicht mehr vorhanden)").put("src", "")); }
+                    a.put(new JSONObject().put("n", g.name).put("ids", new JSONArray(g.ids)).put("ch", ch));
+                }
+                return new JSONObject().put("groups", a).toString();
+            }
+            case "map_suggest": {
+                JSONArray a = new JSONArray();
+                for (Mapping.Group g : Mapping.suggest(c)) {
+                    JSONArray ch = new JSONArray();
+                    for (String id : g.ids) { Model.Channel x = Lib.byId(id); if (x != null) ch.put(Mapping.channelJson(x)); }
+                    a.put(new JSONObject().put("n", g.name).put("ids", new JSONArray(g.ids)).put("ch", ch));
+                }
+                return new JSONObject().put("groups", a).toString();
+            }
+            case "map_save": {
+                List<Mapping.Group> l = new ArrayList<>();
+                JSONArray a = in.optJSONArray("groups");
+                for (int i = 0; a != null && i < a.length(); i++) {
+                    JSONObject o = a.getJSONObject(i);
+                    Mapping.Group g = new Mapping.Group(); g.name = o.optString("n");
+                    JSONArray ids = o.optJSONArray("ids");
+                    for (int k = 0; ids != null && k < ids.length(); k++) if (!g.ids.contains(ids.getString(k))) g.ids.add(ids.getString(k));
+                    l.add(g);
+                }
+                Mapping.save(c, l);
+                return "{\"ok\":true}";
+            }
+            case "chan_search": {
+                String q = U.norm(in.optString("q"));
+                String raw = in.optString("q").toLowerCase(Locale.GERMANY);
+                JSONArray a = new JSONArray();
+                for (Model.Channel ch : Lib.channels) {
+                    if (a.length() >= 60) break;
+                    if ((!q.isEmpty() && U.norm(ch.name).contains(q)) || ch.name.toLowerCase(Locale.GERMANY).contains(raw)) a.put(Mapping.channelJson(ch));
+                }
+                return new JSONObject().put("channels", a).toString();
+            }
             case "reload": reloadAll(c); return "{\"ok\":true,\"msg\":\"Wird neu geladen …\"}";
             case "groups": {
                 Set<String> hid = Lib.hiddenGroups(c);
@@ -170,7 +211,8 @@ final class Web {
         }
         return new JSONObject().put("midnox_live", 1).put("exported", System.currentTimeMillis()).put("sources", src)
             .put("favs", new JSONArray(Lib.favs(c))).put("hidden", new JSONArray(new ArrayList<>(Lib.hiddenGroups(c))))
-            .put("epg_extra", U.prefs(c).getString("epg_extra", Epg.DEFAULT_EXTRA));
+            .put("epg_extra", U.prefs(c).getString("epg_extra", Epg.DEFAULT_EXTRA))
+            .put("mapping", new JSONArray(U.prefs(c).getString("mapping", "[]")));
     }
     /** Sicherung einlesen: vorhandene Quellen bleiben, gleiche werden nicht doppelt angelegt. */
     static String importFile(Context c, InputStream in, long len) throws Exception {
@@ -200,6 +242,11 @@ final class Web {
         for (int i = 0; hg != null && i < hg.length(); i++) hid.add(hg.getString(i));
         android.content.SharedPreferences.Editor ed = U.prefs(c).edit().putString("favs", new JSONArray(favs).toString()).putStringSet("hidden", hid);
         if (o.has("epg_extra")) ed.putString("epg_extra", o.getString("epg_extra"));
+        if (o.has("mapping")) {   // Zuordnungen anhaengen
+            JSONArray cur = new JSONArray(U.prefs(c).getString("mapping", "[]")), add = o.getJSONArray("mapping");
+            for (int i = 0; i < add.length(); i++) cur.put(add.get(i));
+            ed.putString("mapping", cur.toString());
+        }
         ed.apply();
         reloadAll(c);
         return new JSONObject().put("ok", true).put("msg", added + (added == 1 ? " Quelle" : " Quellen") + " übernommen – Sender werden geladen …").toString();
@@ -241,6 +288,7 @@ final class Web {
             + "<div id=f_stalker style=display:none><input id=s_url placeholder='Portal-Adresse, z. B. http://portal.tv:8080/c/'><textarea id=s_mac rows=3 placeholder='MAC-Adresse(n), eine pro Zeile:&#10;00:1A:79:XX:XX:XX&#10;00:1A:79:YY:YY:YY'></textarea><input id=s_name placeholder='Name (optional)'><input id=s_epg placeholder='Zusätzliche EPG-Adresse (optional)'><button onclick=add('stalker')>Hinzufügen</button><p class=hint>midnox Live meldet sich beim Portal wie eine MAG-Box an. Die MAC-Adressen müssen bei deinem Anbieter freigeschaltet sein. Mehrere MACs werden gestapelt: Geht ein Sender über eine MAC nicht, versucht midnox Live automatisch die nächste – und merkt sich die, die funktioniert.</p></div></div>"
             + "<h3>PROGRAMMFÜHRER (EPG)</h3><div class=card><p class=hint style=margin-top:0>Zusätzliche XMLTV-Adressen (auch .gz), mehrere mit Komma. Die Sender werden über tvg-id oder den Namen zugeordnet. Voreingestellt ist ein freies deutsches EPG.</p><input id=epg><button onclick=epg()>Speichern und neu laden</button> <span class=hint id=epgst></span></div>"
             + "<h3>GRUPPEN</h3><div class=card><p class=hint style=margin-top:0>Angetippte Gruppen werden am Fernseher ausgeblendet (praktisch bei großen Listen mit vielen Ländern).</p><div class=grp id=grp></div></div>"
+            + "<h3>SENDER ZUORDNEN</h3><div class=card><p class=hint style=margin-top:0>Gleiche Sender, die bei deinen Anbietern unterschiedlich heißen (z. B. „ARD“ und „Das Erste HD“), zu einer Gruppe zusammenfassen. Geht ein Sender nicht, probiert midnox Live erst alle MACs und dann die anderen Sender der Gruppe – von oben nach unten.</p>\n<div id=maps></div>\n<div style='margin-top:12px'><input id=mq placeholder='Sender suchen und zu einer Gruppe hinzufügen …' oninput=ms()><div class=row style='display:flex;gap:10px;align-items:center'><span class=hint id=mtarget style='flex:1'>Treffer landen in einer neuen Gruppe.</span><button class=g onclick=mnew()>Neue Gruppe beginnen</button></div><div id=mres></div></div>\n<h3 style='margin-top:18px'>VORSCHLÄGE</h3><div id=msug class=hint>Lade …</div></div>"
             + "<h3>SICHERN UND AUF ANDEREN STICK ÜBERTRAGEN</h3><div class=card><p class=hint style=margin-top:0>Die Sicherung enthält alle Quellen mit Zugangsdaten und MACs, Favoriten, ausgeblendete Gruppen und EPG-Adressen. Gut aufbewahren – sie enthält deine Passwörter.</p>"
             + "<p><a href='/export?k=" + k + "'><button>⬇ Sicherung herunterladen</button></a></p><p class=hint>Auf dem anderen Stick midnox Live öffnen, dessen QR-Code scannen und hier die Datei einspielen:</p><input type=file id=imp accept='.json,application/json'><button onclick=imp()>⬆ Sicherung einspielen</button></div>"
             + "<p><button class=g onclick=\"api('reload').then(msg)\">Alles neu laden</button></p><div id=msg></div></div><script>"
@@ -253,6 +301,7 @@ final class Web {
             + "function up(){var f=$('file').files[0];if(!f)return;msg({msg:'Lade hoch …'});var x=new XMLHttpRequest();x.open('POST','/upload?k='+K+'&name='+encodeURIComponent(f.name));x.onload=function(){try{msg(JSON.parse(x.responseText))}catch(e){msg({msg:'Fehler beim Hochladen'})}};x.send(f)}"
             + "function mc(i){var x=S[i];var v=prompt('MAC-Adressen für '+x.name+' (mit Komma getrennt). Reihenfolge = Reihenfolge beim Ausweichen:',x.mac.split('\\n').join(', '));if(v)api('macs',{id:x.id,mac:v}).then(msg)}"
             + "function imp(){var f=$('imp').files[0];if(!f)return;msg({msg:'Spiele Sicherung ein …'});var x=new XMLHttpRequest();x.open('POST','/upload?k='+K+'&import=1');x.onload=function(){try{msg(JSON.parse(x.responseText))}catch(e){msg({msg:'Fehler beim Einspielen'})}};x.send(f)}"
+            + "\nvar MG=[],SG=[],MT=-1,MST;\nfunction mload(){api('map_list').then(function(j){MG=j.groups;mdraw()});api('map_suggest').then(function(j){SG=j.groups;sdraw()})}\nfunction chl(c){return '<b>'+esc(c.name)+'</b> <span class=hint>· '+esc(c.src||'?')+'</span>'}\nfunction mdraw(){$('maps').innerHTML=MG.length?MG.map(function(g,i){return '<div class=card style=\"background:#100f1a\"><div class=src><input value=\"'+esc(g.n)+'\" onchange=\"MG['+i+'].n=this.value;msave()\" style=\"margin:0;flex:1\"><div class=bt><button class=g onclick=\"mtarget('+i+')\">＋ Sender</button><button class=g onclick=\"if(confirm(\\'Gruppe löschen?\\')){MG.splice('+i+',1);msave()}\">Löschen</button></div></div>'\n +g.ch.map(function(c,k){return '<div class=src style=\"margin-top:6px\"><span>'+(k+1)+'. '+chl(c)+'</span><div class=bt><button class=g onclick=\"mmove('+i+','+k+',-1)\">▲</button><button class=g onclick=\"mmove('+i+','+k+',1)\">▼</button><button class=g onclick=\"mrem('+i+','+k+')\">✕</button></div></div>'}).join('')+'</div>'}).join(''):'<div class=hint>Noch keine Zuordnung – übernimm unten Vorschläge oder suche Sender.</div>';\n $('mtarget').textContent=MT>=0&&MG[MT]?'Treffer landen in der Gruppe „'+MG[MT].n+'“.':'Treffer landen in einer neuen Gruppe.'}\nfunction mnew(){MT=-1;mdraw()}\nfunction mtarget(i){MT=i;mdraw();$('mq').focus()}\nfunction mmove(i,k,d){var g=MG[i],n=k+d;if(n<0||n>=g.ids.length)return;[g.ids[k],g.ids[n]]=[g.ids[n],g.ids[k]];[g.ch[k],g.ch[n]]=[g.ch[n],g.ch[k]];msave()}\nfunction mrem(i,k){MG[i].ids.splice(k,1);MG[i].ch.splice(k,1);if(MG[i].ids.length<2&&!confirm('Eine Gruppe braucht mindestens zwei Sender. Trotzdem so lassen? (Sie wird beim Speichern verworfen)'))return mload();msave()}\nfunction msave(){mdraw();api('map_save',{groups:MG.map(function(g){return{n:g.n,ids:g.ids}})}).then(function(){msg({msg:'Zuordnung gespeichert'})})}\nfunction ms(){clearTimeout(MST);MST=setTimeout(function(){var q=$('mq').value.trim();if(q.length<2){$('mres').innerHTML='';return}api('chan_search',{q:q}).then(function(j){$('mres').innerHTML=j.channels.map(function(c,i){return '<div class=src style=\"margin-top:6px\"><span>'+chl(c)+'</span><div class=bt><button class=g onclick=\\'madd('+JSON.stringify(c).replace(/'/g,\"&#39;\")+')\\'>＋ hinzufügen</button></div></div>'}).join('')||'<div class=hint>Nichts gefunden</div>'})},250)}\nfunction madd(c){if(MT<0||!MG[MT]){MG.push({n:c.name.replace(/^\\s*\\|?[A-Z]{2,3}\\|?\\s*[:|•-]?\\s*/,'').replace(/\\s*\\b(FHD|UHD|HD|SD|4K|HEVC|RAW)\\b\\s*/ig,' ').trim(),ids:[],ch:[]});MT=MG.length-1}var g=MG[MT];if(g.ids.indexOf(c.id)>=0)return;g.ids.push(c.id);g.ch.push(c);if(g.ids.length>1)msave();else mdraw()}\nfunction sdraw(){$('msug').innerHTML=SG.length?'<p><button onclick=\"sugAll()\">Alle '+SG.length+' Vorschläge übernehmen</button></p>'+SG.map(function(g,i){return '<div class=src style=\"margin-top:6px\"><span><b>'+esc(g.n)+'</b>: '+g.ch.map(function(c){return esc(c.name)+' <span class=hint>· '+esc(c.src)+'</span>'}).join(' &nbsp;|&nbsp; ')+'</span><div class=bt><button class=g onclick=\"sugOne('+i+')\">Übernehmen</button></div></div>'}).join(''):'Keine weiteren Vorschläge – bei nur einer Quelle gibt es nichts zuzuordnen.'}\nfunction sugOne(i){MG.push(SG[i]);SG.splice(i,1);sdraw();msave()}\nfunction sugAll(){SG.forEach(function(g){MG.push(g)});SG=[];sdraw();msave()}\nmload();\n"
             + "function epg(){api('epg',{extra:v('epg')}).then(msg)}"
             + "var first=true;function load(){api('state').then(function(s){$('st').textContent=s.status+(s.busy?' · lädt …':'')+(s.epg?' · '+s.epg:'');if(first){$('epg').value=s.epg_extra;first=false}"
             + "$('src').innerHTML=s.sources.length?(window.S=s.sources).map(function(x,i){return '<div class=card><div class=src><div><b>'+esc(x.name)+'</b><span>'+esc(x.label)+' · '+(x.on?x.count+' Sender':'ausgeschaltet')+(x.macinfo?' · '+esc(x.macinfo):'')+'</span>'+(x.error?'<br><span class=err>'+esc(x.error)+'</span>':'')+'</div><div class=bt>'+(x.type=='stalker'?'<button class=g onclick=\"mc('+i+')\">MACs</button>':'')+'<button class=g onclick=\"api(\\'toggle\\',{id:\\''+x.id+'\\'}).then(msg)\">'+(x.on?'Aus':'An')+'</button><button class=g onclick=\"if(confirm(\\'Quelle löschen?\\'))api(\\'del\\',{id:\\''+x.id+'\\'}).then(msg)\">Löschen</button></div></div></div>'}).join(''):'<div class=card><span class=hint>Noch keine Quelle – füge unten deine M3U-Liste, Xtream-Zugangsdaten oder dein Stalker-Portal hinzu.</span></div>';"

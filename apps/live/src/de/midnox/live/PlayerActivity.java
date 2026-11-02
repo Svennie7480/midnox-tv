@@ -219,16 +219,35 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
     void updateBadge() {
         Format f = player == null ? null : player.getVideoFormat();
-        String b = "";
-        if (f != null && f.height > 0) b = f.height >= 2000 ? "4K" : f.height >= 1000 ? "FHD" : f.height >= 700 ? "HD" : "SD";
-        banner.badge = b; banner.invalidate();
+        Format a = player == null ? null : player.getAudioFormat();
+        String b = "", tech = "";
+        if (f != null && f.height > 0) {
+            b = f.height >= 2000 ? "4K" : f.height >= 1000 ? "FHD" : f.height >= 700 ? "HD" : "SD";
+            tech = f.width + "×" + f.height;
+            if (f.frameRate > 0) tech += " · " + Math.round(f.frameRate) + " fps";
+            String m = f.sampleMimeType == null ? "" : f.sampleMimeType;
+            String codec = m.contains("hevc") ? "HEVC" : m.contains("avc") ? "H.264" : m.contains("mpeg2") ? "MPEG-2" : m.contains("av01") ? "AV1" : m.contains("vp9") ? "VP9" : "";
+            if (!codec.isEmpty()) tech += " · " + codec;
+            if (f.bitrate > 0) tech += " · " + String.format(Locale.GERMANY, "%.1f Mbit/s", f.bitrate / 1e6);
+        }
+        if (a != null) {
+            String am = a.sampleMimeType == null ? "" : a.sampleMimeType;
+            String ac = am.contains("eac3") ? "Dolby Digital+" : am.contains("ac3") ? "Dolby Digital" : am.contains("mp4a") || am.contains("aac") ? "AAC" : am.contains("mpeg") ? "MP2" : "";
+            String ch = a.channelCount >= 6 ? "5.1" : a.channelCount == 2 ? "Stereo" : a.channelCount == 1 ? "Mono" : "";
+            String lang = a.language == null || a.language.equals("und") ? "" : new Locale(a.language).getDisplayLanguage(Locale.GERMANY);
+            String au = (ac + " " + ch).trim() + (lang.isEmpty() ? "" : " " + lang);
+            if (!au.isEmpty()) tech += (tech.isEmpty() ? "" : "   ·   ") + "\u266B " + au;
+            int tracks = audioTracks().size();
+            if (tracks > 1) tech += "  (" + tracks + " Tonspuren)";
+        }
+        banner.badge = b; banner.tech = tech; banner.invalidate();
     }
 
     @Override public void play(Model.Channel ch) {
         if (guide.getVisibility() == View.VISIBLE) guide.setVisibility(View.GONE);
         if (list.getVisibility() == View.VISIBLE) {
-            if (current != null && current.id.equals(ch.id)) { closeList(); return; }   // zweites OK schliesst die Liste
-            list.playingId = ch.id; list.invalidate();
+            closeList();
+            if (current != null && current.id.equals(ch.id)) { showBanner(ch); return; }
         }
         if (current != null && !current.id.equals(ch.id)) previous = current;
         current = ch;
@@ -249,12 +268,15 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     void buildPlan(Model.Channel ch) {
         plan.clear(); planPos = 0; everReady = false; tryMsg = false;
         addTries(ch);
+        // eigene Zuordnung (am PC festgelegt), in der dort gewaehlten Reihenfolge
+        for (Model.Channel o : Mapping.alternatives(this, ch)) if (plan.size() < 24) addTries(o);
         // derselbe Sender aus anderen Quellen (gleicher Name)
         if (U.prefs(this).getBoolean("fallback", true)) {
             String n = U.norm(ch.name);
-            for (Model.Channel o : Lib.channels) if (!o.id.equals(ch.id) && !o.src.equals(ch.src) && U.norm(o.name).equals(n) && plan.size() < 16) addTries(o);
+            for (Model.Channel o : Lib.channels) if (!o.id.equals(ch.id) && !o.src.equals(ch.src) && U.norm(o.name).equals(n) && plan.size() < 24 && !planned(o)) addTries(o);
         }
     }
+    boolean planned(Model.Channel o) { for (Try t : plan) if (t.ch.id.equals(o.id)) return true; return false; }
     void addTries(Model.Channel ch) {
         if (!ch.cmd.isEmpty()) {
             Model.Source s = Lib.source(this, ch.src);

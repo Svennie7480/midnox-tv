@@ -324,6 +324,7 @@ public class HomeActivity extends Activity {
         startService(new Intent(this, KinoService.class));
 
         setContentView(root);
+        if (WizardActivity.needed(this)) startActivity(new Intent(this, WizardActivity.class));
         buildTiles(true);
     }
 

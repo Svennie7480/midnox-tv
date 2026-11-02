@@ -8,6 +8,7 @@ declare(strict_types=1);
 error_reporting(0);
 
 const APK = 'https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk';
+const APK_TV = 'https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk';
 const CODE_DAYS = 30;          // so lange ist ein Einrichtungscode gültig
 const MAX_FAILS = 8;           // falsche Codes je Stunde und IP
 const MAX_LOGIN_FAILS = 5;     // falsche Passwörter je 30 Minuten und IP
@@ -79,8 +80,15 @@ function rid(int $n = 8): string { return bin2hex(random_bytes($n)); }
 
 // ---------------------------------------------------------------- Kurzer Download-Link
 if (isset($_GET['app'])) { header('Location: ' . APK, true, 302); exit; }
-// beim ersten Aufruf Unterordner app/ anlegen -> midnox.de/midnoxtv/live/app
-if (!is_dir(__DIR__ . '/app')) { @mkdir(__DIR__ . '/app', 0755); @file_put_contents(__DIR__ . '/app/index.php', "<?php header('Location: " . APK . "', true, 302);\n"); }
+if (isset($_GET['tv'])) { header('Location: ' . APK_TV, true, 302); exit; }
+// beim ersten Aufruf kurze Links anlegen: .../live/app (midnox Live) und .../tv (midnox TV, eine Ebene hoeher wenn moeglich)
+function shortLink(string $dir, string $url): bool {
+    if (is_file("$dir/index.php")) return true;
+    if (!is_dir($dir) && !@mkdir($dir, 0755)) return false;
+    return @file_put_contents("$dir/index.php", "<?php header('Location: $url', true, 302);\n") !== false;
+}
+shortLink(__DIR__ . '/app', APK);
+$tvLink = shortLink(dirname(__DIR__) . '/tv', APK_TV) ? '../tv' : (shortLink(__DIR__ . '/tv', APK_TV) ? 'tv' : '?tv');
 
 $api = $_GET['api'] ?? '';
 $in = json_decode((string)file_get_contents('php://input'), true);
@@ -233,7 +241,7 @@ button{padding:9px 16px;border:0;border-radius:999px;background:var(--g);color:#
 
 <div id="main" style="display:none">
  <div class="row" style="margin-bottom:6px"><button onclick="edit(null)">＋ Neues Paket</button><button class="g" onclick="logout()">Abmelden</button>
-  <span class="hint grow" style="text-align:right">App-Download für Kollegen: <b id="dl"></b></span></div>
+  <span class="hint grow" style="text-align:right">Downloader-Adressen: midnox Live <b id="dl"></b> · midnox TV <b id="dltv"></b></span></div>
  <div id="list"></div>
  <div class="card hint">So geht's: Paket anlegen → <b>Code erzeugen</b> → dein Kollege installiert midnox Live (Downloader-App, Adresse oben), startet sie und gibt den sechsstelligen Code mit der Fernbedienung ein. Änderungen am Paket kommen automatisch auf seinen Stick. Jeder Code gilt einmal und <?= CODE_DAYS ?> Tage.</div>
 </div>
@@ -263,7 +271,8 @@ function login(){PW=$('pw').value;sessionStorage.setItem('mlpw',PW);load()}
 function logout(){PW='';sessionStorage.removeItem('mlpw');show('login')}
 function load(){api('admin&do=list').then(function(j){if(j.setup)return show('setup');if(!j.ok){if(j.msg&&PW)msg(j.msg);return show('login')}P=j.packages;show('main');render()})}
 function render(){
- $('dl').textContent=location.host+location.pathname.replace(/index\.php$/,'').replace(/\/?$/,'/')+'app';
+ var base=location.host+location.pathname.replace(/index\.php$/,'').replace(/\/?$/,'/');$('dl').textContent=base+'app';
+ var tv='<?= $tvLink ?>';$('dltv').textContent=tv=='../tv'?base.replace(/[^\/]+\/$/,'')+'tv':base+tv;
  $('list').innerHTML=P.length?P.map(function(p,i){var s=(p.data.sources||[]);
   return '<div class="card"><div class="row"><div class="grow"><b style="font-size:18px">'+esc(p.name)+'</b><div class="hint">'+s.map(function(x){return '<span class="pill">'+esc(x.name||x.type)+(x.type=='stalker'?' · '+(x.mac||'').split(/[\s,;]+/).filter(Boolean).length+' MAC':'')+'</span>'}).join('')+' Stand '+when(p.updated)+'</div></div>'
   +'<button class="g" onclick="edit('+i+')">Bearbeiten</button><button onclick="code('+i+')">Code erzeugen</button><button class="r" onclick="del('+i+')">Löschen</button></div>'

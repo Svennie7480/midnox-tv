@@ -679,6 +679,14 @@ public class SettingsActivity extends Activity {
     }
 
     void connections() {
+        Row wiz = add("Einrichtungsassistent (ADB, Startseite, Aufräumen)");
+        wiz.value.setText(Style.prefs(this).getBoolean("adb_ok", false) ? "eingerichtet \u2713" : "starten");
+        wiz.onOk = new Runnable() { public void run() { Style.prefs(SettingsActivity.this).edit().remove("wiz_clean_skip").apply(); startActivity(new Intent(SettingsActivity.this, WizardActivity.class)); } };
+        if (Style.prefs(this).getBoolean("wiz_cleaned", false)) {
+            final Row undo = add("Abgeschaltete Amazon-Dienste wieder einschalten");
+            undo.value.setText("OK");
+            undo.onOk = new Runnable() { public void run() { WizardActivity.undoClean(SettingsActivity.this); undo.value.setText("erledigt"); } };
+        }
         Row phone = add("Mit Handy einrichten");
         phone.value.setText("QR-Code  \u203a");
         phone.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, SetupActivity.class)); } };

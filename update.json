@@ -1,6 +1,6 @@
 {
- "versionCode": 63,
- "versionName": "10.3",
+ "versionCode": 64,
+ "versionName": "10.4",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Senderliste: neue Quelle „midnox Live“ – Sender erscheinen in „Jetzt im TV“ und starten direkt in midnox Live"
+ "notes": "Neuer Einrichtungsassistent: führt durch Entwickleroptionen und ADB, macht midnox TV zur Startseite und räumt auf Wunsch auf"
 }

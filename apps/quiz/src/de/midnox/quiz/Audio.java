@@ -41,7 +41,7 @@ final class Audio {
         stopMusic();
         musicName = name;
         if (name == null || paused) return;
-        try { music = make(name, true); music.setVolume(vol, vol); music.start(); } catch (Exception e) { music = null; }
+        try { music = make(name, true); float v = ducked ? vol * 0.3f : vol; music.setVolume(v, v); music.start(); } catch (Exception e) { music = null; }
     }
     static void stopMusic() { if (music != null) { try { music.release(); } catch (Exception ignored) {} music = null; } musicName = null; }
     /** Einmaliger Effekt (lock, right, wrong, win). Musik wird kurz gedimmt. */
@@ -51,10 +51,13 @@ final class Audio {
             if (fx != null) fx.release();
             fx = make(name, false); fx.setVolume(0.9f, 0.9f);
             if (music != null) music.setVolume(vol * 0.25f, vol * 0.25f);
-            fx.setOnCompletionListener(new MediaPlayer.OnCompletionListener() { public void onCompletion(MediaPlayer mp) { if (music != null) music.setVolume(vol, vol); } });
+            fx.setOnCompletionListener(new MediaPlayer.OnCompletionListener() { public void onCompletion(MediaPlayer mp) { duck(ducked); } });
             fx.start();
         } catch (Exception ignored) {}
     }
+    static volatile boolean ducked;
+    /** Musik leiser, waehrend die Moderatoren-Stimme spricht. */
+    static void duck(boolean d) { ducked = d; try { if (music != null) { float v = d ? vol * 0.3f : vol; music.setVolume(v, v); } } catch (Exception ignored) {} }
     static void stopFx() { if (fx != null) { try { fx.release(); } catch (Exception ignored) {} fx = null; } if (music != null) music.setVolume(vol, vol); }
     static void blip(String name) { if (!on() || pool == null || !ids.containsKey(name)) return; pool.play(ids.get(name), 0.6f, 0.6f, 1, 0, 1f); }
 

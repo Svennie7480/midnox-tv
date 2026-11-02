@@ -95,6 +95,23 @@ final class Views {
             if (k == KeyEvent.KEYCODE_MENU) { Model.Channel ch = selected(); if (ch != null && col == 1) { cb.fav(ch); if (group().equals(Lib.FAV)) { loadGroup(); } invalidate(); } return true; }
             return false;
         }
+        /** Touch: Gruppe oder Sender antippen. false = ausserhalb der Liste. */
+        boolean tap(float x, float y) {
+            float dp = U.dp, w = getWidth(), gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp), top = 58 * dp;
+            if (y < top) return true;
+            if (x < gw) {
+                int i = gTop + (int) ((y - top) / (44 * dp));
+                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
+                return true;
+            }
+            if (x < gw + cw + 16 * dp) {
+                int i = cTop + (int) ((y - top) / (64 * dp));
+                if (i >= 0 && i < chans.size()) { ci = i; col = 1; invalidate(); cb.play(chans.get(i)); }
+                return true;
+            }
+            return false;
+        }
+        void scrollRows(int n) { if (col == 0) { gTop = Math.max(0, Math.min(Math.max(0, groups.size() - 1), gTop + n)); gi = Math.max(gTop, Math.min(gi, groups.size() - 1)); } else { cTop = Math.max(0, Math.min(Math.max(0, chans.size() - 1), cTop + n)); ci = Math.max(cTop, Math.min(ci, chans.size() - 1)); } invalidate(); }
         void move(int d) {
             if (col == 0) {
                 if (groups.isEmpty()) return;
@@ -305,6 +322,13 @@ final class Views {
             if (k == KeyEvent.KEYCODE_PAGE_UP || k == KeyEvent.KEYCODE_MEDIA_REWIND) { row = Math.max(0, row - 6); invalidate(); return true; }
             return false;
         }
+        void tap(float x, float y) {
+            float dp = U.dp, y0 = 184 * dp, rh = 58 * dp;
+            if (y < y0) return;
+            int r = top + (int) ((y - y0) / rh);
+            if (r >= 0 && r < chans.size()) { row = r; invalidate(); cb.play(chans.get(r)); }
+        }
+        void scrollRows(int n) { row = Math.max(0, Math.min(chans.size() - 1, row + n)); invalidate(); }
         void scroll() {
             if (cursor < winStart + 10 * 60000L) winStart = Math.max(System.currentTimeMillis() - 3 * 3600000L, winStart - 60 * 60000L);
             if (cursor > winStart + SPAN - 15 * 60000L) winStart = winStart + 60 * 60000L;
@@ -396,6 +420,14 @@ final class Views {
         String title = ""; int sel;
         Menu(Context c) { super(c); }
         void set(String title, List<String> l, List<Runnable> a) { this.title = title; items.clear(); items.addAll(l); acts.clear(); acts.addAll(a); sel = 0; invalidate(); }
+        /** Touch: false = neben das Menue getippt (schliessen). */
+        boolean tap(float x, float y) {
+            float dp = U.dp;
+            if (x < getWidth() - 420 * dp) return false;
+            int i = (int) ((y - 76 * dp) / (50 * dp));
+            if (y >= 76 * dp && i >= 0 && i < acts.size()) { sel = i; invalidate(); acts.get(i).run(); }
+            return true;
+        }
         boolean key(int k) {
             if (k == KeyEvent.KEYCODE_DPAD_UP) { sel = Math.max(0, sel - 1); invalidate(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_DOWN) { sel = Math.min(items.size() - 1, sel + 1); invalidate(); return true; }

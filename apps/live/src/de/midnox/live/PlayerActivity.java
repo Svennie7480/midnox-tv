@@ -83,6 +83,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         Logos.load(this);
         initPlayer();
         refreshAll();
+        if (Cloud.linked(this)) cloudPull(false);
         if (Lib.channels.isEmpty() || Lib.stale()) reloadSources(!Lib.channels.isEmpty());
         else if (Epg.stale()) reloadEpg();
         handleIntent(getIntent(), true);
@@ -107,7 +108,46 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         else if (name != null) toast("„" + name + "“ ist nicht in deinen Sendern");
     }
 
+    void cloudPull(final boolean quiet) {
+        new Thread(new Runnable() { public void run() {
+            try {
+                final boolean linked = Cloud.linked(PlayerActivity.this);
+                if (Cloud.pull(PlayerActivity.this)) {
+                    final boolean still = Cloud.linked(PlayerActivity.this);
+                    h.post(new Runnable() { public void run() {
+                        if (linked && !still) toast("Dieses Gerät ist nicht mehr freigeschaltet – Paket-Quellen entfernt");
+                        else toast("Neue Einstellungen von " + Cloud.packageName(PlayerActivity.this) + " übernommen");
+                        reloadSources(true);
+                    }});
+                }
+            } catch (Exception ignored) {}
+        }}).start();
+    }
+    void askCode() {
+        final EditText et = new EditText(this);
+        et.setHint("6-stelliger Code");
+        et.setInputType(InputType.TYPE_CLASS_NUMBER);
+        et.setTextSize(28);
+        et.setGravity(Gravity.CENTER);
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Einrichtungscode").setMessage("Den Code hast du von dem bekommen, der dir midnox Live eingerichtet hat.").setView(et)
+            .setPositiveButton("Einrichten", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                final String code = et.getText().toString();
+                showStatus("Code wird geprüft …", 0);
+                new Thread(new Runnable() { public void run() {
+                    try {
+                        final String m = Cloud.redeem(PlayerActivity.this, code);
+                        h.post(new Runnable() { public void run() { showStatus(m + " – Sender werden geladen …", 5000); reloadSources(false); } });
+                    } catch (final Exception e) {
+                        h.post(new Runnable() { public void run() { showStatus("\u26A0  " + e.getMessage(), 6000); } });
+                    }
+                }}).start();
+            } })
+            .setNegativeButton("Abbrechen", null).show();
+        et.requestFocus();
+    }
+
     final Runnable tick = new Runnable() { public void run() {
+        if (Cloud.due(PlayerActivity.this)) cloudPull(true);
         if (list.getVisibility() == View.VISIBLE) list.invalidate();
         if (banner.getVisibility() == View.VISIBLE) banner.invalidate();
         if (guide.getVisibility() == View.VISIBLE) guide.invalidate();
@@ -291,13 +331,52 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     @Override public void fav(Model.Channel ch) { toast(Lib.toggleFav(this, ch.id) ? "★ " + ch.name + " ist jetzt Favorit" : ch.name + " aus den Favoriten entfernt"); }
 
     // ------------------------------------------------------------ Tasten
+    // ------------------------------------------------------------ Touch (Tablet/Handy)
+    GestureDetector gestures;
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (gestures == null) gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            float acc;
+            @Override public boolean onDown(MotionEvent e) { acc = 0; return true; }
+            @Override public boolean onSingleTapUp(MotionEvent e) {
+                float x = e.getX(), y = e.getY();
+                if (menu.getVisibility() == View.VISIBLE) { if (!menu.tap(x, y)) menu.setVisibility(View.GONE); return true; }
+                if (guide.getVisibility() == View.VISIBLE) { guide.tap(x, y); return true; }
+                if (list.getVisibility() == View.VISIBLE) { if (!list.tap(x, y)) closeList(); else hideLater(list, 30000); return true; }
+                if (setup.getVisibility() == View.VISIBLE) { askCode(); return true; }
+                if (banner.getVisibility() != View.VISIBLE && current != null) showBanner(current); else openList();
+                return true;
+            }
+            @Override public void onLongPress(MotionEvent e) {
+                if (list.getVisibility() == View.VISIBLE) { Model.Channel ch = list.selected(); if (ch != null) { fav(ch); list.invalidate(); } return; }
+                openMenu();
+            }
+            @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
+                float row = 60 * U.dp;
+                if (list.getVisibility() == View.VISIBLE || guide.getVisibility() == View.VISIBLE) {
+                    acc += dy;
+                    while (Math.abs(acc) >= row) { int n = acc > 0 ? 1 : -1; acc -= n * row; if (guide.getVisibility() == View.VISIBLE) guide.scrollRows(n); else list.scrollRows(n); }
+                    return true;
+                }
+                return false;
+            }
+            @Override public boolean onFling(MotionEvent a, MotionEvent b, float vx, float vy) {
+                if (menu.getVisibility() == View.VISIBLE || list.getVisibility() == View.VISIBLE || guide.getVisibility() == View.VISIBLE || setup.getVisibility() == View.VISIBLE) return false;
+                if (Math.abs(vy) > Math.abs(vx) && Math.abs(vy) > 800) { zap(vy < 0 ? 1 : -1); return true; }   // nach oben wischen = naechster Sender
+                if (Math.abs(vx) > 800 && vx > 0) { openList(); return true; }                                   // nach rechts wischen = Senderliste
+                return false;
+            }
+        });
+        gestures.onTouchEvent(ev);
+        return true;
+    }
+
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
         int k = e.getKeyCode();
         if (e.getAction() != KeyEvent.ACTION_DOWN) return k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_MENU ? true : super.dispatchKeyEvent(e);
         boolean rep = e.getRepeatCount() > 0;
         if (k == KeyEvent.KEYCODE_BACK) { back(); return true; }
         if (setup.getVisibility() == View.VISIBLE) {
-            if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) { askM3u(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) { askCode(); return true; }
             if (k == KeyEvent.KEYCODE_MENU) { openMenu(); return true; }
             return super.dispatchKeyEvent(e);
         }
@@ -413,6 +492,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             l.add("▣  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() {
                 scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
         }
+        l.add("\uD83D\uDD11  Einrichtungscode eingeben" + (Cloud.linked(this) ? "  (" + Cloud.packageName(this) + ")" : "")); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askCode(); } });
         l.add("⚙  Quellen einrichten (Handy/PC)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showQr(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });
         l.add("➕  M3U-Adresse hier eingeben"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askM3u(); } });
@@ -455,11 +535,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         TextView t1 = U.text(this, "midnox Live", 44, Color.WHITE);
         TextView t2 = U.text(this, "Dein Fernsehen – mit M3U-Liste, Xtream-Zugang oder Stalker-Portal.", 18, U.MUTED);
         t2.setPadding(0, U.px(10), 0, U.px(26));
-        TextView t3 = U.text(this, "1.  QR-Code mit dem Handy scannen\n2.  Quelle eintragen (oder M3U-Datei hochladen)\n3.  Fertig – die Sender erscheinen hier von selbst", 18, U.TEXT);
+        TextView t3 = U.text(this, "Hast du einen Einrichtungscode?\nDrück OK und gib die sechs Ziffern ein – fertig.\n\nOder selbst einrichten: QR-Code mit dem Handy scannen\nund M3U, Xtream oder Stalker-Portal eintragen.", 18, U.TEXT);
         t3.setLineSpacing(U.px(8), 1f);
         setupUrl = U.text(this, "", 16, 0xFF9EC5FF);
         setupUrl.setPadding(0, U.px(22), 0, U.px(8));
-        TextView t4 = U.text(this, "OK: M3U-Adresse direkt am Fernseher eingeben", 15, U.MUTED);
+        TextView t4 = U.text(this, "OK: Einrichtungscode   ·   MENU: weitere Möglichkeiten", 15, U.MUTED);
         txt.addView(t1); txt.addView(t2); txt.addView(t3); txt.addView(setupUrl); txt.addView(t4);
         v.addView(txt, new LinearLayout.LayoutParams(U.px(560), -2));
         qrBox = new FrameLayout(this);

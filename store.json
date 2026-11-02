@@ -7,8 +7,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.live",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
-   "version": "1.3",
-   "desc": "Deine eigene IPTV-App: M3U-Listen, Xtream Codes und Stalker-Portale mit mehreren MACs (geht eine nicht, springt sie automatisch zur nächsten), eingebauter Player, TV-Guide mit EPG, Senderlogos, Favoriten, Tonspur-Wahl. Einrichtung und Sicherung bequem per Handy oder PC."
+   "version": "1.4",
+   "desc": "Deine eigene IPTV-App: M3U, Xtream Codes und Stalker-Portale mit mehreren MACs, eingebauter Player, TV-Guide, Senderlogos, Favoriten. Einrichten per Handy, PC oder sechsstelligem Einrichtungscode – auch auf Android-TV und Tablets."
   },
   {
    "id": "midnox-radio",

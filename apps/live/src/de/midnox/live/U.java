@@ -20,6 +20,9 @@ final class U {
         POP = Typeface.DEFAULT; BOLD = Typeface.DEFAULT_BOLD;
         try { POP = Typeface.create("sans-serif-light", Typeface.NORMAL); BOLD = Typeface.create("sans-serif", Typeface.BOLD); } catch (Exception ignored) {}
     }
+    /** Deckkraft der Einblendungen (OSD) in Prozent, einstellbar im Menue. */
+    static volatile int osdPct = 92;
+    static int osd(int rgb) { return ((Math.round(osdPct * 2.55f) & 0xFF) << 24) | (rgb & 0xFFFFFF); }
     static int px(double v) { return (int) Math.round(v * dp); }
     static Shader brand(float x0, float x1) { return new LinearGradient(x0, 0, x1, 0, new int[]{C1, C2, C3}, null, Shader.TileMode.CLAMP); }
     static TextView text(Context c, String s, float sp, int color) {

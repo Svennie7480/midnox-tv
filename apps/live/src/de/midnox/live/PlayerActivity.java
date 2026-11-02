@@ -74,6 +74,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         setContentView(root);
 
         scale = U.prefs(this).getInt("scale", 0);
+        U.osdPct = U.prefs(this).getInt("osd", 92);
         group = U.prefs(this).getString("group", Lib.ALL);
         Web.start(this);
         Web.onChange = new Runnable() { public void run() { refreshAll(); } };
@@ -491,6 +492,8 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             if (previous != null) { l.add("↺  Letzter Sender: " + previous.name); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); play(previous); } }); }
             final List<String[]> audio = audioTracks();
             if (audio.size() > 1) { l.add("🔊  Tonspur wechseln"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); nextAudio(); } }); }
+            final int osdIdx = l.size();
+            l.add(osdLabel()); a.add(new Runnable() { public void run() { setOsd(U.osdPct >= 100 ? 30 : U.osdPct + 10, osdIdx); } });
             l.add("▣  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() {
                 scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
         }
@@ -499,7 +502,16 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });
         l.add("➕  M3U-Adresse hier eingeben"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askM3u(); } });
         menu.set(current == null ? "midnox Live" : current.num + "  " + current.name, l, a);
+        for (int i = 0; i < l.size(); i++) if (l.get(i).startsWith("\u25D0")) { final int idx = i;
+            menu.sliders.put(i, new Runnable[]{ new Runnable() { public void run() { setOsd(U.osdPct - 10, idx); } }, new Runnable() { public void run() { setOsd(U.osdPct + 10, idx); } } }); }
         menu.setVisibility(View.VISIBLE);
+    }
+    String osdLabel() { return "\u25D0  Deckkraft der Anzeigen:   \u25C0  " + U.osdPct + " %  \u25B6"; }
+    void setOsd(int pct, int idx) {
+        U.osdPct = Math.max(30, Math.min(100, pct));
+        U.prefs(this).edit().putInt("osd", U.osdPct).apply();
+        if (idx >= 0 && idx < menu.items.size()) menu.items.set(idx, osdLabel());
+        menu.invalidate(); list.invalidate(); banner.invalidate();
     }
     List<String[]> audioTracks() {
         List<String[]> out = new ArrayList<>();

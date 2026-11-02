@@ -25,17 +25,36 @@ final class Views {
         }
         float rad = 8 * U.dp;
         if (b != null) {
-            p.setShader(null); p.setColor(0x26FFFFFF); c.drawRoundRect(r, rad, rad, p);
+            p.setShader(null);
+            if (dark(b)) { p.setColor(0xF2F4F4F8); c.drawRoundRect(r, rad, rad, p); }   // dunkles Logo -> helle Karte
             float s = Math.min((r.width() - 6 * U.dp) / b.getWidth(), (r.height() - 6 * U.dp) / b.getHeight());
             float bw = b.getWidth() * s, bh = b.getHeight() * s;
             c.drawBitmap(b, null, new RectF(r.centerX() - bw / 2, r.centerY() - bh / 2, r.centerX() + bw / 2, r.centerY() + bh / 2), p);
         } else {
-            p.setShader(null); p.setColor(U.hashColor(ch.name)); c.drawRoundRect(r, rad, rad, p);
+            p.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom, U.hashColor(ch.name), 0xFF3B5BF0, Shader.TileMode.CLAMP));
+            c.drawRoundRect(r, rad, rad, p); p.setShader(null);
             t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.CENTER); t.setTypeface(U.BOLD); t.setTextSize(r.height() * 0.36f);
-            String m = ch.name.replaceAll("[^A-Za-z0-9]", "");
+            String m = ch.name.replaceAll("^[A-Z]{2,3}\\s*[:|]\\s*", "").replaceAll("[^A-Za-z0-9]", "");
             c.drawText(m.length() > 3 ? m.substring(0, 3).toUpperCase(Locale.ROOT) : m.toUpperCase(Locale.ROOT), r.centerX(), r.centerY() + r.height() * 0.13f, t);
             t.setTextAlign(Paint.Align.LEFT);
         }
+    }
+    /** Ist ein Logo ueberwiegend dunkel (auf dunklem Grund kaum sichtbar)? Ergebnis je Bild gemerkt. */
+    static final java.util.WeakHashMap<Bitmap, Boolean> darkCache = new java.util.WeakHashMap<>();
+    static boolean dark(Bitmap b) {
+        Boolean d = darkCache.get(b);
+        if (d != null) return d;
+        long lum = 0; int n = 0, opaque = 0;
+        int sx = Math.max(1, b.getWidth() / 24), sy = Math.max(1, b.getHeight() / 24);
+        for (int y = 0; y < b.getHeight(); y += sy) for (int x = 0; x < b.getWidth(); x += sx) {
+            int px = b.getPixel(x, y); n++;
+            if (Color.alpha(px) < 128) continue;
+            opaque++;
+            lum += (Color.red(px) * 299 + Color.green(px) * 587 + Color.blue(px) * 114) / 1000;
+        }
+        boolean res = opaque > 0 && opaque < n * 0.97 && lum / opaque < 90;   // transparentes Logo mit dunkler Schrift
+        darkCache.put(b, res);
+        return res;
     }
     static final class Inval implements Runnable { final View v; Inval(View v) { this.v = v; } public void run() { v.invalidate(); } }
 
@@ -128,8 +147,8 @@ final class Views {
             float dp = U.dp, w = getWidth(), h = getHeight();
             float gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp);
             p.setShader(null);
-            p.setColor(0xFF100F1A); c.drawRect(0, 0, gw, h, p);                       // Gruppen
-            p.setColor(0xFF0B0A14); c.drawRect(gw, 0, gw + cw + 16 * dp, h, p);       // Sender
+            p.setColor(U.osd(0x100F1A)); c.drawRect(0, 0, gw, h, p);                       // Gruppen
+            p.setColor(U.osd(0x0B0A14)); c.drawRect(gw, 0, gw + cw + 16 * dp, h, p);       // Sender
             p.setShader(new LinearGradient(gw + cw + 16 * dp, 0, gw + cw + 60 * dp, 0, 0xCC000000, 0x00000000, Shader.TileMode.CLAMP));
             c.drawRect(gw + cw + 16 * dp, 0, gw + cw + 60 * dp, h, p); p.setShader(null);
             p.setShader(U.brand(0, gw + cw + 16 * dp)); c.drawRect(0, 0, gw + cw + 16 * dp, 3 * dp, p); p.setShader(null);
@@ -204,7 +223,7 @@ final class Views {
             if (s != null && col == 1 && w - (gw + cw) > 300 * dp) {
                 Model.Prog pr = Epg.now(s), nx = Epg.next(s);
                 float dx = gw + cw + 40 * dp, dw = w - dx - 40 * dp, dy = h - 200 * dp;
-                p.setColor(0xFA15141F); c.drawRoundRect(new RectF(dx - 16 * dp, dy - 34 * dp, dx + dw + 16 * dp, h - 30 * dp), 16 * dp, 16 * dp, p);
+                p.setColor(U.osd(0x15141F)); c.drawRoundRect(new RectF(dx - 16 * dp, dy - 34 * dp, dx + dw + 16 * dp, h - 30 * dp), 16 * dp, 16 * dp, p);
                 t.setTypeface(U.BOLD); t.setTextSize(17 * dp); t.setColor(Color.WHITE);
                 c.drawText(ell(t, pr == null ? s.name : pr.title, dw), dx, dy, t);
                 t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(0xFFB4B8CC);
@@ -244,36 +263,45 @@ final class Views {
             if (ch == null) return;
             float dp = U.dp, w = getWidth(), h = getHeight();
             long now = System.currentTimeMillis();
-            RectF card = new RectF(30 * dp, h - 196 * dp, w - 30 * dp, h - 22 * dp);
-            p.setShader(null); p.setColor(0xF7121120); c.drawRoundRect(card, 20 * dp, 20 * dp, p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2 * dp); p.setShader(U.brand(card.left, card.right)); c.drawRoundRect(card, 20 * dp, 20 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
-            float x = 60 * dp, by = h - 160 * dp;
-            logo(c, p, t, ch, new RectF(x, by, x + 150 * dp, by + 90 * dp), this);
-            float tx = x + 176 * dp, tw = w - tx - 60 * dp;
-            t.setTypeface(U.POP); t.setTextSize(15 * dp); t.setColor(U.MUTED);
-            c.drawText(ell(t, ch.num + "  " + ch.name + (ch.group.isEmpty() ? "" : "   ·   " + ch.group), tw - 420 * dp), tx, by + 6 * dp, t);
+            float cwid = Math.min(w - 80 * dp, 620 * dp);
+            RectF card = new RectF(40 * dp, h - 26 * dp - 116 * dp, 40 * dp + cwid, h - 26 * dp);
+            p.setShader(null); p.setColor(U.osd(0x121120)); c.drawRoundRect(card, 18 * dp, 18 * dp, p);
+            p.setShader(U.brand(card.left, card.right)); c.drawRect(card.left + 18 * dp, card.top, card.right - 18 * dp, card.top + 2.5f * dp, p); p.setShader(null);
+            float x = card.left + 16 * dp, top = card.top;
+            logo(c, p, t, ch, new RectF(x, top + 20 * dp, x + 100 * dp, top + 20 * dp + 58 * dp), this);
+            float tx = x + 116 * dp, right = card.right - 18 * dp, tw = right - tx;
+            // Zeile 1: Platz, Name, Quelle, Bildqualitaet, Uhrzeit
+            t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setTextAlign(Paint.Align.RIGHT); t.setColor(0xFFC9CCE0);
+            String r1 = hm(now);
+            float rw = t.measureText(r1);
+            c.drawText(r1, right, top + 26 * dp, t);
+            float rx = right - rw - 12 * dp;
             if (!badge.isEmpty()) {
-                t.setTypeface(U.BOLD); t.setTextSize(11 * dp);
-                float bw = t.measureText(badge) + 14 * dp, bx = w - 60 * dp - bw;
-                p.setColor(0x33FFFFFF); c.drawRoundRect(new RectF(bx, by - 10 * dp, bx + bw, by + 8 * dp), 5 * dp, 5 * dp, p);
-                t.setColor(Color.WHITE); c.drawText(badge, bx + 7 * dp, by + 3 * dp, t);
+                t.setTypeface(U.BOLD); t.setTextSize(10 * dp);
+                float bw = t.measureText(badge) + 12 * dp;
+                p.setColor(0x40FFFFFF); c.drawRoundRect(new RectF(rx - bw, top + 14 * dp, rx, top + 30 * dp), 5 * dp, 5 * dp, p);
+                t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.LEFT); c.drawText(badge, rx - bw + 6 * dp, top + 26 * dp, t);
+                rx -= bw + 10 * dp;
             }
-            t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.RIGHT);
-            float rx = w - 60 * dp - (badge.isEmpty() ? 0 : 50 * dp);
-            if (!via.isEmpty()) { t.setColor(0xFF9EC5FF); c.drawText(ell(t, "\u25CF " + via, 360 * dp), rx, by + 6 * dp, t); }
-            t.setColor(U.MUTED);
-            c.drawText(hm(now), w - 60 * dp, by + 96 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setTextAlign(Paint.Align.RIGHT);
+            if (!via.isEmpty()) { t.setColor(0xFF9EC5FF); String vv = ell(t, "\u25CF " + via, Math.min(260 * dp, tw * 0.45f)); c.drawText(vv, rx, top + 26 * dp, t); rx -= t.measureText(vv) + 12 * dp; }
+            t.setTextAlign(Paint.Align.LEFT); t.setColor(0xFFC9CCE0);
+            c.drawText(ell(t, ch.num + "  " + ch.name, rx - tx), tx, top + 26 * dp, t);
+            // Zeile 2: laufende Sendung
             Model.Prog pr = Epg.now(ch), nx = Epg.next(ch);
-            t.setTypeface(U.BOLD); t.setTextSize(26 * dp); t.setColor(Color.WHITE);
-            c.drawText(ell(t, msg.isEmpty() ? (pr == null ? ch.name : pr.title) : msg, tw), tx, by + 42 * dp, t);
+            t.setTypeface(U.BOLD); t.setTextSize(19 * dp); t.setColor(Color.WHITE);
+            c.drawText(ell(t, msg.isEmpty() ? (pr == null ? ch.name : pr.title) : msg, tw), tx, top + 54 * dp, t);
+            // Zeile 3: Fortschritt
+            t.setTypeface(U.POP); t.setTextSize(11.5f * dp); t.setColor(0xFFB4B8CC);
             if (pr != null) {
-                t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(0xFFB4B8CC);
-                c.drawText(hm(pr.start), tx, by + 70 * dp, t);
-                t.setTextAlign(Paint.Align.RIGHT); c.drawText(hm(pr.stop) + "   (noch " + Math.max(0, (pr.stop - now) / 60000) + " Min.)", tx + tw, by + 70 * dp, t); t.setTextAlign(Paint.Align.LEFT);
-                bar(c, p, tx + 50 * dp, by + 65 * dp, tw - 210 * dp, 4 * dp, pr.progress(now));
-            }
-            if (nx != null) { t.setTypeface(U.POP); t.setTextSize(14 * dp); t.setColor(U.MUTED); c.drawText(ell(t, "Danach  " + hm(nx.start) + "   " + nx.title, tw), tx, by + 96 * dp, t); }
-            else if (pr == null) { t.setTypeface(U.POP); t.setTextSize(14 * dp); t.setColor(U.MUTED); c.drawText("Kein Programm verfügbar", tx, by + 70 * dp, t); }
+                String a1 = hm(pr.start), a2 = hm(pr.stop) + "  · noch " + Math.max(0, (pr.stop - now) / 60000) + " Min.";
+                c.drawText(a1, tx, top + 78 * dp, t);
+                t.setTextAlign(Paint.Align.RIGHT); c.drawText(a2, right, top + 78 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+                float bx = tx + t.measureText(a1) + 10 * dp, bw2 = tw - (bx - tx) - t.measureText(a2) - 12 * dp;
+                bar(c, p, bx, top + 73 * dp, bw2, 3.5f * dp, pr.progress(now));
+            } else c.drawText("Kein Programm verfügbar", tx, top + 78 * dp, t);
+            // Zeile 4: danach
+            if (nx != null) { t.setColor(U.MUTED); t.setTextSize(12 * dp); c.drawText(ell(t, "Danach  " + hm(nx.start) + "   " + nx.title, tw), tx, top + 100 * dp, t); }
         }
     }
 
@@ -338,7 +366,7 @@ final class Views {
         @Override protected void onDraw(Canvas c) {
             float dp = U.dp, w = getWidth(), h = getHeight();
             long now = System.currentTimeMillis();
-            c.drawColor(0xF50B0A14);
+            c.drawColor(U.osd(0x0B0A14));
             p.setShader(new RadialGradient(w * 0.1f, 0, w * 0.6f, 0x337C3AED, 0, Shader.TileMode.CLAMP)); c.drawRect(0, 0, w, h, p); p.setShader(null);
             float lx = 40 * dp, cw = 270 * dp, gx = lx + cw, gw = w - gx - 40 * dp;
             // Kopf: gewaehlte Sendung
@@ -418,8 +446,10 @@ final class Views {
         final List<String> items = new ArrayList<>();
         final List<Runnable> acts = new ArrayList<>();
         String title = ""; int sel;
+        /** Schieberegler-Eintraege: Index -> {links, rechts} */
+        final Map<Integer, Runnable[]> sliders = new HashMap<>();
         Menu(Context c) { super(c); }
-        void set(String title, List<String> l, List<Runnable> a) { this.title = title; items.clear(); items.addAll(l); acts.clear(); acts.addAll(a); sel = 0; invalidate(); }
+        void set(String title, List<String> l, List<Runnable> a) { this.title = title; items.clear(); items.addAll(l); acts.clear(); acts.addAll(a); sliders.clear(); sel = 0; invalidate(); }
         /** Touch: false = neben das Menue getippt (schliessen). */
         boolean tap(float x, float y) {
             float dp = U.dp;
@@ -432,12 +462,13 @@ final class Views {
             if (k == KeyEvent.KEYCODE_DPAD_UP) { sel = Math.max(0, sel - 1); invalidate(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_DOWN) { sel = Math.min(items.size() - 1, sel + 1); invalidate(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) { if (sel < acts.size()) acts.get(sel).run(); return true; }
+            if ((k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) && sliders.containsKey(sel)) { sliders.get(sel)[k == KeyEvent.KEYCODE_DPAD_LEFT ? 0 : 1].run(); invalidate(); return true; }
             return k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT;
         }
         @Override protected void onDraw(Canvas c) {
             float dp = U.dp, w = getWidth(), h = getHeight(), mw = 420 * dp, x = w - mw;
             p.setShader(new LinearGradient(x - 40 * dp, 0, x, 0, 0x00000000, 0xCC000000, Shader.TileMode.CLAMP)); c.drawRect(x - 40 * dp, 0, x, h, p);
-            p.setShader(null); p.setColor(0xFF0B0A14); c.drawRect(x, 0, w, h, p);
+            p.setShader(null); p.setColor(U.osd(0x0B0A14)); c.drawRect(x, 0, w, h, p);
             p.setShader(U.brand(x, w)); c.drawRect(x, 0, w, 3 * dp, p); p.setShader(null);
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setLetterSpacing(0.2f);
             c.drawText(ell(t, title.toUpperCase(Locale.GERMANY), mw - 40 * dp), x + 20 * dp, 54 * dp, t); t.setLetterSpacing(0);

@@ -11,7 +11,7 @@ import java.util.*;
 
 /** Mediathek: Filme und Serien mit Postern, Kategorien, Detailseite, Staffeln/Folgen und Weiterschauen. */
 final class Library extends View {
-    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); void askSearch(String last); void manageCats(List<Vod.Cat> all, Set<String> hidden, Runnable done); void toast(String s); }
+    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); void askSearch(String last); void manageCats(List<Vod.Cat> all, Set<String> hidden, Runnable done); void toast(String s); void catOptions(String name, Runnable hide, Runnable manage); }
 
     final Cb cb;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -113,6 +113,13 @@ final class Library extends View {
     void manage() {
         cb.manageCats(new ArrayList<>(allCats), Lib.hiddenVod(getContext()), new Runnable() { public void run() { loadCats(); } });
     }
+    boolean longOk() {
+        if (area != 1 || tab == SEARCH || ci >= cats.size()) return false;
+        Vod.Cat k = cats.get(ci);
+        if (k.id.startsWith("#")) return false;
+        cb.catOptions(k.name, new Runnable() { public void run() { hideCat(); invalidate(); } }, new Runnable() { public void run() { manage(); } });
+        return true;
+    }
     void hideCat() {
         if (ci >= cats.size()) return;
         Vod.Cat k = cats.get(ci);
@@ -133,7 +140,7 @@ final class Library extends View {
         if (cats.isEmpty() || tab == SEARCH) return;
         final Vod.Cat cat = cats.get(ci);
         if (reset) { items.clear(); gi = 0; rowTop = 0; page = 0; more = false; gen++; }
-        if (cat.id.equals(MANAGE)) { more = false; status = "OK: Kategorien an- und abhaken  ·  MENU auf einer Kategorie blendet sie sofort aus"; invalidate(); return; }
+        if (cat.id.equals(MANAGE)) { more = false; status = "OK: Kategorien an- und abhaken  ·  OK lang drücken auf einer Kategorie: Optionen"; invalidate(); return; }
         if (status.startsWith("OK: Kategorien")) status = "";
         if (cat.id.equals(CONTINUE)) { items.addAll(continueItems()); more = false; invalidate(); return; }
         if (loadingItems && !reset) return;

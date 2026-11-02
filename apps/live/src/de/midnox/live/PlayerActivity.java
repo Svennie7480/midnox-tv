@@ -388,6 +388,24 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             list.open(Lib.MANAGE, current == null ? null : current.id);
         } });
     }
+    void options(String title, final String[] labels, final Runnable[] acts) {
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title)
+            .setItems(labels, new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { acts[w].run(); } })
+            .setNegativeButton("Abbrechen", null).show();
+    }
+    @Override public void groupOptions(final String g) {
+        options(g.isEmpty() ? "(ohne Gruppe)" : g, new String[]{"\uD83D\uDEAB  Gruppe ausblenden", "\uD83D\uDC41  Alle Gruppen verwalten …"}, new Runnable[]{
+            new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, g, true); list.afterHide(); toast("„" + g + "“ ausgeblendet"); } },
+            new Runnable() { public void run() { manageGroups(); } } });
+    }
+    @Override public void channelOptions(final Model.Channel ch) {
+        final boolean f = Lib.isFav(this, ch.id);
+        options(ch.name, new String[]{"▶  Abspielen", f ? "☆  Aus Favoriten entfernen" : "★  Zu Favoriten", "\uD83D\uDCC5  Programm (TV-Guide)", "\uD83D\uDEAB  Gruppe „" + ch.group + "“ ausblenden"}, new Runnable[]{
+            new Runnable() { public void run() { play(ch); } },
+            new Runnable() { public void run() { fav(ch); if (list.group().equals(Lib.FAV)) list.loadGroup(); list.invalidate(); } },
+            new Runnable() { public void run() { guide(ch); } },
+            new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, ch.group, true); list.afterHide(); toast("„" + ch.group + "“ ausgeblendet"); } } });
+    }
     /** Auswahlliste mit Haken (Fernbedienung: hoch/runter, OK hakt an/ab). */
     void pickVisible(String title, String[] labels, final boolean[] on, final Runnable save) {
         if (labels.length == 0) { showStatus("Noch nichts geladen", 3000); return; }
@@ -407,6 +425,9 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         public void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs) { startVod(it, ep, next, startMs); }
         public void close() { closeLibrary(); }
         public void toast(String s) { showStatus(s, 3500); }
+        public void catOptions(String name, Runnable hide, Runnable manage) {
+            options(name, new String[]{"\uD83D\uDEAB  Kategorie ausblenden", "\uD83D\uDC41  Alle Kategorien verwalten …"}, new Runnable[]{hide, manage});
+        }
         public void manageCats(List<Vod.Cat> all, Set<String> hidden, final Runnable done) {
             final List<Vod.Cat> l = all;
             final boolean[] on = new boolean[l.size()]; String[] labels = new String[l.size()];
@@ -560,7 +581,8 @@ public class PlayerActivity extends Activity implements Views.ListCb {
                 return true;
             }
             @Override public void onLongPress(MotionEvent e) {
-                if (list.getVisibility() == View.VISIBLE) { Model.Channel ch = list.selected(); if (ch != null) { fav(ch); list.invalidate(); } return; }
+                if (library.getVisibility() == View.VISIBLE) { library.longOk(); return; }
+                if (list.getVisibility() == View.VISIBLE) { list.longOk(); return; }
                 openMenu();
             }
             @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
@@ -589,8 +611,29 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         return true;
     }
 
+    boolean okDown, okLong;
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
         int k = e.getKeyCode();
+        // OK lange druecken = Optionen (nur in Senderliste und Mediathek); kurzes OK wird dann beim Loslassen ausgefuehrt
+        boolean okKey = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER;
+        boolean optView = menu.getVisibility() != View.VISIBLE && !vodMode && (library.getVisibility() == View.VISIBLE || (list.getVisibility() == View.VISIBLE && guide.getVisibility() != View.VISIBLE));
+        if (okKey && optView) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                if (e.getRepeatCount() == 0) { okDown = true; okLong = false; return true; }
+                if (!okLong && okDown && (e.isLongPress() || e.getRepeatCount() >= 12)) {
+                    okLong = true;
+                    if (library.getVisibility() == View.VISIBLE ? library.longOk() : list.longOk()) return true;
+                    okLong = false; okDown = false;
+                    if (library.getVisibility() == View.VISIBLE) library.key(k); else { list.key(k, false); hideLater(list, 30000); }
+                }
+                return true;
+            }
+            if (e.getAction() == KeyEvent.ACTION_UP) {
+                boolean shortPress = okDown && !okLong; okDown = false; okLong = false;
+                if (shortPress) { if (library.getVisibility() == View.VISIBLE) library.key(k); else { list.key(k, false); hideLater(list, 30000); } }
+                return true;
+            }
+        }
         if (e.getAction() != KeyEvent.ACTION_DOWN) return k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_MENU ? true : super.dispatchKeyEvent(e);
         boolean rep = e.getRepeatCount() > 0;
         if (k == KeyEvent.KEYCODE_BACK) {

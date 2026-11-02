@@ -65,7 +65,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void manageGroups(); void toast(String s); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void manageGroups(); void toast(String s); void groupOptions(String g); void channelOptions(Model.Channel ch); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -122,6 +122,12 @@ final class Views {
             if (k == KeyEvent.KEYCODE_MENU) { Model.Channel ch = selected(); if (ch != null && col == 1) { cb.fav(ch); if (group().equals(Lib.FAV)) { loadGroup(); } invalidate(); } return true; }
             return false;
         }
+        /** OK lange gedrueckt: Optionen fuer Gruppe bzw. Sender. */
+        boolean longOk() {
+            if (col == 0) { String g = group(); if (Lib.special(g)) return false; cb.groupOptions(g); return true; }
+            Model.Channel ch = selected(); if (ch == null) return false; cb.channelOptions(ch); return true;
+        }
+        void afterHide() { groups = Lib.groups; gi = Math.max(0, Math.min(gi, groups.size() - 1)); loadGroup(); invalidate(); }
         /** Touch: Gruppe oder Sender antippen. false = ausserhalb der Liste. */
         boolean tap(float x, float y) {
             float dp = U.dp, w = getWidth(), gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp), top = 58 * dp;
@@ -189,7 +195,7 @@ final class Views {
             if (ci < cTop) cTop = ci; if (ci >= cTop + cv) cTop = ci - cv + 1;
             if (chans.isEmpty()) {
                 t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED);
-                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.MANAGE) ? "OK: Gruppen an- und abhaken  ·  MENU auf einer Gruppe blendet sie sofort aus" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
+                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.MANAGE) ? "OK: Gruppen an- und abhaken  ·  OK lang drücken auf einer Gruppe: Optionen" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
             }
             for (int i = cTop; i < chans.size() && i < cTop + cv; i++) {
                 Model.Channel ch = chans.get(i);

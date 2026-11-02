@@ -1,0 +1,88 @@
+sport|1|Welche Farbe hat der Ball beim Tennis meistens?|Gelb|Weiß|Orange|Grün
+sport|1|In welcher Sportart gibt es Touchdowns?|American Football|Rugby|Baseball|Eishockey
+sport|1|Was braucht man zum Skifahren?|Skier|Schlittschuhe|Rollen|Paddel
+sport|1|Wie nennt man den Torwart beim Eishockey auch?|Goalie|Center|Libero|Stopper
+sport|1|Wie viele Punkte gibt es im Fußball für einen Sieg in der Bundesliga?|Drei|Zwei|Eins|Vier
+sport|2|Wie viele Mannschaften spielen in der 1. Fußball-Bundesliga?|18|16|20|22
+sport|2|Wie heißt das Stadion von Borussia Dortmund offiziell (Sponsorname)?|Signal Iduna Park|Allianz Arena|Veltins-Arena|Mercedes-Benz Arena
+sport|2|Wie heißt das Stadion des FC Bayern München?|Allianz Arena|Olympiastadion|Grünwalder Stadion|Signal Iduna Park
+sport|2|Wie heißt das Stadion des Hamburger SV?|Volksparkstadion|Millerntor-Stadion|Weserstadion|Holstein-Stadion
+sport|2|Wie heißt das Stadion von Werder Bremen?|Weserstadion|Volksparkstadion|Ostseestadion|Nordseearena
+sport|2|Welcher Verein spielt im Berliner Olympiastadion?|Hertha BSC|1. FC Union Berlin|Tennis Borussia|BFC Dynamo
+sport|2|Wie heißt das Stadion des 1. FC Union Berlin?|Stadion An der Alten Försterei|Olympiastadion|Friedrich-Ludwig-Jahn-Sportpark|Mommsenstadion
+sport|2|Welcher Verein trägt den Spitznamen „Die Roten Teufel“?|1. FC Kaiserslautern|FC Bayern München|Hannover 96|1. FC Köln
+sport|2|Welcher Verein ist als „Die Knappen“ bekannt?|FC Schalke 04|VfL Bochum|MSV Duisburg|Rot-Weiss Essen
+sport|2|Welcher Handballverein aus Kiel ist deutscher Rekordmeister?|THW Kiel|Holstein Kiel|Kieler HC|TSV Kiel
+sport|2|Wie heißt die Trophäe bei der Fußball-WM?|FIFA-WM-Pokal|Henri-Delaunay-Pokal|Meisterschale|Coupe des Clubs
+sport|2|Wie viele Spieler hat ein Basketballteam gleichzeitig auf dem Feld?|Fünf|Sechs|Sieben|Vier
+sport|2|Welcher deutsche Tennisspieler gewann 1985 mit 17 Jahren Wimbledon?|Boris Becker|Michael Stich|Alexander Zverev|Tommy Haas
+sport|2|Welche deutsche Tennisspielerin gewann den „Golden Slam“ 1988?|Steffi Graf|Angelique Kerber|Anke Huber|Andrea Petković
+sport|2|In welcher Sportart ist Dirk Nowitzki eine Legende?|Basketball|Handball|Volleyball|Eishockey
+sport|2|Was ist beim Golf ein „Birdie“?|Ein Schlag unter Par|Ein Schlag über Par|Zwei Schläge unter Par|Ein Loch mit einem Schlag
+sport|2|Wie heißt ein Loch mit nur einem Schlag beim Golf?|Hole-in-one|Eagle|Albatros|Birdie
+sport|3|Welcher Verein gewann 2025 die deutsche Fußballmeisterschaft?|FC Bayern München|Bayer 04 Leverkusen|Borussia Dortmund|VfB Stuttgart
+sport|3|In welchem Jahr gewann Deutschland zum ersten Mal die Fußball-WM?|1954|1966|1974|1990
+sport|3|Wie nennt man den deutschen WM-Sieg 1954 umgangssprachlich?|Das Wunder von Bern|Das Wunder von Wembley|Der Sieg von Rom|Das Märchen von Paris
+sport|3|Wer erzielte im WM-Finale 1954 das Siegtor für Deutschland?|Helmut Rahn|Max Morlock|Fritz Walter|Uwe Seeler
+sport|3|Welcher deutsche Verein gewann 1997 die UEFA Champions League?|Borussia Dortmund|FC Bayern München|Hamburger SV|Werder Bremen
+sport|3|Wie oft wurde die deutsche Männer-Nationalmannschaft Fußball-Europameister?|Dreimal|Zweimal|Viermal|Einmal
+sport|3|Wie viele Spieler stehen beim Rugby Union pro Team auf dem Feld?|15|11|13|12
+sport|3|Wie lang ist eine Bahnrunde im Leichtathletik-Stadion (innere Bahn)?|400 m|300 m|500 m|440 m
+sport|3|Welche Sportart verbindet Skilanglauf und Schießen?|Biathlon|Nordische Kombination|Triathlon|Moderner Fünfkampf
+sport|3|Welcher Handballverein kommt aus Flensburg?|SG Flensburg-Handewitt|THW Flensburg|HSG Nordsee|TSV Hürup
+sport|3|In welcher Stadt spielt der Handball-Bundesligist „Die Recken“?|Hannover|Magdeburg|Lemgo|Wetzlar
+musik|1|Welches Instrument spielt man mit einem Bogen?|Geige|Trompete|Flöte|Schlagzeug
+musik|1|Wie heißt das Lied, das man zum Geburtstag singt?|Happy Birthday|Stille Nacht|Alle meine Entchen|Jingle Bells
+musik|1|Welches Instrument hat Pedale, Tasten und Pfeifen und steht oft in Kirchen?|Orgel|Akkordeon|Cembalo|Harfe
+musik|1|Wie viele Noten hat eine Tonleiter von C bis H (ohne Wiederholung)?|Sieben|Acht|Fünf|Zwölf
+musik|2|Wie heißt die bekannte deutsche Schlagersängerin mit „Atemlos durch die Nacht“?|Helene Fischer|Andrea Berg|Vanessa Mai|Beatrice Egli
+musik|2|Welche Band aus Düsseldorf sang „Tage wie diese“?|Die Toten Hosen|Die Ärzte|Kraftklub|Revolverheld
+musik|2|Welche Berliner Band besteht aus Farin Urlaub, Bela B und Rod?|Die Ärzte|Die Toten Hosen|Wir sind Helden|Element of Crime
+musik|2|Wie heißt der Sänger von „Männer“ und „Bochum“?|Herbert Grönemeyer|Marius Müller-Westernhagen|Peter Maffay|Udo Lindenberg
+musik|2|Welcher Sänger aus Hamburg ist als „Panikrocker“ bekannt?|Udo Lindenberg|Jan Delay|Otto Waalkes|Heinz Rudolf Kunze
+musik|2|Welche Band hatte mit „99 Luftballons“ einen Welthit?|Nena|Alphaville|Spliff|Ideal
+musik|2|Welche deutsche Band hatte mit „Du hast“ und „Sonne“ Erfolg?|Rammstein|Scorpions|Oomph!|Megaherz
+musik|2|Welche Band aus Hannover sang „Wind of Change“?|Scorpions|Fury in the Slaughterhouse|Guano Apes|Accept
+musik|2|Wie heißt das jährliche Heavy-Metal-Festival in Schleswig-Holstein?|Wacken Open Air|Rock am Ring|Hurricane|Summer Breeze
+musik|2|Welches Instrument spielt ein Schlagzeuger?|Schlagzeug|Bass|Keyboard|Saxofon
+musik|2|Wie heißt die tiefste Männerstimme?|Bass|Tenor|Bariton|Alt
+musik|2|Wie heißt die höchste Frauenstimme?|Sopran|Alt|Mezzosopran|Tenor
+musik|2|Wer sang „Purple Rain“?|Prince|Michael Jackson|Stevie Wonder|Lionel Richie
+musik|2|Wer sang „Like a Prayer“?|Madonna|Cyndi Lauper|Whitney Houston|Kylie Minogue
+musik|3|Welcher Komponist schrieb die Oper „Die Zauberflöte“?|Wolfgang Amadeus Mozart|Ludwig van Beethoven|Richard Wagner|Giuseppe Verdi
+musik|3|Welcher Komponist schrieb den „Ring des Nibelungen“?|Richard Wagner|Richard Strauss|Carl Orff|Johannes Brahms
+musik|3|Wer komponierte „Carmina Burana“?|Carl Orff|Richard Strauss|Gustav Mahler|Engelbert Humperdinck
+musik|3|In welcher Stadt wurde Johann Sebastian Bach Thomaskantor?|Leipzig|Dresden|Eisenach|Weimar
+musik|3|In welcher Stadt wurde Georg Friedrich Händel geboren?|Halle (Saale)|London|Leipzig|Hamburg
+musik|3|Welcher Berliner Musiker veröffentlichte „Schwarz zu Blau“?|Peter Fox|Sido|Bushido|Marteria
+musik|3|Wie heißt das Musikgenre, das in den 1970ern in der Bronx entstand?|Hip-Hop|Punk|Disco|Grunge
+musik|3|Wie viele Mitglieder hatten die Beatles?|Vier|Fünf|Drei|Sechs
+musik|3|Welches Duo sang „Cheri Cheri Lady“?|Modern Talking|Bad Boys Blue|Fancy|Milli Vanilli
+musik|3|Welcher Berliner DJ veröffentlichte „Sky and Sand“ zusammen mit seinem Bruder Fritz?|Paul Kalkbrenner|Robin Schulz|Felix Jaehn|Alle Farben
+musik|3|Wie heißt das berühmte Techno-Festival, das 1989 in Berlin als Demo begann?|Loveparade|Mayday|Fusion|Nature One
+film|1|Wie heißt der Hund in der Zeichentrickserie „Scooby-Doo“?|Scooby-Doo|Snoopy|Pluto|Lassie
+film|1|Wie heißt das Rentier mit der roten Nase?|Rudolph|Sven|Blitzen|Comet
+film|1|Wie heißt der Schneemann aus „Die Eiskönigin“?|Olaf|Sven|Kristoff|Hans
+film|1|Wie heißt die Biene aus der bekannten Zeichentrickserie?|Maja|Willi|Flip|Thekla
+film|1|Wie heißt der kleine, grüne Jedi-Meister in Star Wars?|Yoda|Chewbacca|R2-D2|Jabba
+film|2|In welcher Stadt spielt die Serie „Großstadtrevier“?|Hamburg|Berlin|München|Köln
+film|2|Wie heißt die bekannte Kinder-Wissenssendung mit einer orangefarbenen Maus?|Die Sendung mit der Maus|Löwenzahn|Wissen macht Ah!|Sesamstraße
+film|2|Welches Monster liebt Kekse in der Sesamstraße?|Krümelmonster|Grobi|Oscar|Elmo
+film|2|In welcher Stadt spielt der „Tatort“ mit den Kommissaren Thiel und Boerne?|Münster|Köln|Dortmund|Kiel
+film|2|Wer spielte „Forrest Gump“?|Tom Hanks|Tom Cruise|Kevin Costner|Robin Williams
+film|2|Wie heißt der Archäologe mit Hut und Peitsche, gespielt von Harrison Ford?|Indiana Jones|Allan Quatermain|Rick O’Connell|Nathan Drake
+film|2|Wie heißt die Stadt in „Die Simpsons“?|Springfield|Shelbyville|Quahog|South Park
+film|2|In welchem Film sagt eine Figur „Ich komme wieder“ (I’ll be back)?|Terminator|Rambo|Predator|Robocop
+film|2|Wer spielte den Hauptdarsteller in „Titanic“?|Leonardo DiCaprio|Brad Pitt|Matt Damon|Johnny Depp
+film|2|Wie heißt die Zauberschule in Harry Potter?|Hogwarts|Durmstrang|Beauxbatons|Ilvermorny
+film|2|Wie heißt der Ort, an dem die Schlümpfe leben?|Schlumpfhausen|Entenhausen|Gallien|Bullerbü
+film|2|Wie heißt die Stadt, in der Donald Duck lebt?|Entenhausen|Springfield|Gotham|Schlumpfhausen
+film|2|Welcher Schauspieler spielte Iron Man im Marvel-Universum?|Robert Downey Jr.|Chris Evans|Chris Hemsworth|Mark Ruffalo
+film|3|Welcher deutsche Regisseur drehte „Lola rennt“?|Tom Tykwer|Fatih Akin|Wim Wenders|Til Schweiger
+film|3|Wie heißt der Bösewicht im Film „Stirb langsam“ (1988)?|Hans Gruber|Simon Gruber|Karl Vreski|Nakatomi
+film|3|In welcher Stadt wurde Otto Waalkes geboren?|Emden|Hamburg|Oldenburg|Leer
+film|3|In welchem Jahr kam „Star Wars“ (Episode IV) in die Kinos?|1977|1980|1975|1983
+film|3|Wer führte Regie bei der „Herr der Ringe“-Trilogie?|Peter Jackson|Guillermo del Toro|Steven Spielberg|Ridley Scott
+film|3|Welche Serie spielt in der fiktiven Stadt Hawkins in Indiana?|Stranger Things|Twin Peaks|Riverdale|Dark
+film|3|In welcher deutschen Kleinstadt spielt die Netflix-Serie „Dark“?|Winden|Wiesental|Wendlingen|Waldheim
+film|3|Wie heißt das Café in der Serie „Friends“?|Central Perk|Monk’s Café|MacLaren’s|Luke’s Diner

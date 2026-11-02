@@ -1,0 +1,108 @@
+# mehr Allgemeinwissen, Welt, Sport, Musik, Film, Natur, Technik, Essen
+allg|1|Wie viele Monate hat ein Jahr?|Zwölf|Zehn|Elf|Dreizehn
+allg|1|Welche Jahreszeit folgt auf den Sommer?|Herbst|Winter|Frühling|Spätsommer
+allg|1|Wie heißt das Fest, an dem man Eier sucht?|Ostern|Pfingsten|Weihnachten|Silvester
+allg|1|Wie viele Seiten hat ein Dreieck?|Drei|Vier|Fünf|Sechs
+allg|1|Was ist 7 mal 8?|56|54|64|48
+allg|1|Wie viele Zentimeter hat ein Meter?|100|10|1000|50
+allg|1|Welche Farbe hat ein Feuerwehrauto in Deutschland traditionell?|Rot|Gelb|Blau|Weiß
+allg|1|Wie nennt man das Junge vom Pferd?|Fohlen|Kalb|Lamm|Ferkel
+allg|1|Welches Tier gibt Wolle?|Schaf|Kuh|Schwein|Huhn
+allg|1|Was trägt eine Schnecke auf dem Rücken?|Ein Haus|Einen Panzer|Federn|Stacheln
+allg|1|Welcher Tag ist der 24. Dezember?|Heiligabend|Silvester|Nikolaus|Neujahr
+allg|1|Wie heißt der letzte Tag des Jahres?|Silvester|Neujahr|Heiligabend|Allerheiligen
+allg|2|Wie viele Sekunden hat eine Stunde?|3.600|360|6.000|1.440
+allg|2|Wie viele Minuten hat ein Tag?|1.440|1.200|2.400|3.600
+allg|2|Welches Sternzeichen hat den Zeitraum Ende Juli bis Ende August?|Löwe|Jungfrau|Krebs|Waage
+allg|2|Was ist die Quersumme von 2026?|10|8|12|26
+allg|2|Wie heißt ein Vieleck mit sechs Ecken?|Sechseck (Hexagon)|Fünfeck|Achteck|Raute
+allg|2|Wie heißt der Notruf für Feuerwehr und Rettungsdienst in Deutschland?|112|110|117|911
+allg|2|Wie heißt der Polizei-Notruf in Deutschland?|110|112|118|999
+allg|2|Wie viele Grad hat ein rechter Winkel?|90|45|180|100
+allg|2|Wie heißt der Spielstein im Schach, der sich nur diagonal bewegt?|Läufer|Turm|Springer|Dame
+allg|2|Wie heißt der Gott des Meeres in der griechischen Sagenwelt?|Poseidon|Zeus|Hades|Apollon
+allg|2|Wie heißt der Göttervater der griechischen Mythologie?|Zeus|Odin|Jupiter|Ares
+allg|2|Welcher nordische Gott schwingt den Hammer Mjölnir?|Thor|Odin|Loki|Baldur
+allg|2|Wie viele Spieler gehören beim Volleyball pro Team aufs Feld?|Sechs|Fünf|Sieben|Acht
+allg|2|Was ist die Hälfte von einem Viertel?|Ein Achtel|Ein Drittel|Ein Sechstel|Ein Zehntel
+allg|3|Wie viele Kanten hat ein Würfel?|Zwölf|Acht|Sechs|Zehn
+allg|3|Was ist die einzige gerade Primzahl?|2|4|0|6
+allg|3|Wie heißt das Verhältnis von Kreisumfang zu Durchmesser?|Pi|Phi|Euler-Zahl|Tau
+allg|3|Wie viele Ecken hat ein Ikosaeder?|12|20|30|8
+allg|3|Wofür steht die Abkürzung „z. B.“?|zum Beispiel|zur Bestätigung|zum Bedarf|zusätzlich bezahlt
+allg|3|Welcher Philosoph sagte „Ich denke, also bin ich“?|René Descartes|Immanuel Kant|Sokrates|Friedrich Nietzsche
+allg|3|Aus welchem Land stammt das Spiel Mahjong ursprünglich?|China|Japan|Korea|Vietnam
+allg|3|Wie nennt man ein Gedicht mit 14 Zeilen, oft in Quartetten und Terzetten?|Sonett|Haiku|Ballade|Ode
+allg|3|Wie viele Felder hat ein Sudoku-Rätsel insgesamt?|81|64|72|100
+geo|1|Auf welchem Kontinent liegt Brasilien?|Südamerika|Afrika|Nordamerika|Asien
+geo|1|Was ist die Hauptstadt von Großbritannien?|London|Manchester|Dublin|Edinburgh
+geo|1|In welchem Land liegt Venedig?|Italien|Frankreich|Kroatien|Griechenland
+geo|1|Welches Land ist berühmt für Tulpen und Windmühlen?|Niederlande|Belgien|Dänemark|Schweden
+geo|1|In welchem Land steht die Freiheitsstatue?|USA|Frankreich|Kanada|Großbritannien
+geo|1|Wie heißt die Hauptstadt von Dänemark?|Kopenhagen|Oslo|Aarhus|Stockholm
+geo|1|Wie heißt die Hauptstadt von Polen?|Warschau|Krakau|Danzig|Breslau
+geo|1|Wie heißt die Hauptstadt von Griechenland?|Athen|Thessaloniki|Sparta|Korinth
+geo|1|In welchem Land liegt Mallorca?|Spanien|Italien|Portugal|Griechenland
+geo|1|Welcher Kontinent ist fast komplett mit Eis bedeckt?|Antarktis|Arktis|Grönland|Australien
+geo|2|Wie heißt die Hauptstadt von Portugal?|Lissabon|Porto|Faro|Madrid
+geo|2|Wie heißt die Hauptstadt von Schweden?|Stockholm|Göteborg|Oslo|Malmö
+geo|2|Wie heißt die Hauptstadt von Finnland?|Helsinki|Tampere|Turku|Tallinn
+geo|2|Wie heißt die Hauptstadt der Schweiz (Bundesstadt)?|Bern|Zürich|Genf|Basel
+geo|2|Wie heißt die Hauptstadt von Ungarn?|Budapest|Prag|Bukarest|Belgrad
+geo|2|Wie heißt die Hauptstadt von Tschechien?|Prag|Brünn|Bratislava|Pilsen
+geo|2|Wie heißt die Hauptstadt von Irland?|Dublin|Cork|Belfast|Galway
+geo|2|Wie heißt die Hauptstadt von Japan?|Tokio|Osaka|Kyoto|Yokohama
+geo|2|Wie heißt die Hauptstadt von Ägypten?|Kairo|Alexandria|Luxor|Gizeh
+geo|2|Wie heißt die Hauptstadt von Argentinien?|Buenos Aires|Córdoba|Santiago|Montevideo
+geo|2|Wie heißt die Hauptstadt von Brasilien?|Brasília|Rio de Janeiro|São Paulo|Salvador
+geo|2|Wie heißt der höchste Berg der Erde?|Mount Everest|K2|Kilimandscharo|Mont Blanc
+geo|2|Wie heißt der höchste Berg Afrikas?|Kilimandscharo|Mount Kenya|Atlas|Tafelberg
+geo|2|Wie heißt der längste Fluss Afrikas?|Nil|Kongo|Niger|Sambesi
+geo|2|Welches Land hat die meisten Einwohner (Stand 2025)?|Indien|China|USA|Indonesien
+geo|2|Durch welche Stadt fließt die Themse?|London|Paris|Dublin|Amsterdam
+geo|2|Wie heißt die größte Insel der Erde?|Grönland|Australien|Borneo|Madagaskar
+geo|2|Wie heißt die Wüste im Norden Afrikas?|Sahara|Gobi|Kalahari|Namib
+geo|2|In welchem Land liegt Machu Picchu?|Peru|Mexiko|Bolivien|Chile
+geo|2|Welche Stadt ist durch Kanäle und Grachten bekannt und die Hauptstadt der Niederlande?|Amsterdam|Rotterdam|Den Haag|Utrecht
+geo|3|Wie heißt die Hauptstadt von Island?|Reykjavík|Akureyri|Nuuk|Tórshavn
+geo|3|Wie heißt die Hauptstadt von Kroatien?|Zagreb|Split|Dubrovnik|Ljubljana
+geo|3|Wie heißt die Hauptstadt von Slowenien?|Ljubljana|Zagreb|Bratislava|Maribor
+geo|3|Wie heißt die Hauptstadt von Estland?|Tallinn|Riga|Vilnius|Tartu
+geo|3|Wie heißt die Hauptstadt von Lettland?|Riga|Tallinn|Vilnius|Kaunas
+geo|3|Wie heißt die Hauptstadt von Litauen?|Vilnius|Kaunas|Riga|Minsk
+geo|3|Wie heißt die Hauptstadt von Marokko?|Rabat|Casablanca|Marrakesch|Fès
+geo|3|Wie heißt die Hauptstadt von Vietnam?|Hanoi|Ho-Chi-Minh-Stadt|Da Nang|Hue
+geo|3|Wie heißt die Hauptstadt von Südkorea?|Seoul|Busan|Incheon|Pjöngjang
+geo|3|Wie heißt die Hauptstadt von Kenia?|Nairobi|Mombasa|Kampala|Daressalam
+geo|3|Wie heißt die Hauptstadt von Kolumbien?|Bogotá|Medellín|Cali|Quito
+geo|3|Wie heißt die Hauptstadt von Peru?|Lima|Cusco|Arequipa|La Paz
+geo|3|Wie heißt die Hauptstadt der Philippinen?|Manila|Cebu|Davao|Quezon City
+geo|3|Welcher Fluss mündet bei Cuxhaven in die Nordsee?|Elbe|Weser|Ems|Eider
+geo|3|Welches Land hat die längste Küstenlinie der Welt?|Kanada|Russland|Norwegen|Indonesien
+geo|3|Welcher Ozean ist der größte?|Pazifischer Ozean|Atlantischer Ozean|Indischer Ozean|Südlicher Ozean
+geo|3|Wie heißt die Meerenge zwischen Europa und Asien bei Istanbul?|Bosporus|Dardanellen|Gibraltar|Ärmelkanal
+geo|3|An welchem Fluss liegen die Victoriafälle?|Sambesi|Nil|Kongo|Limpopo
+geo|3|Welches Land liegt zwischen Spanien und Frankreich in den Pyrenäen?|Andorra|Monaco|San Marino|Liechtenstein
+gesch|1|Wer war in der Sage der Anführer der Ritter der Tafelrunde?|König Artus|Robin Hood|Karl der Große|Siegfried
+gesch|1|Welche Mauer teilte Berlin bis 1989?|Berliner Mauer|Chinesische Mauer|Hadrianswall|Atlantikwall
+gesch|1|Womit fuhren die Wikinger über das Meer?|Mit Langschiffen|Mit Dampfschiffen|Mit U-Booten|Mit Katamaranen
+gesch|2|In welchem Jahr endete der Zweite Weltkrieg in Europa?|1945|1944|1946|1939
+gesch|2|Wer war der erste Kaiser des Römischen Reiches?|Augustus|Julius Caesar|Nero|Konstantin
+gesch|2|Welches Volk baute die Stadt Machu Picchu?|Inka|Maya|Azteken|Olmeken
+gesch|2|Wie hieß der erste Mensch im Weltall?|Juri Gagarin|Neil Armstrong|Alan Shepard|Sigmund Jähn
+gesch|2|Wie hieß der erste Deutsche im Weltall?|Sigmund Jähn|Ulf Merbold|Alexander Gerst|Thomas Reiter
+gesch|2|Wer erfand die Glühbirne in ihrer erfolgreich vermarkteten Form?|Thomas Edison|Nikola Tesla|Alexander Graham Bell|Werner von Siemens
+gesch|2|Welche Stadt wurde 79 n. Chr. vom Vesuv verschüttet?|Pompeji|Rom|Neapel|Karthago
+gesch|2|Wer war der erste Bundeskanzler aus der SPD?|Willy Brandt|Helmut Schmidt|Gerhard Schröder|Kurt Schumacher
+gesch|2|Welche Bundeskanzlerin regierte von 2005 bis 2021?|Angela Merkel|Annegret Kramp-Karrenbauer|Ursula von der Leyen|Andrea Nahles
+gesch|2|In welchem Jahr landeten Menschen erstmals auf dem Mond?|1969|1965|1972|1959
+gesch|3|Wer wurde im Jahr 800 in Rom zum Kaiser gekrönt?|Karl der Große|Otto der Große|Friedrich Barbarossa|Ludwig der Fromme
+gesch|3|In welchem Jahr begann die Französische Revolution?|1789|1776|1815|1848
+gesch|3|Wer war Reichskanzler bei der Gründung des Deutschen Kaiserreichs 1871?|Otto von Bismarck|Wilhelm II.|Leo von Caprivi|Friedrich Ebert
+gesch|3|Wie hieß der erste Reichspräsident der Weimarer Republik?|Friedrich Ebert|Paul von Hindenburg|Gustav Stresemann|Philipp Scheidemann
+gesch|3|In welchem Jahr fand der Volksaufstand in der DDR statt, an den der 17. Juni erinnert?|1953|1961|1956|1968
+gesch|3|Wie hieß die Zarendynastie, die bis 1917 Russland regierte?|Romanow|Rurikiden|Habsburg|Hohenzollern
+gesch|3|Welche Seuche wütete Mitte des 14. Jahrhunderts in Europa?|Pest (Schwarzer Tod)|Cholera|Pocken|Spanische Grippe
+gesch|3|Welches Herrschergeschlecht stellte die Könige von Preußen?|Hohenzollern|Wittelsbacher|Habsburger|Welfen
+gesch|3|Welches Fürstenhaus regierte lange in Bayern?|Wittelsbacher|Hohenzollern|Wettiner|Welfen
+gesch|3|Welches Adelsgeschlecht stammt aus Niedersachsen und stellte Könige von Großbritannien?|Welfen (Haus Hannover)|Wettiner|Habsburger|Wittelsbacher

@@ -1,0 +1,49 @@
+de|1|Welches Getränk wird auf dem Oktoberfest traditionell aus der „Maß“ getrunken?|Bier|Wein|Apfelschorle|Most
+de|1|Wie heißt das traditionelle bayerische Trachtenkleid für Frauen?|Dirndl|Janker|Kilt|Sari
+de|1|In welcher Stadt spielt der FC Bayern?|München|Nürnberg|Augsburg|Fürth
+de|1|In welchem Bundesland liegt Hannover?|Niedersachsen|Hessen|Sachsen-Anhalt|Nordrhein-Westfalen
+de|1|In welchem Bundesland liegt Köln?|Nordrhein-Westfalen|Hessen|Rheinland-Pfalz|Niedersachsen
+de|1|In welchem Bundesland liegt Leipzig?|Sachsen|Thüringen|Sachsen-Anhalt|Brandenburg
+de|1|In welchem Bundesland liegt Nürnberg?|Bayern|Baden-Württemberg|Thüringen|Hessen
+de|1|Wie heißt die Hauptstadt Deutschlands vor der Wiedervereinigung (Bundesrepublik)?|Bonn|Berlin|Frankfurt|Köln
+de|1|Welche Farben hat die deutsche Flagge?|Schwarz-Rot-Gold|Schwarz-Weiß-Rot|Rot-Weiß-Rot|Blau-Weiß-Rot
+de|1|Welche Farben hat die bayerische Rautenflagge?|Weiß und Blau|Rot und Weiß|Grün und Weiß|Gelb und Schwarz
+de|2|Wie nennen die Münchner ihr Oktoberfest?|Wiesn|Kerwa|Dult|Gäubodenfest
+de|2|Wie heißt der Münchner Fußballverein, der „die Löwen“ genannt wird?|TSV 1860 München|FC Bayern München|SpVgg Unterhaching|FC Augsburg
+de|2|Wie heißt der große Park in München, größer als der Central Park?|Englischer Garten|Hofgarten|Olympiapark|Westpark
+de|2|Welche bayerische Stadt liegt an der Donau und hat eine Steinerne Brücke?|Regensburg|Passau|Ingolstadt|Ulm
+de|2|Wie hoch ist die Zugspitze ungefähr?|2.962 m|3.798 m|2.713 m|4.807 m
+de|2|In welchem Gebirge liegt die Zugspitze?|Wettersteingebirge|Allgäuer Alpen|Karwendel|Berchtesgadener Alpen
+de|2|Welche Stadt in Franken ist bekannt für ihr Rauchbier?|Bamberg|Würzburg|Erlangen|Bayreuth
+de|2|Welcher Fluss fließt durch München?|Isar|Inn|Lech|Main
+de|2|Welcher Fluss fließt durch Köln?|Rhein|Main|Ruhr|Mosel
+de|2|Welcher Fluss fließt durch Bremen?|Weser|Elbe|Ems|Aller
+de|2|Welcher Fluss fließt durch Stuttgart?|Neckar|Rhein|Donau|Main
+de|2|Welcher Fluss fließt durch Leipzig?|Weiße Elster|Saale|Mulde|Elbe
+de|2|Welche Stadt ist die größte in Niedersachsen?|Hannover|Braunschweig|Osnabrück|Oldenburg
+de|2|Welche niedersächsische Stadt hat den Löwen als Wappentier und die Eintracht als Fußballverein?|Braunschweig|Wolfsburg|Hildesheim|Celle
+de|2|Welche ostfriesische Insel ist die bevölkerungsreichste?|Norderney|Borkum|Juist|Spiekeroog
+de|2|Welche ostfriesische Insel ist die größte?|Borkum|Norderney|Langeoog|Wangerooge
+de|2|Über welchen Fluss ist der Hamburger Hafen mit der Nordsee verbunden?|Elbe|Alster|Bille|Weser
+de|2|Welche beiden Seen liegen mitten in Hamburg?|Binnenalster und Außenalster|Maschsee und Steinhuder Meer|Wannsee und Müggelsee|Tegernsee und Schliersee
+de|2|Welcher See im Südwesten Berlins hat das bekannte große Strandbad?|Wannsee|Müggelsee|Tegeler See|Plötzensee
+de|2|Welche Stadt hat den größten Binnenhafen Europas?|Duisburg|Hamburg|Köln|Mannheim
+de|2|In welcher Stadt fährt die berühmte Schwebebahn?|Wuppertal|Dortmund|Essen|Bochum
+de|2|In der Nähe welcher Stadt steht das Hermannsdenkmal?|Detmold|Bielefeld|Paderborn|Minden
+de|2|Welche Stadt ist berühmt für den Bielefeld-Witz, dass es sie nicht gibt?|Bielefeld|Gütersloh|Herford|Lemgo
+de|3|Über welchen Meeresarm führt die Rügenbrücke?|Strelasund|Fehmarnsund|Peenestrom|Greifswalder Bodden
+de|3|In welcher Stadt läuft seit 1988 das Musical „Starlight Express“?|Bochum|Essen|Hamburg|Stuttgart
+de|3|In welchem Mittelgebirge liegen die Externsteine?|Teutoburger Wald|Harz|Eifel|Sauerland
+de|3|Wie heißt die höchste Erhebung des Sauerlandes?|Langenberg|Kahler Asten|Brocken|Feldberg
+de|3|Welche hessische Stadt ist durch die Brüder Grimm und ihr Museum „Grimmwelt“ bekannt?|Kassel|Marburg|Hanau|Fulda
+de|3|In welcher Stadt wurden die Brüder Grimm geboren?|Hanau|Kassel|Marburg|Steinau
+de|3|Welche Stadt in Baden-Württemberg ist die südlichste Großstadt Deutschlands?|Freiburg im Breisgau|Konstanz|Ulm|Karlsruhe
+de|3|Welche Insel im Bodensee ist als „Blumeninsel“ bekannt?|Mainau|Reichenau|Lindau|Herreninsel
+de|3|Welche bayerische Stadt hat ihre Altstadt auf einer Insel im Bodensee?|Lindau|Konstanz|Friedrichshafen|Meersburg
+de|3|Welches Bundesland hat die wenigsten Einwohner?|Bremen|Saarland|Hamburg|Berlin
+de|3|Welches Flächenland hat die wenigsten Einwohner?|Saarland|Mecklenburg-Vorpommern|Thüringen|Sachsen-Anhalt
+de|3|Wie heißt die Region in Brandenburg mit Fließen, auf denen man Kahn fährt?|Spreewald|Uckermark|Havelland|Prignitz
+de|3|Welches Gemüse ist eine berühmte Spezialität aus dem Spreewald?|Gurken|Spargel|Kohl|Kartoffeln
+de|3|Welche niedersächsische Stadt ist für ihre Spargelfelder bekannt?|Nienburg/Weser|Celle|Goslar|Emden
+de|3|Welche brandenburgische Stadt gilt als Spargelhauptstadt?|Beelitz|Potsdam|Cottbus|Eberswalde
+de|3|Wie heißt der mittelalterliche Turm am Hohen Ufer in Hannover?|Beginenturm|Michel|Holstentor|Roter Turm

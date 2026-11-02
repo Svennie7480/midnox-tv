@@ -1,0 +1,93 @@
+natur|1|Welches Tier ist bekannt dafür, dass es Bambus frisst?|Großer Panda|Koala|Gorilla|Elefant
+natur|1|Welche Farbe hat Chlorophyll und damit die meisten Blätter?|Grün|Rot|Gelb|Blau
+natur|1|Wie heißt der Stern, um den die Erde kreist?|Sonne|Mond|Polarstern|Sirius
+natur|1|Welches Tier hat einen langen Rüssel?|Elefant|Nashorn|Giraffe|Flusspferd
+natur|1|Wo leben Pinguine in freier Natur hauptsächlich?|Auf der Südhalbkugel|Am Nordpol|In der Sahara|Im Amazonas
+natur|1|Wie heißt der Baum, der Eicheln trägt?|Eiche|Buche|Linde|Ahorn
+natur|1|Wie viele Flügel hat eine Biene?|Vier|Zwei|Sechs|Acht
+natur|2|Welcher Planet wird „Roter Planet“ genannt?|Mars|Venus|Jupiter|Merkur
+natur|2|Welcher Planet hat die auffälligsten Ringe?|Saturn|Jupiter|Uranus|Neptun
+natur|2|Wie heißt die äußerste Schicht der Erde?|Erdkruste|Erdmantel|Erdkern|Asthenosphäre
+natur|2|Bei wie viel Grad Celsius siedet Wasser auf Meereshöhe?|100 °C|90 °C|120 °C|80 °C
+natur|2|Wie viele Beine hat ein Insekt?|Sechs|Acht|Vier|Zehn
+natur|2|Wie heißt das größte Organ des Menschen?|Haut|Leber|Lunge|Darm
+natur|2|Welches Säugetier kann fliegen?|Fledermaus|Flughörnchen|Pinguin|Strauß
+natur|2|Wie nennt man Tiere, die nur Pflanzen fressen?|Pflanzenfresser (Herbivoren)|Fleischfresser|Allesfresser|Aasfresser
+natur|2|Welches Gas atmen wir zum Leben ein?|Sauerstoff|Stickstoff|Helium|Kohlendioxid
+natur|2|Welches Tier ist das größte Raubtier an Land?|Eisbär|Löwe|Tiger|Grizzlybär
+natur|2|Wie heißt das Tier, das im Bienenstock die Eier legt?|Königin|Drohne|Arbeiterin|Wächterin
+natur|2|Wie heißt der Küstenbereich der Nordsee, der bei Ebbe trockenfällt?|Wattenmeer|Marsch|Geest|Moor
+natur|2|Welches Tier ist das Wappentier von Berlin?|Bär|Adler|Löwe|Pferd
+natur|2|Welches Tier ist im Wappen von Niedersachsen?|Pferd (Sachsenross)|Löwe|Bär|Adler
+natur|3|Wie heißt der nächstgelegene Stern zur Sonne?|Proxima Centauri|Sirius|Beteigeuze|Wega
+natur|3|Was misst die Richterskala?|Stärke von Erdbeben|Windgeschwindigkeit|Lautstärke|Wasserhärte
+natur|3|Was ist das chemische Symbol für Eisen?|Fe|Ei|Ir|Es
+natur|3|Was ist das chemische Symbol für Silber?|Ag|Si|Sv|Au
+natur|3|Was ist das chemische Symbol für Natrium?|Na|N|Nt|So
+natur|3|Wie heißt das Kraftwerk der Zelle?|Mitochondrium|Zellkern|Ribosom|Golgi-Apparat
+natur|3|Welche Blutgruppe gilt als Universalspender (bei roten Blutkörperchen)?|0 negativ|AB positiv|A positiv|B negativ
+natur|3|Wie lange dauert ein Erdumlauf um die Sonne ungefähr?|365,25 Tage|360 Tage|366,5 Tage|354 Tage
+natur|3|Wie heißt die Wissenschaft von den Pilzen?|Mykologie|Botanik|Zoologie|Ornithologie
+natur|3|Wie heißt die Wissenschaft von den Vögeln?|Ornithologie|Entomologie|Herpetologie|Ichthyologie
+natur|3|Welches Tier hat das größte Herz?|Blauwal|Elefant|Giraffe|Pottwal
+natur|3|Welches Tier lebt im Watt und gräbt Sandhäufchen-Kringel?|Wattwurm (Pierwurm)|Seestern|Strandkrabbe|Herzmuschel
+natur|3|Welcher Nationalpark wurde 1970 als erster in Deutschland gegründet?|Nationalpark Bayerischer Wald|Nationalpark Harz|Nationalpark Eifel|Nationalpark Hainich
+technik|1|Womit telefoniert man unterwegs?|Smartphone|Fernseher|Toaster|Kühlschrank
+technik|1|Welches Gerät kühlt Lebensmittel?|Kühlschrank|Backofen|Mikrowelle|Wasserkocher
+technik|1|Was braucht ein Auto mit Verbrennungsmotor zum Fahren?|Kraftstoff|Strom aus der Steckdose|Wasser|Holz
+technik|2|Wofür steht „PC“?|Personal Computer|Public Calculator|Power Center|Program Controller
+technik|2|Wie heißt das Betriebssystem von Apple-Computern?|macOS|Windows|Linux|Android
+technik|2|Welche Firma stellt die Spielkonsole „PlayStation“ her?|Sony|Nintendo|Microsoft|Sega
+technik|2|Welche Firma stellt die „Switch“ her?|Nintendo|Sony|Microsoft|Valve
+technik|2|Welche Firma stellt die „Xbox“ her?|Microsoft|Sony|Nintendo|Apple
+technik|2|Wie heißt das Netzwerk, über das Webseiten abgerufen werden?|Internet|Intranet|Bluetooth|Radio
+technik|2|Wer leitet die Firmen Tesla und SpaceX?|Elon Musk|Jeff Bezos|Mark Zuckerberg|Tim Cook
+technik|2|Wer gründete Amazon?|Jeff Bezos|Elon Musk|Bill Gates|Larry Ellison
+technik|2|Wer gründete Facebook?|Mark Zuckerberg|Jack Dorsey|Larry Page|Steve Jobs
+technik|2|Welche deutsche Firma baut den „Käfer“ und den „Golf“?|Volkswagen|Opel|BMW|Audi
+technik|2|Wie heißt der schnelle Zug der Deutschen Bahn?|ICE|TGV|Eurostar|Railjet
+technik|2|In welchem Jahr fuhr der erste ICE im Linienverkehr?|1991|1985|1999|2002
+technik|3|Wie hieß die erste deutsche Eisenbahn von 1835?|Adler (Nürnberg–Fürth)|Rocket (Leipzig–Dresden)|Saxonia|Pfeil
+technik|3|Wer erfand das Telefon (Patent 1876)?|Alexander Graham Bell|Philipp Reis|Thomas Edison|Guglielmo Marconi
+technik|3|Welcher deutsche Physiker entdeckte 1895 die nach ihm benannten Strahlen?|Wilhelm Conrad Röntgen|Max Planck|Heinrich Hertz|Albert Einstein
+technik|3|Wofür steht „GPS“?|Global Positioning System|General Position Service|Global Path Satellite|Geo Point System
+technik|3|Wie heißt der Erfinder des Automobils mit Patent von 1886?|Carl Benz|Gottlieb Daimler|Rudolf Diesel|Ferdinand Porsche
+technik|3|Wofür steht „LED“?|Light Emitting Diode|Low Energy Device|Light Electric Display|Laser Emitting Diode
+technik|3|Wie viele Gigabyte hat ein Terabyte (dezimal)?|1.000|100|10.000|1.024.000
+essen|1|Aus welchem Getreide wird Popcorn gemacht?|Mais|Weizen|Reis|Hafer
+essen|1|Woraus wird Butter gemacht?|Sahne bzw. Milch|Öl|Eiern|Mehl
+essen|1|Wie heißt das Frühstück aus Hafer, Nüssen und Trockenobst?|Müsli|Toast|Rührei|Croissant
+essen|1|Was ist ein „Brötchen“ in Bayern?|Semmel|Schrippe|Weck|Rundstück
+essen|1|Wie nennt man in Berlin ein Brötchen?|Schrippe|Semmel|Weck|Rundstück
+essen|2|Wie heißt ein Brötchen in Hamburg traditionell?|Rundstück|Schrippe|Semmel|Weckle
+essen|2|In welcher Stadt soll Herta Heuwer 1949 die Currywurst erfunden haben?|Berlin|Hamburg|Bochum|Hannover
+essen|2|Welches Gericht ist typisch für Bayern: Weißwurst mit …?|Süßem Senf und Brezn|Sauerkraut und Püree|Ketchup und Pommes|Grünkohl
+essen|2|Welches Gericht isst man in Norddeutschland im Winter mit Pinkel?|Grünkohl|Sauerkraut|Rotkohl|Spitzkohl
+essen|2|Was ist ein „Franzbrötchen“?|Ein Hamburger Zimtgebäck|Eine französische Brotsorte|Ein Käsebrötchen|Eine Bremer Fischsemmel
+essen|2|Was ist eine hannoversche „Lüttje Lage“?|Ein Bier mit Korn, gleichzeitig getrunken|Ein Kuchen|Eine Wurst|Ein Fischbrötchen
+essen|2|Wie heißt die Thüringer Grillwurst-Spezialität?|Thüringer Rostbratwurst|Nürnberger|Krakauer|Pinkel
+essen|2|Was ist „Handkäs mit Musik“?|Ein hessischer Käse mit Zwiebeln|Ein Musikfestival|Ein bayerisches Bier|Ein Kuchen aus Sachsen
+essen|2|Woher stammt die Schwarzwälder Kirschtorte?|Baden-Württemberg|Bayern|Hessen|Sachsen
+essen|2|Was sind „Spätzle“?|Eierteigwaren aus Schwaben|Kartoffelklöße|Gebäck|Ein Schweizer Käse
+essen|2|Was sind „Maultaschen“?|Gefüllte Teigtaschen aus Schwaben|Bayerische Brezeln|Fischbrötchen|Ostfriesischer Tee
+essen|2|Welches Getränk ist in Ostfriesland Tradition, mit Kluntje und Sahne?|Tee|Kaffee|Kakao|Bier
+essen|3|Was ist ein „Pharisäer“ in Nordfriesland?|Kaffee mit Rum und Sahne|Ein Fischgericht|Ein Kuchen|Tee mit Kandis
+essen|3|Was ist „Knipp“ aus Bremen?|Eine Grützwurst|Ein Gebäck|Ein Bier|Ein Fischsalat
+essen|3|Was ist ein „Leipziger Allerlei“?|Ein Gemüsegericht|Ein Kuchen|Ein Eintopf mit Fleisch|Ein Schnaps
+essen|3|Aus wie vielen Kräutern besteht die Frankfurter Grüne Soße traditionell?|Sieben|Fünf|Drei|Zwölf
+essen|3|Was ist ein „Strammer Max“?|Brot mit Schinken und Spiegelei|Ein Bier|Eine Torte|Ein Würstchen im Teig
+essen|3|Was ist „Himmel un Ääd“ im Rheinland?|Kartoffeln und Äpfel mit Blutwurst|Ein Dessert aus Sahne|Kölsch mit Korn|Ein Brotsalat
+sprache|1|Was ist das Gegenteil von „groß“?|Klein|Breit|Lang|Hoch
+sprache|1|Wie sagt man „Danke“ auf Englisch?|Thank you|Please|Sorry|Hello
+sprache|1|Wie sagt man „Hallo“ auf Spanisch?|Hola|Ciao|Salut|Hej
+sprache|2|Wie sagt man „Danke“ auf Französisch?|Merci|Grazie|Gracias|Dank je
+sprache|2|Wie sagt man „Danke“ auf Italienisch?|Grazie|Gracias|Merci|Obrigado
+sprache|2|Was bedeutet das bayerische „Servus“?|Hallo bzw. Tschüss|Prost|Danke|Guten Appetit
+sprache|2|Was bedeutet das berlinerische „Icke“?|Ich|Ja|Nein|Hier
+sprache|2|Was ist auf Plattdeutsch ein „Buddel“?|Flasche|Butter|Eimer|Boot
+sprache|2|Was bedeutet das hamburgische „Tüdelkram“?|Unwichtiges Zeug|Wetter|Hafen|Essen
+sprache|2|Wie nennt man ein Wort mit gegensätzlicher Bedeutung?|Antonym|Synonym|Homonym|Pseudonym
+sprache|3|Was bedeutet das sächsische „Nu“?|Ja|Nein|Jetzt|Nicht
+sprache|3|Was bedeutet das kölsche „Et hätt noch immer jot jejange“?|Es ist noch immer gut gegangen|Es kommt, wie es kommt|Es war schon immer so|Man kennt sich, man hilft sich
+sprache|3|Was bedeutet das schwäbische „Ade“?|Auf Wiedersehen|Guten Tag|Danke|Bitte
+sprache|3|Wie heißt das Satzzeichen „;“?|Semikolon|Kolon|Komma|Apostroph

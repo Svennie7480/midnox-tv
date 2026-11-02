@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.*;
 import android.graphics.*;
-import android.media.AudioManager;
-import android.media.ToneGenerator;
 import android.os.*;
 import android.text.InputType;
 import android.view.*;
@@ -19,7 +17,6 @@ public class QuizActivity extends Activity {
     final Handler h = new Handler(Looper.getMainLooper());
     Stage stage;
     int screen = HOME;
-    ToneGenerator tone;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -27,7 +24,7 @@ public class QuizActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         stage = new Stage(this);
         setContentView(stage);
-        try { tone = new ToneGenerator(AudioManager.STREAM_MUSIC, 60); } catch (Exception ignored) {}
+        Audio.init(this);
         new Thread(new Runnable() { public void run() {
             Bank.load(QuizActivity.this);
             h.post(new Runnable() { public void run() { stage.invalidate(); } });
@@ -37,13 +34,15 @@ public class QuizActivity extends Activity {
         }}).start();
         h.post(tick);
     }
-    @Override protected void onDestroy() { h.removeCallbacksAndMessages(null); Party.stop(); if (tone != null) tone.release(); super.onDestroy(); }
+    @Override protected void onDestroy() { h.removeCallbacksAndMessages(null); Party.stop(); Audio.release(); super.onDestroy(); }
+    @Override protected void onPause() { super.onPause(); Audio.pause(); }
+    @Override protected void onResume() { super.onResume(); Audio.resume(); }
 
     final Runnable tick = new Runnable() { public void run() {
         stage.tick();
         h.postDelayed(this, 100);
     }};
-    void beep(boolean ok) { try { if (tone != null) tone.startTone(ok ? ToneGenerator.TONE_PROP_ACK : ToneGenerator.TONE_PROP_NACK, ok ? 180 : 400); } catch (Exception ignored) {} }
+    void beep(boolean ok) { Audio.fx(ok ? "right" : "wrong"); }
 
     String name() { return U.prefs(this).getString("name", ""); }
     void askName(final Runnable then) {
@@ -134,7 +133,16 @@ public class QuizActivity extends Activity {
                 case BOARD: drawBoard(c); break;
             }
         }
+        String wantMusic() {
+            switch (screen) {
+                case MILLION: return mState == M_ASK || mState == M_CONFIRMQUIT ? "think" : mState == M_END ? "menu" : null;
+                case DAILY: return dState == D_END ? "menu" : "think";
+                case PARTY: { int ph = Party.phase; return ph == Party.QUESTION || ph == Party.REVEAL ? "think" : "menu"; }
+                default: return "menu";
+            }
+        }
         void tick() {
+            if (!Bank.all.isEmpty()) Audio.music(wantMusic());
             if (screen == MILLION) millionTick();
             else if (screen == DAILY) dailyTick();
             else if (screen == PARTY) partyTick();
@@ -145,6 +153,7 @@ public class QuizActivity extends Activity {
         boolean key(int k) {
             boolean ok = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_BUTTON_A;
             if (Bank.all.isEmpty()) { if (k == KeyEvent.KEYCODE_BACK) finish(); return true; }
+            if (k >= KeyEvent.KEYCODE_DPAD_UP && k <= KeyEvent.KEYCODE_DPAD_RIGHT) Audio.blip("click");
             boolean r;
             switch (screen) {
                 case HOME: r = homeKey(k, ok); break;
@@ -199,16 +208,36 @@ public class QuizActivity extends Activity {
             if (hf == 4) focus(c, nr, 23 * dp);
             text(c, "✎   Name: " + (n.isEmpty() ? "noch keiner" : n), nr.left + 22 * dp, nr.centerY() + 6 * dp, 17 * dp, Color.WHITE, hf == 4);
             hit(nr, new Runnable() { public void run() { hf = 4; askName(null); } });
+            RectF sr = new RectF(nr.right + 20 * dp, nr.top, nr.right + 380 * dp, nr.bottom);
+            card(c, sr, hf == 5 ? U.CARD2 : U.CARD, 23 * dp);
+            if (hf == 5) focus(c, sr, 23 * dp);
+            text(c, soundLabel(), sr.left + 22 * dp, sr.centerY() + 6 * dp, 17 * dp, Color.WHITE, hf == 5);
+            hit(sr, new Runnable() { public void run() { hf = 5; cycleSound(); } });
             text(c, Bank.all.size() + " Fragen in " + Bank.cats.size() + " Kategorien  ·  Bestenliste auch im Browser: " + Scores.WEB, pad, H - 34 * dp, 14 * dp, U.MUTED, false);
         }
         boolean homeKey(int k, boolean ok) {
             if (k == KeyEvent.KEYCODE_BACK) { finish(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_LEFT && hf > 0 && hf < 4) hf--;
+            else if (k == KeyEvent.KEYCODE_DPAD_LEFT && hf == 5) hf = 4;
+            else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf == 4) hf = 5;
+            else if (k == KeyEvent.KEYCODE_DPAD_UP && hf == 5) hf = 3;
             else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf < 3) hf++;
-            else if (k == KeyEvent.KEYCODE_DPAD_DOWN) hf = 4;
+            else if (k == KeyEvent.KEYCODE_DPAD_DOWN && hf < 4) hf = hf == 3 ? 5 : 4;
             else if (k == KeyEvent.KEYCODE_DPAD_UP && hf == 4) hf = 0;
-            else if (ok) { if (hf == 4) askName(null); else open(hf); }
+            else if (ok) { if (hf == 4) askName(null); else if (hf == 5) cycleSound(); else open(hf); }
             return true;
+        }
+        String soundLabel() {
+            SharedPreferences pr = U.prefs(QuizActivity.this);
+            return !pr.getBoolean("sound", true) ? "\uD83D\uDD07   Ton: aus" : pr.getBoolean("music", true) ? "\u266B   Musik und Effekte: an" : "\uD83D\uDD08   Nur Effekte";
+        }
+        void cycleSound() {   // an -> nur Effekte -> aus -> an
+            SharedPreferences pr = U.prefs(QuizActivity.this);
+            boolean snd = pr.getBoolean("sound", true), mus = pr.getBoolean("music", true);
+            if (snd && mus) pr.edit().putBoolean("music", false).apply();
+            else if (snd) pr.edit().putBoolean("sound", false).apply();
+            else pr.edit().putBoolean("sound", true).putBoolean("music", true).apply();
+            Audio.music(wantMusic());
         }
         void open(final int i) {
             if ((i == 0 || i == 1) && name().length() < 2) { askName(new Runnable() { public void run() { open(i); } }); return; }
@@ -235,19 +264,20 @@ public class QuizActivity extends Activity {
         int safety(int answered) { return answered >= 10 ? Scores.LADDER[10] : answered >= 5 ? Scores.LADDER[5] : 0; }
         void millionTick() {
             long now = System.currentTimeMillis();
-            if (mState == M_LOCK && now - mStateAt > 1800) {
+            if (mState == M_LOCK && now - mStateAt > 2700) {
                 boolean right = msel == mq.get(mi).correct;
                 beep(right);
                 mState = right ? M_RIGHT : M_WRONG; mStateAt = now;
-            } else if (mState == M_RIGHT && now - mStateAt > 1600) {
+            } else if (mState == M_RIGHT && now - mStateAt > 2400) {
                 if (mi == 14) endMillion(Scores.LADDER[15], "Du hast die Million geknackt!");
                 else { mi++; newQuestion(); }
-            } else if (mState == M_WRONG && now - mStateAt > 2600) {
+            } else if (mState == M_WRONG && now - mStateAt > 3000) {
                 endMillion(safety(mi), "Leider falsch.");
             }
         }
         void endMillion(int won, String msg) {
-            mWon = won; mEndMsg = msg; mState = M_END; mjf = 0; mEndSec = (System.currentTimeMillis() - mStart) / 1000; mResult = null;
+            mWon = won; mEndMsg = msg; mState = M_END; mjf = 0;
+            if (won >= 16000) Audio.fx("win"); mEndSec = (System.currentTimeMillis() - mStart) / 1000; mResult = null;
             final int w = won; final long s = Math.max(1, mEndSec);
             new Thread(new Runnable() { public void run() {
                 final JSONObject r = Scores.submit(QuizActivity.this, "million", name(), w, s, null);
@@ -306,7 +336,7 @@ public class QuizActivity extends Activity {
                 else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && col == 0) moveSel(msel + 1);
                 else if (k == KeyEvent.KEYCODE_DPAD_UP) { if (row == 1) moveSel(msel - 2); else { mrow = 1; mjf = 0; } }
                 else if (k == KeyEvent.KEYCODE_DPAD_DOWN && row == 0) moveSel(msel + 2);
-                else if (ok && !mHidden[msel]) { mState = M_LOCK; mStateAt = System.currentTimeMillis(); }
+                else if (ok && !mHidden[msel]) { mState = M_LOCK; mStateAt = System.currentTimeMillis(); Audio.fx("lock"); }
             } else {
                 if (k == KeyEvent.KEYCODE_DPAD_LEFT) mjf = Math.max(0, mjf - 1);
                 else if (k == KeyEvent.KEYCODE_DPAD_RIGHT) mjf = Math.min(3, mjf + 1);
@@ -393,7 +423,7 @@ public class QuizActivity extends Activity {
                 RectF r = new RectF(pad + (i % 2) * (bw + gap), ay + (i / 2) * (bh + gap), pad + (i % 2) * (bw + gap) + bw, ay + (i / 2) * (bh + gap) + bh);
                 drawAnswer(c, r, i, q, true);
                 final int ii = i;
-                hit(r, new Runnable() { public void run() { if (mState != M_ASK || mHidden[ii]) return; if (msel == ii && mrow == 0) { mState = M_LOCK; mStateAt = System.currentTimeMillis(); } else { msel = ii; mrow = 0; } } });
+                hit(r, new Runnable() { public void run() { if (mState != M_ASK || mHidden[ii]) return; if (msel == ii && mrow == 0) { mState = M_LOCK; mStateAt = System.currentTimeMillis(); Audio.fx("lock"); } else { msel = ii; mrow = 0; } } });
             }
             if (mState == M_CONFIRMQUIT) drawQuitConfirm(c);
         }
@@ -491,11 +521,13 @@ public class QuizActivity extends Activity {
             dState = D_SHOW; dStateAt = System.currentTimeMillis();
             saveDaily(false);
         }
+        int dTickSec = -1;
         void dailyTick() {
+            if (dState == D_ASK) { int ls = (int) ((D_MS - (System.currentTimeMillis() - dStart) + 999) / 1000); if (ls <= 5 && ls > 0 && ls != dTickSec) { dTickSec = ls; Audio.blip("tick"); } }
             if (dState == D_ASK && System.currentTimeMillis() - dStart >= D_MS) dailyAnswer(-1);
-            else if (dState == D_SHOW && System.currentTimeMillis() - dStateAt > 1800) {
+            else if (dState == D_SHOW && System.currentTimeMillis() - dStateAt > 2200) {
                 if (di + 1 >= dq.size()) {
-                    dState = D_END; saveDaily(true);
+                    dState = D_END; saveDaily(true); Audio.fx("win");
                     final int s = dScore; final long sec = Math.max(10, dTotalMs / 1000);
                     new Thread(new Runnable() { public void run() {
                         final JSONObject r = Scores.submit(QuizActivity.this, "daily", name(), s, sec, dDay);
@@ -678,7 +710,8 @@ public class QuizActivity extends Activity {
         void partyTick() {
             long now = System.currentTimeMillis();
             int ph = Party.phase;
-            if (ph != pLastPhase) { pLastPhase = ph; pStateAt = now; if (ph == Party.REVEAL) beep(true); }
+            if (ph != pLastPhase) { pLastPhase = ph; pStateAt = now; if (ph == Party.REVEAL) Audio.fx("right"); else if (ph == Party.END) Audio.fx("win"); }
+            if (ph == Party.QUESTION) { int ls = (int) ((Party.left() + 999) / 1000); if (ls <= 5 && ls > 0 && ls != dTickSec) { dTickSec = ls; Audio.blip("tick"); } }
             if (ph == Party.QUESTION && (Party.left() <= 0 || Party.allAnswered())) Party.reveal();
             else if (ph == Party.REVEAL && now - pStateAt > 4500) Party.scores();
             else if (ph == Party.SCORES && now - pStateAt > 5000) Party.next();

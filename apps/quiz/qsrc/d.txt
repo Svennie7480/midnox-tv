@@ -1,0 +1,114 @@
+# Deutschland & Regionen
+de|1|Wie heißt das bekannteste Tor in Berlin?|Brandenburger Tor|Holstentor|Siegestor|Karlstor
+de|1|In welcher Stadt findet jedes Jahr das Oktoberfest statt?|München|Nürnberg|Stuttgart|Augsburg
+de|1|Welche Stadt ist die Hauptstadt von Bayern?|München|Nürnberg|Regensburg|Würzburg
+de|1|Welche Stadt ist die Hauptstadt von Niedersachsen?|Hannover|Braunschweig|Oldenburg|Göttingen
+de|1|In welcher Stadt steht der Kölner Dom?|Köln|Bonn|Düsseldorf|Aachen
+de|1|Welche Stadt nennt man auch „Elbflorenz“?|Dresden|Magdeburg|Hamburg|Wittenberg
+de|1|In welcher Stadt steht die Elbphilharmonie?|Hamburg|Dresden|Magdeburg|Cuxhaven
+de|1|Welches Schloss in Bayern diente als Vorbild für das Disney-Schloss?|Schloss Neuschwanstein|Schloss Linderhof|Schloss Nymphenburg|Schloss Herrenchiemsee
+de|1|An welchem Berliner Platz steht die Weltzeituhr?|Alexanderplatz|Potsdamer Platz|Marienplatz|Rathausmarkt
+de|1|Welche Stadt ist die Hauptstadt von Hessen?|Wiesbaden|Frankfurt am Main|Kassel|Darmstadt
+de|1|Welcher Fluss fließt durch Hamburg?|Elbe|Weser|Rhein|Spree
+de|1|Welcher Fluss fließt durch Berlin?|Spree|Elbe|Oder|Saale
+de|1|Wie heißt der berühmte Platz im Zentrum Münchens mit dem Glockenspiel?|Marienplatz|Odeonsplatz|Stachus|Königsplatz
+de|1|In welcher Stadt steht der Reichstag, der Sitz des Bundestages?|Berlin|Bonn|Frankfurt am Main|Karlsruhe
+de|1|Wie heißt das Mittelgebirge mit dem Brocken als höchstem Berg?|Harz|Eifel|Rhön|Erzgebirge
+de|1|Welche Stadt ist die Hauptstadt von Nordrhein-Westfalen?|Düsseldorf|Köln|Dortmund|Essen
+de|1|Wie viele Stadtstaaten hat Deutschland?|Drei|Zwei|Vier|Fünf
+de|1|Welche Stadt ist für ihre Bremer Stadtmusikanten bekannt?|Bremen|Hannover|Hameln|Kassel
+de|1|In welcher Stadt soll der Rattenfänger die Kinder entführt haben?|Hameln|Hannover|Celle|Goslar
+de|1|Welches Bundesland ist flächenmäßig das größte?|Bayern|Niedersachsen|Baden-Württemberg|Brandenburg
+de|2|Welche Stadt ist die Hauptstadt von Sachsen?|Dresden|Leipzig|Chemnitz|Zwickau
+de|2|Welche Stadt ist die Hauptstadt von Baden-Württemberg?|Stuttgart|Karlsruhe|Mannheim|Freiburg
+de|2|Welche Stadt ist die Hauptstadt von Thüringen?|Erfurt|Weimar|Jena|Gera
+de|2|Welche Stadt ist die Hauptstadt von Sachsen-Anhalt?|Magdeburg|Halle (Saale)|Dessau|Wittenberg
+de|2|Welche Stadt ist die Hauptstadt von Brandenburg?|Potsdam|Cottbus|Frankfurt (Oder)|Brandenburg an der Havel
+de|2|Welche Stadt ist die Hauptstadt von Rheinland-Pfalz?|Mainz|Koblenz|Trier|Ludwigshafen
+de|2|Welche Stadt ist die Hauptstadt des Saarlandes?|Saarbrücken|Saarlouis|Neunkirchen|Homburg
+de|2|Wie heißt der große Park in Hannover mit den barocken Gärten?|Herrenhäuser Gärten|Englischer Garten|Tiergarten|Planten un Blomen
+de|2|Wie heißt die große Messe, die jedes Jahr in Hannover stattfindet und als weltgrößte Industriemesse gilt?|Hannover Messe|CeBIT-Expo|IFA|Gamescom
+de|2|Wie heißt der große See mitten in Hannover?|Maschsee|Steinhuder Meer|Dümmer|Zwischenahner Meer
+de|2|Wie heißt der größte Binnensee Niedersachsens?|Steinhuder Meer|Dümmer|Maschsee|Zwischenahner Meer
+de|2|Welche niedersächsische Stadt ist Sitz des Volkswagen-Konzerns?|Wolfsburg|Braunschweig|Salzgitter|Emden
+de|2|Welche Inselgruppe liegt vor der niedersächsischen Nordseeküste?|Ostfriesische Inseln|Nordfriesische Inseln|Halligen|Westfriesische Inseln
+de|2|Wie heißt die Heidelandschaft zwischen Hamburg, Hannover und Bremen?|Lüneburger Heide|Senne|Döberitzer Heide|Wahner Heide
+de|2|Wie nennen die Hamburger ihre Hauptkirche St. Michaelis?|Michel|Hummel|Hafenkrone|Lotse
+de|2|An welchem Wochentag findet der Hamburger Fischmarkt statt?|Sonntag|Samstag|Freitag|Mittwoch
+de|2|Wie heißt der weltgrößte zusammenhängende Lagerhauskomplex in Hamburg?|Speicherstadt|HafenCity|Kontorhausviertel|Altes Land
+de|2|Wie heißt der Hamburger Boulevard an der Binnenalster?|Jungfernstieg|Kurfürstendamm|Königsallee|Zeil
+de|2|Wie heißt die bekannte Einkaufsstraße in Düsseldorf?|Königsallee|Kurfürstendamm|Zeil|Schildergasse
+de|2|Wie heißt die berühmte Einkaufsstraße in Berlin-Charlottenburg?|Kurfürstendamm|Unter den Linden|Friedrichstraße|Karl-Marx-Allee
+de|2|Was ist der „Checkpoint Charlie“?|Ein ehemaliger Grenzübergang in Berlin|Ein Flughafen in Berlin|Ein Museum in Hamburg|Ein Schloss in Potsdam
+de|2|Welches Schloss in Potsdam ließ Friedrich der Große erbauen?|Schloss Sanssouci|Schloss Charlottenburg|Schloss Bellevue|Schloss Cecilienhof
+de|2|Wie heißt der Amtssitz des Bundespräsidenten in Berlin?|Schloss Bellevue|Kanzleramt|Schloss Charlottenburg|Rotes Rathaus
+de|2|Wie heißt das Berliner Rathaus umgangssprachlich?|Rotes Rathaus|Neues Rathaus|Schöneberger Rathaus|Spreerathaus
+de|2|Wie heißt der ehemalige Berliner Flughafen, auf dem heute ein großer Park ist?|Tempelhof|Tegel|Schönefeld|Gatow
+de|2|Wie heißt der Flughafen von Berlin, der 2020 eröffnet wurde?|BER Willy Brandt|Tegel Otto Lilienthal|Tempelhof|Schönefeld Süd
+de|2|Wie heißt das große Volksfest in Stuttgart?|Cannstatter Wasen|Oktoberfest|Kieler Woche|Freimarkt
+de|2|Wie heißt das große Segelsport-Fest jedes Jahr im Juni in Kiel?|Kieler Woche|Hanse Sail|Travemünder Woche|Sail Bremerhaven
+de|2|Welche Stadt ist berühmt für ihren Christkindlesmarkt und Lebkuchen?|Nürnberg|Aachen|Dresden|Erfurt
+de|2|Welche Stadt ist für ihre Printen bekannt?|Aachen|Köln|Nürnberg|Lübeck
+de|2|Welche Stadt ist für ihren Stollen besonders berühmt?|Dresden|Leipzig|Erfurt|Görlitz
+de|2|Wie heißt der höchste Berg in Niedersachsen?|Wurmberg|Brocken|Feldberg|Fichtelberg
+de|2|Wie heißt der höchste Berg im Harz?|Brocken|Wurmberg|Achtermann|Kahler Asten
+de|2|Welcher See liegt an der Grenze von Deutschland, Österreich und der Schweiz?|Bodensee|Chiemsee|Ammersee|Genfer See
+de|2|Welcher bayerische See wird auch „Bayerisches Meer“ genannt?|Chiemsee|Starnberger See|Ammersee|Tegernsee
+de|2|Wie heißt die Insel im Chiemsee mit dem Schloss von König Ludwig II.?|Herreninsel|Fraueninsel|Mainau|Reichenau
+de|2|Welche Stadt ist bekannt als Geburtsort von Johann Wolfgang von Goethe?|Frankfurt am Main|Weimar|Leipzig|Jena
+de|2|In welcher Stadt lebten und wirkten Goethe und Schiller gemeinsam?|Weimar|Jena|Leipzig|Erfurt
+de|2|In welcher Stadt steht das Völkerschlachtdenkmal?|Leipzig|Dresden|Halle|Chemnitz
+de|2|Wie hieß Chemnitz zu DDR-Zeiten?|Karl-Marx-Stadt|Ernst-Thälmann-Stadt|Leninstadt|Neustadt
+de|2|Welche Stadt im Ruhrgebiet hat die meisten Einwohner?|Dortmund|Essen|Duisburg|Bochum
+de|2|Wie heißt das ehemalige Steinkohle-Bergwerk in Essen, das UNESCO-Welterbe ist?|Zeche Zollverein|Zeche Zollern|Zeche Nordstern|Zeche Ewald
+de|2|In welcher Stadt sitzt das Bundesverfassungsgericht?|Karlsruhe|Berlin|Leipzig|Bonn
+de|2|In welcher Stadt hat die Europäische Zentralbank ihren Sitz?|Frankfurt am Main|Berlin|Brüssel|Luxemburg
+de|2|Welche Stadt gilt als Fahrradhauptstadt Deutschlands?|Münster|Freiburg|Oldenburg|Göttingen
+de|2|Welche deutsche Stadt hat die meisten Einwohner nach Berlin?|Hamburg|München|Köln|Frankfurt am Main
+de|2|Welche Stadt ist die viertgrößte Deutschlands?|Köln|Frankfurt am Main|Stuttgart|Düsseldorf
+de|2|In welchem Bundesland liegt die Insel Rügen?|Mecklenburg-Vorpommern|Schleswig-Holstein|Brandenburg|Niedersachsen
+de|2|In welchem Bundesland liegt Helgoland?|Schleswig-Holstein|Niedersachsen|Hamburg|Bremen
+de|2|Zu welchem Bundesland gehört die Stadt Bremerhaven?|Bremen|Niedersachsen|Hamburg|Schleswig-Holstein
+de|2|Welche Stadt ist für das Kölsch-Bier bekannt?|Köln|Bonn|Mainz|Düsseldorf
+de|2|Welche Biersorte ist typisch für Düsseldorf?|Altbier|Kölsch|Weißbier|Pils
+de|2|Welche Stadt ist Sitz der Brauerei „Beck’s“?|Bremen|Hamburg|Hannover|Dortmund
+de|2|In welcher Stadt liegt das „Deutsche Eck“, wo die Mosel in den Rhein mündet?|Koblenz|Bingen|Mainz|Trier
+de|2|Welche ist die älteste Stadt Deutschlands (Römergründung „Augusta Treverorum“)?|Trier|Köln|Mainz|Regensburg
+de|2|Wie heißt das berühmte römische Stadttor in Trier?|Porta Nigra|Porta Westfalica|Porta Alba|Porta Romana
+de|3|Wie heißt das Tal in Rheinland-Pfalz, berühmt für den Loreley-Felsen?|Mittelrheintal|Moseltal|Ahrtal|Nahetal
+de|3|In welcher Stadt wurde 1949 das Grundgesetz vom Parlamentarischen Rat verabschiedet?|Bonn|Frankfurt am Main|Berlin|Weimar
+de|3|Welches Gebäude in Hannover hat einen bogenförmig fahrenden Aufzug in der Kuppel?|Neues Rathaus|Telemax|Anzeiger-Hochhaus|Beginenturm
+de|3|In welcher Stadt in Niedersachsen steht die Kaiserpfalz, UNESCO-Welterbe?|Goslar|Hildesheim|Braunschweig|Celle
+de|3|Welche niedersächsische Stadt ist für ihren Dom und die Michaeliskirche (Welterbe) bekannt?|Hildesheim|Osnabrück|Verden|Goslar
+de|3|In welcher Stadt wurde 1648 neben Münster der Westfälische Friede verhandelt?|Osnabrück|Paderborn|Bielefeld|Minden
+de|3|In welcher Stadt sitzt das Niedersächsische Landgestüt mit seinen berühmten Hengstparaden?|Celle|Verden|Vechta|Hoya
+de|3|Wie heißt die niedersächsische Universitätsstadt mit dem Gänseliesel-Brunnen?|Göttingen|Hildesheim|Lüneburg|Oldenburg
+de|3|Welche Stadt in Niedersachsen ist berühmt für das Salz, das sie im Mittelalter reich machte?|Lüneburg|Bad Pyrmont|Goslar|Celle
+de|3|Welcher Fluss fließt durch Hannover?|Leine|Weser|Aller|Oker
+de|3|Wie heißt der Berliner Stadtteil mit der East Side Gallery?|Friedrichshain|Kreuzberg|Mitte|Prenzlauer Berg
+de|3|Wie heißt die längste erhaltene Mauer-Strecke in Berlin, bemalt von Künstlern?|East Side Gallery|Mauerpark|Bernauer Mauer|Wall Art Strip
+de|3|Wie heißt die Insel in Berlin mit fünf großen Museen?|Museumsinsel|Pfaueninsel|Spreeinsel Ost|Fischerinsel
+de|3|Welcher Berliner Bezirk war früher eine eigene Stadt mit Schloss und Opernhaus und ist heute Teil von Berlin?|Charlottenburg|Lichtenberg|Neukölln|Steglitz
+de|3|In welchem Jahr wurde Groß-Berlin durch Eingemeindungen gebildet?|1920|1871|1900|1945
+de|3|Wie heißt der berühmte Hamburger Tunnel unter der Elbe von 1911?|Alter Elbtunnel|Neuer Elbtunnel|Elbquerung Nord|Köhlbrandtunnel
+de|3|Wie heißt das Obstanbaugebiet südlich der Elbe bei Hamburg?|Altes Land|Vierlande|Wendland|Kehdingen
+de|3|Welche Biermarke aus Hamburg wirbt mit einem Herz-Anker-Logo und St. Pauli?|Astra|Holsten|Ratsherrn|Jever
+de|3|Wie heißt das Fußballstadion des FC St. Pauli?|Millerntor-Stadion|Volksparkstadion|Hoheluft|Weserstadion
+de|3|Wie heißt das Stadion von Hannover 96?|Heinz von Heyden Arena (Niedersachsenstadion)|Eintracht-Stadion|Weserstadion|AWD Dome
+de|3|Wie heißt das berühmte Münchner Bier- und Festzelt-Areal, auf dem die Wiesn stattfindet?|Theresienwiese|Olympiapark|Königsplatz|Hofgarten
+de|3|Wer war der „Märchenkönig“ von Bayern?|Ludwig II.|Maximilian II.|Ludwig I.|Otto I.
+de|3|Welcher See liegt am Fuß des Watzmanns?|Königssee|Walchensee|Eibsee|Tegernsee
+de|3|In welcher Stadt steht die BMW-Welt?|München|Ingolstadt|Regensburg|Dingolfing
+de|3|In welcher Stadt hat Audi seinen Hauptsitz?|Ingolstadt|München|Neckarsulm|Wolfsburg
+de|3|In welcher Stadt hat Mercedes-Benz seinen Sitz?|Stuttgart|Sindelfingen|München|Ulm
+de|3|Welche Stadt hat den höchsten Kirchturm der Welt?|Ulm|Köln|Freiburg|Regensburg
+de|3|Wie heißt der Fluss, der durch Frankfurt am Main fließt?|Main|Rhein|Neckar|Lahn
+de|3|Wie heißt das Wahrzeichen von Bremen, eine Statue vor dem Rathaus?|Roland|Michel|Bremer Bulle|Hanseat
+de|3|Welche Stadt im Erzgebirge ist für Holzspielzeug und Nussknacker bekannt?|Seiffen|Annaberg-Buchholz|Freiberg|Aue
+de|3|Welche Stadt in Sachsen-Anhalt ist als Lutherstadt bekannt?|Wittenberg|Eisleben|Halle|Magdeburg
+de|3|In welcher thüringischen Stadt steht die Wartburg?|Eisenach|Erfurt|Gotha|Weimar
+de|3|Welcher Komponist wurde in Bonn geboren?|Ludwig van Beethoven|Robert Schumann|Johannes Brahms|Richard Wagner
+de|3|In welcher bayerischen Stadt finden die Richard-Wagner-Festspiele statt?|Bayreuth|Bamberg|Würzburg|Passau
+de|3|Welche bayerische Stadt wird „Dreiflüssestadt“ genannt?|Passau|Regensburg|Ulm|Kelheim
+de|3|Wie heißt die Hauptstadt von Mecklenburg-Vorpommern und ihr Schloss auf einer Insel?|Schwerin|Rostock|Neubrandenburg|Wismar
+de|3|In welcher Stadt steht die „Gläserne Manufaktur“ von VW?|Dresden|Wolfsburg|Leipzig|Zwickau

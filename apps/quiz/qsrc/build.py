@@ -10,7 +10,7 @@ for f in sorted(glob.glob(os.path.join(os.path.dirname(__file__),'*.txt'))):
         i=hashlib.md5(q.encode()).hexdigest()[:8]
         assert i not in seen, ln; seen.add(i)
         qs.append({"id":i,"c":c,"l":l,"q":q,"a":a})
-cats={"allg":"Allgemeinwissen","geo":"Geografie","gesch":"Geschichte","sport":"Sport","musik":"Musik","film":"Film & TV","natur":"Natur & Wissenschaft","technik":"Technik","essen":"Essen & Trinken","nord":"Norddeutschland","sprache":"Sprache"}
+cats={"allg":"Allgemeinwissen","geo":"Geografie","gesch":"Geschichte","sport":"Sport","musik":"Musik","film":"Film & TV","natur":"Natur & Wissenschaft","technik":"Technik","essen":"Essen & Trinken","nord":"Norddeutschland","de":"Deutschland & Regionen","sprache":"Sprache"}
 for q in qs: assert q["c"] in cats, q
 out={"v":int(sys.argv[1]) if len(sys.argv)>1 else 1,"cats":cats,"q":qs}
 json.dump(out,open(os.path.join(os.path.dirname(__file__),'..','assets','questions.json'),'w',encoding='utf-8'),ensure_ascii=False,separators=(',',':'))

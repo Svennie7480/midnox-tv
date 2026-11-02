@@ -70,7 +70,7 @@ final class AdminApi {
                     if (l != null) for (TvRows.Prog p : l) if (p.start <= now && p.stop > now) { o.put("now", p.title); break; }
                     a.put(o);
                 }
-                return new JSONObject().put("channels", a).put("rtl", TvRows.hasRtl(c)).put("vlc", Style.launchIntent(c.getPackageManager(), "org.videolan.vlc") != null).toString();
+                return new JSONObject().put("channels", a).put("rtl", TvRows.hasRtl(c)).put("live", TvRows.hasLive(c)).put("vlc", Style.launchIntent(c.getPackageManager(), "org.videolan.vlc") != null).toString();
             }
             case "channels_save": {
                 SharedPreferences.Editor ed = pr.edit();

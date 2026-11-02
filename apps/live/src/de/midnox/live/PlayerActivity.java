@@ -100,7 +100,9 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     void handleIntent(Intent i, boolean start) {
         String name = i == null ? null : i.getStringExtra("channel");
         Model.Channel ch = null;
-        if (name != null) ch = Lib.byName(name);
+        String tvg = i == null ? null : i.getStringExtra("tvg");
+        if (tvg != null) ch = Lib.byTvg(tvg);
+        if (ch == null && name != null) ch = Lib.byName(name);
         if (ch == null && i != null && i.getStringExtra("id") != null) ch = Lib.byId(i.getStringExtra("id"));
         if (ch == null && start) ch = Lib.byId(U.prefs(this).getString("last", ""));
         if (ch == null && start && !Lib.channels.isEmpty()) ch = Lib.channels.get(0);

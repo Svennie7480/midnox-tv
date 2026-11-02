@@ -1,6 +1,6 @@
 {
- "versionCode": 62,
- "versionName": "10.2",
+ "versionCode": 63,
+ "versionName": "10.3",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "midnox Live als TV-App: „Jetzt im TV“ springt direkt auf den Sender. midnox Live gibt es neu im midnox Store."
+ "notes": "Senderliste: neue Quelle „midnox Live“ – Sender erscheinen in „Jetzt im TV“ und starten direkt in midnox Live"
 }

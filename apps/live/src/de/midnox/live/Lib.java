@@ -136,6 +136,19 @@ final class Lib {
     }
     static Model.Channel byId(String id) { for (Model.Channel ch : channels) if (ch.id.equals(id)) return ch; return null; }
     static Model.Channel byNum(int n) { for (Model.Channel ch : channels) if (ch.num == n) return ch; return null; }
+    /** Fuer den Launcher: Sender per EPG-Kennung ("RTL.de"), direkt oder ueber die EPG-Zuordnung; HD bevorzugt. */
+    static Model.Channel byTvg(String tvg) {
+        if (tvg == null || tvg.isEmpty()) return null;
+        Model.Channel best = null; int score = 0;
+        for (Model.Channel ch : channels) {
+            int s = 0;
+            if (ch.tvgId.equalsIgnoreCase(tvg)) s = 100;
+            else { String k = Epg.key(ch); if (k != null && k.equalsIgnoreCase(tvg)) s = 90; }
+            if (s > 0 && ch.name.toUpperCase(Locale.ROOT).contains("HD")) s += 5;
+            if (s > score) { score = s; best = ch; }
+        }
+        return best;
+    }
     /** Fuer den Launcher: Sender per Name ("ZDF", "Das Erste") oder tvg-id finden; HD bevorzugt. */
     static Model.Channel byName(String name) {
         String n = U.norm(name);

@@ -91,7 +91,7 @@ td select{min-width:150px}td input.nr{width:80px}td input.url{width:100%;min-wid
     <select id="grp" onchange="renderCh()"><option value="">alle Gruppen</option></select>
     <label class="hint"><input type="checkbox" id="showHid" checked onchange="renderCh()"> ausgeblendete zeigen</label>
     <span class="grow"></span>
-    <button class="sm" onclick="bulk('hide')">Gefilterte ausblenden</button><button class="sm" onclick="bulk('show')">Gefilterte einblenden</button>
+    <button class="sm" id="bulkLive" style="display:none" onclick="bulk('live')">Gefilterte → midnox Live</button><button class="sm" onclick="bulk('hide')">Gefilterte ausblenden</button><button class="sm" onclick="bulk('show')">Gefilterte einblenden</button>
     <button class="sm danger" onclick="resetCh()">Zurücksetzen</button></div>
    <table><thead><tr><th></th><th>#</th><th></th><th>Sender</th><th>Läuft gerade</th><th>Quelle</th><th>MagentaTV-Platz</th><th>Stream-Adresse (für VLC)</th><th></th></tr></thead><tbody id="chb"></tbody></table>
   </section>
@@ -193,11 +193,11 @@ document.querySelectorAll('nav a[data-p]').forEach(function(a){a.onclick=functio
  $('save').classList.toggle('on',a.dataset.p=='ch'&&dirty);if(a.dataset.p!='ha')$('hasave').classList.remove('on');
  if(a.dataset.p=='apps')loadApps();if(a.dataset.p=='ha')loadHa();if(a.dataset.p=='set')loadSet();if(a.dataset.p=='mw')loadMw();if(a.dataset.p=='ch'&&!dirty)loadCh()}});
 // ---------- Senderliste
-var CH=[],RTL=false,dirty=false;
-var SRC={magenta:['MagentaTV','#E20074'],rtl:['RTL+ Livestream','#E4002B'],m3u:['Stream (VLC)','#FF8800'],hide:['ausgeblendet','#6b6f86']};
-function loadCh(){api('channels').then(function(j){CH=j.channels;RTL=j.rtl;dirty=false;$('save').classList.remove('on');
+var CH=[],RTL=false,LIVE=false,dirty=false;
+var SRC={live:['midnox Live','#7C3AED'],magenta:['MagentaTV','#E20074'],rtl:['RTL+ Livestream','#E4002B'],m3u:['Stream (VLC)','#FF8800'],hide:['ausgeblendet','#6b6f86']};
+function loadCh(){api('channels').then(function(j){CH=j.channels;RTL=j.rtl;LIVE=j.live;$('bulkLive').style.display=LIVE?'':'none';dirty=false;$('save').classList.remove('on');
  var g={};CH.forEach(function(c){if(c.group)g[c.group]=1});var s=$('grp'),cur=s.value;s.innerHTML='<option value="">alle Gruppen</option><option value="#builtin">nur eingebaute Sender</option><option value="#m3u">nur eigene (M3U)</option>'+Object.keys(g).sort().map(function(x){return '<option>'+esc(x)+'</option>'}).join('');s.value=cur;renderCh()})}
-function sources(c){var l=[];if(!c.builtin)return['m3u','hide'];l.push('magenta');if(c.rtl&&RTL)l.push('rtl');if(c.url)l.push('m3u');l.push('hide');return l}
+function sources(c){var l=[];if(!c.builtin)return['m3u','hide'];l.push('magenta');if(LIVE)l.push('live');if(c.rtl&&RTL)l.push('rtl');if(c.url)l.push('m3u');l.push('hide');return l}
 function match(c){var q=$('q').value.toLowerCase(),g=$('grp').value;
  if(q&&c.name.toLowerCase().indexOf(q)<0&&(c.group||'').toLowerCase().indexOf(q)<0)return false;
  if(g=='#builtin'&&!c.builtin)return false;if(g=='#m3u'&&c.builtin)return false;if(g&&g[0]!='#'&&c.group!=g)return false;
@@ -214,7 +214,7 @@ function renderCh(){var b=$('chb'),h='';CH.forEach(function(c,i){if(!match(c))re
 function setF(i,f,v){CH[i][f]=v;if(f=='url'&&!v&&CH[i].src=='m3u')CH[i].src='magenta';mark();if(f!='number')renderCh()}
 function mark(){dirty=true;$('save').classList.add('on')}
 function mv(i,d){var j=i+d;if(j<0||j>=CH.length)return;var t=CH[i];CH[i]=CH[j];CH[j]=t;mark();renderCh()}
-function bulk(m){CH.forEach(function(c){if(!match(c))return;if(m=='hide')c.src='hide';else if(c.src=='hide')c.src=c.builtin?(c.rtl&&RTL?'rtl':'magenta'):'m3u'});mark();renderCh()}
+function bulk(m){CH.forEach(function(c){if(!match(c))return;if(m=='live'){if(c.builtin&&LIVE)c.src='live';return}if(m=='hide')c.src='hide';else if(c.src=='hide')c.src=c.builtin?(c.rtl&&RTL?'rtl':'magenta'):'m3u'});mark();renderCh()}
 var dragI=null;
 function dnd(){document.querySelectorAll('#chb tr[draggable]').forEach(function(tr){
  tr.ondragstart=function(e){dragI=+tr.dataset.i;tr.classList.add('drag');e.dataTransfer.effectAllowed='move'};

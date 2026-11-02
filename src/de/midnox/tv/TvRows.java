@@ -84,8 +84,12 @@ public class TvRows implements MediaCard.Listener {
         M3u.Ch x = M3u.get(c, ch); return x == null || x.tvg.isEmpty() ? ch : x.tvg;
     }
 
+    static final String LIVE = "de.midnox.live";
+    static boolean hasLive(Context c) { return Style.launchIntent(c.getPackageManager(), LIVE) != null; }
+
     static String source(Context c, String ch) {
         String s = Style.prefs(c).getString("tvsrc_" + ch, "");
+        if (s.equals("live") && hasLive(c)) return "live";
         if (ch.startsWith("m3u:")) return s.equals("hide") || streamUrl(c, ch) == null ? "hide" : "m3u";
         if (s.equals("m3u") && streamUrl(c, ch) != null) return "m3u";
         boolean rtlOk = rtlSlug(ch) != null && hasRtl(c);
@@ -168,6 +172,7 @@ public class TvRows implements MediaCard.Listener {
     /** MagentaTV direkt auf dem Sender starten (eigener Befehl der App), sonst nur die App oeffnen. */
     static void openTv(Context c, String channel) {
         if ("m3u".equals(source(c, channel))) { M3u.play(c, streamUrl(c, channel), name(c, channel)); return; }
+        if ("live".equals(source(c, channel))) { openLive(c, channel); return; }
         if (viaRtl(c, channel)) {
             try {
                 Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://plus.rtl.de/" + rtlSlug(channel) + "/live"));
@@ -184,6 +189,7 @@ public class TvRows implements MediaCard.Listener {
                 Intent i = new Intent("de.midnox.live.PLAY");
                 i.setPackage(app);
                 i.putExtra("channel", name(c, channel));
+                i.putExtra("tvg", epgId(c, channel));
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 c.startActivity(i);
                 return;
@@ -201,6 +207,18 @@ public class TvRows implements MediaCard.Listener {
             } catch (Exception ignored) {}
         }
         Style.start(c, Style.launchIntent(c.getPackageManager(), app));
+    }
+
+    /** Sender direkt in midnox Live starten (Name + EPG-Kennung, z. B. "RTL" / "RTL.de"). */
+    static void openLive(Context c, String channel) {
+        try {
+            Intent i = new Intent("de.midnox.live.PLAY");
+            i.setPackage(LIVE);
+            i.putExtra("channel", name(c, channel));
+            i.putExtra("tvg", epgId(c, channel));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+        } catch (Exception e) { Style.toast(c, "midnox Live ist nicht installiert"); }
     }
 
     void start() {
@@ -342,7 +360,7 @@ public class TvRows implements MediaCard.Listener {
             Emby.Entry e = new Emby.Entry();
             e.id = c[0] + "@" + cur.start; e.type = "TV";
             e.title = cur.title;
-            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop)) + (viaRtl(act, c[0]) ? "  ·  RTL+" : "m3u".equals(source(act, c[0])) ? "  ·  VLC" : "");
+            e.sub = c[1] + "  ·  bis " + hm.format(new Date(cur.stop)) + (viaRtl(act, c[0]) ? "  ·  RTL+" : "m3u".equals(source(act, c[0])) ? "  ·  VLC" : "live".equals(source(act, c[0])) ? "  ·  midnox Live" : "");
             e.kind = "JETZT IM TV  ·  " + c[1].toUpperCase(Locale.GERMANY);
             List<String> meta = new ArrayList<>();
             meta.add(hm.format(new Date(cur.start)) + "–" + hm.format(new Date(cur.stop)));

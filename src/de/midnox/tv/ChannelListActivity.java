@@ -91,6 +91,7 @@ public class ChannelListActivity extends Activity {
         List<String> l = new ArrayList<>();
         if (ch.startsWith("m3u:")) { l.add("m3u"); l.add("hide"); return l; }
         l.add("magenta");
+        if (TvRows.hasLive(this)) l.add("live");
         if (TvRows.rtlSlug(ch) != null && TvRows.hasRtl(this)) l.add("rtl");
         if (TvRows.streamUrl(this, ch) != null) l.add("m3u");
         l.add("hide");
@@ -201,6 +202,7 @@ public class ChannelListActivity extends Activity {
             String label; int col;
             int nr = TvRows.number(ChannelListActivity.this, ch[0]);
             if (src.equals("rtl")) { label = "RTL+ Livestream"; col = 0xFFE4002B; }
+            else if (src.equals("live")) { label = "midnox Live"; col = 0xFF7C3AED; }
             else if (src.equals("m3u")) { label = "Stream (VLC)"; col = 0xFFFF8800; }
             else if (src.equals("magenta")) { label = "MagentaTV" + (nr > 0 ? "  ·  Platz " + nr : "  ·  nur App"); col = 0xFFE20074; }
             else { label = "ausgeblendet"; col = 0xFF6B6F86; }

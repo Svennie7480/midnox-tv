@@ -231,6 +231,10 @@ public class SportActivity extends Activity {
                 if (m.hb && w.equals("Dyn") && Style.prefs(this).getString("hb_radio", "").trim().isEmpty()) continue;
                 labels.add("\uD83D\uDCFA  Ansehen bei " + w);
                 acts.add(new Runnable() { public void run() { Style.toast(SportActivity.this, Watch.open(SportActivity.this, w)); } });
+                if (TvRows.hasLive(SportActivity.this) && Watch.liveKeys(w) != null) {
+                    labels.add("\u25B6  In midnox Live: " + w);
+                    acts.add(new Runnable() { public void run() { Style.toast(SportActivity.this, Watch.openInLive(SportActivity.this, w, m)); } });
+                }
             }
         }
         if (m.finished || m.live(now)) {

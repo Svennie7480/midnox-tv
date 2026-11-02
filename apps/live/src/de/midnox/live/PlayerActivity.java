@@ -118,6 +118,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             VodSearch.Hit hit = VodSearch.load(this, i.getStringExtra("vod"));
             if (hit != null) { if (player != null) player.stop(); banner.setVisibility(View.GONE); library.openHit(hit); return; }
         }
+        if (i != null && i.getStringArrayExtra("find") != null) { findAndPlay(i.getStringArrayExtra("find"), i.getStringArrayExtra("teams")); return; }
         if (i != null && i.getStringExtra("search") != null) { if (player != null) player.stop(); library.open(); library.search(i.getStringExtra("search")); return; }
         String tvg = i == null ? null : i.getStringExtra("tvg");
         if (tvg != null) ch = Lib.byTvg(tvg);
@@ -129,6 +130,26 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         else if (name != null) toast("„" + name + "“ ist nicht in deinen Sendern");
     }
 
+    /** „Wo läuft das?“: passende Sender suchen, den mit dem Spiel im TV-Guide bevorzugen, Treffer als Gruppe anbieten. */
+    void findAndPlay(final String[] keys, final String[] teams) {
+        if (Lib.channels.isEmpty()) { showStatus("Sender werden geladen …", 0); h.postDelayed(new Runnable() { public void run() { if (Lib.channels.isEmpty() && Lib.loading) h.postDelayed(this, 1000); else findAndPlay(keys, teams); } }, 1000); return; }
+        List<Model.Channel> l = Lib.find(keys);
+        if (l.isEmpty()) { showStatus("Keinen passenden Sender gefunden (" + keys[0] + ")", 6000); return; }
+        Model.Channel best = null; Model.Prog bestProg = null;
+        if (teams != null) for (Model.Channel ch : l) {
+            Model.Prog p = Epg.now(ch); if (p == null) p = Epg.next(ch);
+            if (p == null) continue;
+            String t = U.norm(p.title + " " + (p.desc == null ? "" : p.desc));
+            for (String tm : teams) { String n = tm == null ? "" : U.norm(tm); if (n.length() >= 3 && t.contains(n)) { best = ch; bestProg = p; break; } }
+            if (best != null) break;
+        }
+        if (best == null) best = l.get(0);
+        Lib.findGroup = "🔎 " + keys[0]; Lib.found = l;
+        play(best);
+        final String msg = bestProg != null ? "Laut TV-Guide: „" + bestProg.title + "“" : l.size() > 1 ? l.size() + " passende Sender – die Liste zeigt alle (🔎 " + keys[0] + ")" : null;
+        if (msg != null) h.postDelayed(new Runnable() { public void run() { showStatus(msg, 7000); } }, 1500);
+        if (bestProg == null && l.size() > 1) h.postDelayed(new Runnable() { public void run() { openList(); } }, 2500);
+    }
     void cloudPull(final boolean quiet) {
         new Thread(new Runnable() { public void run() {
             try {
@@ -167,8 +188,41 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         et.requestFocus();
     }
 
+    boolean expiryBusy;
+    /** Ablaufdaten pruefen (alle 12 Stunden) und einmal am Tag warnen. */
+    void checkExpiry(final boolean force, final boolean showAll) {
+        if (expiryBusy) return;
+        expiryBusy = true;
+        new Thread(new Runnable() { public void run() {
+            try { if (force || Expiry.due(PlayerActivity.this)) Expiry.refresh(PlayerActivity.this); } catch (Exception ignored) {}
+            expiryBusy = false;
+            h.post(new Runnable() { public void run() {
+                if (showAll) { hideStatus(); showExpiry(); return; }
+                List<String> w = Expiry.warnings(PlayerActivity.this);
+                String day = new java.text.SimpleDateFormat("yyyyMMdd", Locale.ROOT).format(new Date());
+                if (!w.isEmpty() && !day.equals(U.prefs(PlayerActivity.this).getString("exp_warned", ""))) {
+                    U.prefs(PlayerActivity.this).edit().putString("exp_warned", day).apply();
+                    showStatus("⏳  " + w.get(0) + (w.size() > 1 ? "  (+" + (w.size() - 1) + " weitere – Menü → Zugänge)" : ""), 12000);
+                }
+            }});
+        }}).start();
+    }
+    void showExpiry() {
+        List<Expiry.Entry> l = Expiry.cached(this);
+        StringBuilder sb = new StringBuilder();
+        String last = null;
+        for (Expiry.Entry e : l) {
+            if (!e.name.equals(last)) { sb.append(sb.length() > 0 ? "\n" : "").append(e.name).append("\n"); last = e.name; }
+            sb.append(e.warn() ? "  ⚠ " : "  ✓ ").append(e.label.isEmpty() ? "" : e.label + ":  ").append(e.text()).append(e.maxCons > 0 ? "  · " + e.maxCons + (e.maxCons == 1 ? " Verbindung" : " Verbindungen") : "").append("\n");
+        }
+        if (l.isEmpty()) sb.append("Noch nicht geprüft – „Jetzt prüfen“ wählen.");
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Zugänge & Ablaufdatum").setMessage(sb.toString())
+            .setPositiveButton("Schließen", null)
+            .setNeutralButton("Jetzt prüfen", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) { showStatus("Prüfe Zugänge …", 0); checkExpiry(true, true); } }).show();
+    }
     final Runnable tick = new Runnable() { public void run() {
         if (Cloud.due(PlayerActivity.this)) cloudPull(true);
+        if (!Lib.loading && !Lib.channels.isEmpty() && Expiry.due(PlayerActivity.this)) checkExpiry(false, false);
         if (list.getVisibility() == View.VISIBLE) list.invalidate();
         if (banner.getVisibility() == View.VISIBLE) banner.invalidate();
         if (guide.getVisibility() == View.VISIBLE) guide.invalidate();
@@ -777,6 +831,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             l.add("▣  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() {
                 scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
         }
+        l.add("⏳  Zugänge & Ablaufdatum"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showExpiry(); } });
         l.add("\uD83D\uDD11  Einrichtungscode eingeben" + (Cloud.linked(this) ? "  (" + Cloud.packageName(this) + ")" : "")); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askCode(); } });
         l.add("⚙  Quellen einrichten (Handy/PC)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showQr(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });

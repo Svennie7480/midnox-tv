@@ -44,6 +44,28 @@ final class Watch {
         return name;
     }
 
+    /** Suchbegriffe fuer die Sender in midnox Live (IPTV), passend zum Rechteinhaber. */
+    static String[] liveKeys(String who) {
+        String n = who.toLowerCase(Locale.ROOT);
+        if (n.startsWith("sky")) return new String[]{"Sky Sport Bundesliga", "Sky Bundesliga", "Sky Sport Top Event", "Sky Sport"};
+        if (n.startsWith("dazn")) return new String[]{"DAZN 1", "DAZN 2", "DAZN"};
+        if (n.startsWith("rtl")) return new String[]{"RTL"};
+        if (n.startsWith("sat.1")) return new String[]{"Sat.1", "Sat 1"};
+        if (n.startsWith("dyn")) return new String[]{"Dyn"};
+        return null;
+    }
+    /** Spiel in midnox Live oeffnen: passende Sender suchen, den mit dem Spiel im TV-Guide bevorzugen. */
+    static String openInLive(Context c, String who, Sport.Match m) {
+        try {
+            Intent i = new Intent("de.midnox.live.PLAY");
+            i.setPackage(TvRows.LIVE);
+            i.putExtra("find", liveKeys(who));
+            if (m != null) i.putExtra("teams", new String[]{m.t1.shortName, m.t2.shortName, m.t1.name, m.t2.name});
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            c.startActivity(i);
+            return "midnox Live sucht den Sender …";
+        } catch (Exception e) { return "midnox Live ist nicht installiert"; }
+    }
     /** App per Paketname oder Name finden und starten; sonst Amazon Appstore mit Suche. */
     static String launch(Context c, String title, String[] pkgs, String[] labels) {
         PackageManager pm = c.getPackageManager();

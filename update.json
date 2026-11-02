@@ -1,6 +1,6 @@
 {
- "versionCode": 67,
- "versionName": "10.7",
+ "versionCode": 68,
+ "versionName": "10.8",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "midnox Quiz auf der Startseite: Hinweis, wenn das Tages-Duell wartet, und Tagesserie auf der Quiz-Kachel"
+ "notes": "Sport: Spiele direkt in midnox Live öffnen – der richtige Sender wird automatisch gesucht"
 }

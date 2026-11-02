@@ -50,7 +50,7 @@ final class Cloud {
     static boolean pull(Context c) throws Exception {
         String tok = U.prefs(c).getString("pk_token", "");
         if (tok.isEmpty()) return false;
-        JSONObject r = post(c, "pull", new JSONObject().put("token", tok).put("ver", U.prefs(c).getInt("pk_ver", -1)).put("device", device(c)));
+        JSONObject r = post(c, "pull", new JSONObject().put("token", tok).put("ver", U.prefs(c).getInt("pk_ver", -1)).put("device", device(c)).put("expiry", Expiry.report(c)));
         U.prefs(c).edit().putLong("pk_pulled", System.currentTimeMillis()).apply();
         if (r.optBoolean("revoked") || r.optInt("_http") == 410) { unlink(c); return true; }
         if (!r.optBoolean("ok") || !r.optBoolean("changed")) return false;

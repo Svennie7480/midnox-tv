@@ -132,7 +132,22 @@ final class Lib {
     }
 
     // ------------------------------------------------------------ Auswahl
+    /** Treffer der Sendersuche (z. B. aus „Wo läuft das?“ im Launcher) als eigene Gruppe oben in der Liste. */
+    static String findGroup; static List<Model.Channel> found = new ArrayList<>();
+    static List<Model.Channel> find(String[] keys) {
+        LinkedHashMap<String, Model.Channel> out = new LinkedHashMap<>();
+        for (String k : keys) {
+            String nk = U.norm(k); if (nk.isEmpty()) continue;
+            List<Model.Channel> exact = new ArrayList<>(), part = new ArrayList<>();
+            for (Model.Channel ch : channels) { String n = U.norm(ch.name.replaceAll("(?i)\\b(hd|fhd|uhd|4k|sd|hevc|raw|de|ger|german)\\b|^[a-z]{2,3}\\s*[:|]\\s*", " ")); if (n.equals(nk)) exact.add(ch); else if (n.startsWith(nk) || n.contains(nk)) part.add(ch); }
+            Collections.sort(part, new Comparator<Model.Channel>() { public int compare(Model.Channel a, Model.Channel b) { String x = U.norm(a.name), y = U.norm(b.name); return x.length() != y.length() ? x.length() - y.length() : x.compareTo(y); } });
+            for (Model.Channel ch : exact) if (!out.containsKey(U.norm(ch.name))) out.put(U.norm(ch.name), ch);
+            for (Model.Channel ch : part) if (!out.containsKey(U.norm(ch.name))) out.put(U.norm(ch.name), ch);
+        }
+        return new ArrayList<>(out.values());
+    }
     static List<Model.Channel> inGroup(Context c, String g) {
+        if (g != null && g.equals(findGroup)) return found;
         if (g == null || g.equals(ALL)) return channels;
         List<Model.Channel> l = new ArrayList<>();
         if (g.equals(FAV)) {

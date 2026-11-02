@@ -80,7 +80,8 @@ final class Views {
 
         void open(String group, String playingId) {
             this.playingId = playingId;
-            groups = Lib.groups;
+            groups = new ArrayList<>(Lib.groups);
+            if (Lib.findGroup != null && !Lib.found.isEmpty()) groups.add(0, Lib.findGroup);
             gi = Math.max(0, groups.indexOf(group));
             if (gi >= groups.size()) gi = 0;
             loadGroup();

@@ -9,7 +9,7 @@ import java.util.*;
 final class Stalker {
     static final String MAG_UA = "Mozilla/5.0 (QtEmbedded; U; Linux; C) AppleWebKit/533.3 (KHTML, like Gecko) MAG200 stbapp ver: 2 rev: 250 Safari/533.3";
 
-    static final class Session { String api, portal, mac, token = ""; long since; }
+    static final class Session { String api, portal, mac, token = ""; long since; JSONObject profile; }
     static final Map<String, Session> sessions = new HashMap<>();
     /** Zuletzt funktionierende MAC je Quelle (Index in macs()). */
     static final Map<String, Integer> active = Collections.synchronizedMap(new HashMap<String, Integer>());
@@ -78,7 +78,7 @@ final class Stalker {
                 JSONObject js = p.optJSONObject("js");
                 if (js != null && js.optInt("status", 0) == 2 && js.optString("msg").length() > 0) throw new Exception(js.optString("msg"));
                 if (js != null && js.has("block_msg") && js.optString("block_msg").length() > 0) throw new Exception(js.optString("block_msg"));
-                n.since = System.currentTimeMillis();
+                n.since = System.currentTimeMillis(); n.profile = js;
                 sessions.put(sk, n);
                 return n;
             } catch (Exception e) { last = e; }

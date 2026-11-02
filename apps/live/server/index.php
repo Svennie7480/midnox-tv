@@ -139,6 +139,11 @@ if ($api === 'pull') {
         if (!hash_equals($d['token'], $t)) continue;
         $p['devices'][$i]['last'] = time(); $p['devices'][$i]['ip'] = ip(); $p['devices'][$i]['ver'] = $p['ver'];
         if (!empty($in['device'])) $p['devices'][$i]['name'] = substr((string)$in['device'], 0, 60);
+        if (isset($in['expiry']) && is_array($in['expiry'])) {   // Ablaufdaten der Zugänge, vom Gerät geprüft
+            $ex = [];
+            foreach (array_slice($in['expiry'], 0, 30) as $e) if (is_array($e)) $ex[] = ['n' => mb_substr((string)($e['n'] ?? ''), 0, 40), 'l' => mb_substr((string)($e['l'] ?? ''), 0, 12), 'e' => (int)($e['e'] ?? 0), 'ok' => !empty($e['ok']), 's' => mb_substr((string)($e['s'] ?? ''), 0, 60)];
+            $p['devices'][$i]['exp'] = $ex; $p['devices'][$i]['exp_at'] = time();
+        }
         save('packages', $pk);
         if ((int)($in['ver'] ?? -1) === (int)$p['ver']) out(['ok' => true, 'changed' => false, 'ver' => $p['ver']]);
         out(['ok' => true, 'changed' => true, 'ver' => $p['ver'], 'name' => $p['name'], 'package' => dec($p['data'])]);
@@ -161,7 +166,7 @@ if ($api === 'admin') {
             $l = [];
             foreach ($pk as $id => $p) {
                 $codes = array_values(array_filter($p['codes'] ?? [], function ($x) use ($now) { return $now - $x['created'] <= CODE_DAYS * 86400; }));
-                $devs = array_map(function ($d) { return ['id' => substr($d['token'], 0, 12), 'name' => $d['name'], 'first' => $d['first'], 'last' => $d['last'], 'current' => $d['ver'] ?? 0]; }, $p['devices'] ?? []);
+                $devs = array_map(function ($d) { return ['id' => substr($d['token'], 0, 12), 'name' => $d['name'], 'first' => $d['first'], 'last' => $d['last'], 'current' => $d['ver'] ?? 0, 'exp' => $d['exp'] ?? [], 'exp_at' => $d['exp_at'] ?? 0]; }, $p['devices'] ?? []);
                 $l[] = ['id' => $id, 'name' => $p['name'], 'ver' => $p['ver'], 'updated' => $p['updated'], 'data' => dec($p['data']),
                         'codes' => array_map(function ($x) { return ['code' => $x['code'], 'until' => $x['created'] + CODE_DAYS * 86400]; }, $codes), 'devices' => $devs];
             }
@@ -223,7 +228,7 @@ h1 i{font-style:normal;font-size:13px;background:#ef4444;color:#fff;padding:3px 
 .card{background:#15141f;border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:12px}
 input,select,textarea{width:100%;padding:11px;border-radius:10px;border:1px solid #2e2c45;background:#0e0d18;color:#fff;font-size:15px;margin-bottom:8px;font-family:inherit}
 button{padding:9px 16px;border:0;border-radius:999px;background:var(--g);color:#fff;font-size:14px;cursor:pointer}button.g{background:#26243a}button.r{background:#7f1d1d}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:0 0 auto}.grow{flex:1 1 200px}.hint{color:var(--muted);font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:0 0 auto}.grow{flex:1 1 200px}.err{color:#fca5a5;font-size:13px}.hint{color:var(--muted);font-size:13px}
 .code{font-size:30px;font-weight:700;letter-spacing:.18em;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}
 .dev{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .src{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#100f1a}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
@@ -265,6 +270,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function msg(t){var m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(m.t);m.t=setTimeout(function(){m.style.display='none'},3500)}
 function api(q,o){return fetch('?api='+q,{method:'POST',headers:{'X-Admin':PW},body:JSON.stringify(o||{})}).then(function(r){return r.json()})}
 function show(id){['setup','login','main'].forEach(function(x){$(x).style.display=x==id?'block':'none'})}
+function expHtml(d){if(!d.exp||!d.exp.length)return '';var now=Date.now()/1000;return '<br>'+d.exp.map(function(e){var t,w=false;if(!e.ok){t=e.s||'nicht erreichbar';w=true}else if(e.e==-1)t='unbegrenzt';else if(e.e<=0)t='Ablauf unbekannt';else{var days=Math.floor((e.e-now)/86400);t=(days<0?'abgelaufen am ':'bis ')+new Date(e.e*1000).toLocaleDateString('de-DE')+(days>=0?' (noch '+days+' T.)':'');w=days<=14}return '<span class="'+(w?'err':'hint')+'" style="display:inline-block;margin-right:12px">⏳ '+esc(e.n)+(e.l?' '+esc(e.l):'')+': '+esc(t)+'</span>'}).join('')}
 function when(t){if(!t)return'–';var d=new Date(t*1000),m=Math.round((Date.now()-d)/60000);if(m<2)return'gerade eben';if(m<60)return'vor '+m+' Min.';if(m<1440)return'vor '+Math.round(m/60)+' Std.';return d.toLocaleDateString('de-DE')}
 function setup(){if($('pw1').value!=$('pw2').value)return msg('Die Passwörter sind verschieden');fetch('?api=setup',{method:'POST',body:JSON.stringify({password:$('pw1').value})}).then(function(r){return r.json()}).then(function(j){if(!j.ok)return msg(j.msg);PW=$('pw1').value;sessionStorage.setItem('mlpw',PW);load()})}
 function login(){PW=$('pw').value;sessionStorage.setItem('mlpw',PW);load()}
@@ -277,7 +283,7 @@ function render(){
   return '<div class="card"><div class="row"><div class="grow"><b style="font-size:18px">'+esc(p.name)+'</b><div class="hint">'+s.map(function(x){return '<span class="pill">'+esc(x.name||x.type)+(x.type=='stalker'?' · '+(x.mac||'').split(/[\s,;]+/).filter(Boolean).length+' MAC':'')+'</span>'}).join('')+' Stand '+when(p.updated)+'</div></div>'
   +'<button class="g" onclick="edit('+i+')">Bearbeiten</button><button onclick="code('+i+')">Code erzeugen</button><button class="r" onclick="del('+i+')">Löschen</button></div>'
   +(p.codes.length?'<div style="margin-top:10px">'+p.codes.map(function(c){return '<div class="row"><span class="code">'+c.code.slice(0,3)+' '+c.code.slice(3)+'</span><span class="hint grow">gültig bis '+new Date(c.until*1000).toLocaleDateString('de-DE')+' · noch nicht eingelöst</span><button class="g" onclick="uncode('+i+',\''+c.code+'\')">Zurückziehen</button></div>'}).join('')+'</div>':'')
-  +(p.devices.length?'<div style="margin-top:10px">'+p.devices.map(function(d){return '<div class="dev"><span>📺 '+esc(d.name)+' <span class="hint">· seit '+when(d.first)+' · zuletzt '+when(d.last)+(d.current==p.ver?' · aktuell':' · Update ausstehend')+'</span></span><button class="g" onclick="revoke('+i+',\''+d.id+'\')">Abklemmen</button></div>'}).join('')+'</div>':'<div class="hint" style="margin-top:8px">Noch kein Gerät eingerichtet.</div>')
+  +(p.devices.length?'<div style="margin-top:10px">'+p.devices.map(function(d){return '<div class="dev"><span>📺 '+esc(d.name)+' <span class="hint">· seit '+when(d.first)+' · zuletzt '+when(d.last)+(d.current==p.ver?' · aktuell':' · Update ausstehend')+'</span>'+expHtml(d)+'</span><button class="g" onclick="revoke('+i+',\''+d.id+'\')">Abklemmen</button></div>'}).join('')+'</div>':'<div class="hint" style="margin-top:8px">Noch kein Gerät eingerichtet.</div>')
   +'</div>'}).join(''):'<div class="card hint">Noch keine Pakete – leg oben das erste an.</div>'}
 function code(i){api('admin&do=code',{id:P[i].id}).then(function(j){if(!j.ok)return msg(j.msg);load();msg('Code '+j.code+' – an deinen Kollegen weitergeben')})}
 function uncode(i,c){api('admin&do=uncode',{id:P[i].id,code:c}).then(load)}

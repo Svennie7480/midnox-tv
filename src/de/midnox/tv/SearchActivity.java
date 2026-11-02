@@ -124,9 +124,34 @@ public class SearchActivity extends Activity {
     // ------------------------------------------------------------ Suche
     void search(final String q) {
         final int my = ++gen;
-        results.removeAllViews();
+        results.removeAllViews(); lastEmby = null;
         if (q.length() < 2) { status.setText(""); return; }
         status.setText("Suche „" + q + "“ …");
+        liveVod = new ArrayList<>();
+        new Thread(new Runnable() { public void run() {
+            // midnox Live: Filme und Serien aller IPTV-Quellen (gleiche Titel zusammengefasst)
+            final List<Emby.Entry> vod = new ArrayList<>();
+            if (TvRows.hasLive(SearchActivity.this)) {
+                android.database.Cursor cur = null;
+                try {
+                    cur = getContentResolver().query(Uri.parse("content://de.midnox.live.search/vod?q=" + Uri.encode(q)), null, null, null, null);
+                    while (cur != null && cur.moveToNext() && vod.size() < 30) {
+                        Emby.Entry x = new Emby.Entry();
+                        x.id = cur.getString(0); x.type = "LIVEVOD"; x.title = cur.getString(1);
+                        String year = cur.getString(2); int n = cur.getInt(5);
+                        boolean series = cur.getInt(4) == 1;
+                        x.sub = (year.isEmpty() ? "" : year + "  ·  ") + (series ? "Serie" : "Film") + (n > 1 ? "  ·  " + n + " Quellen" : "");
+                        x.kind = "MIDNOX LIVE  ·  " + (series ? "SERIE" : "FILM");
+                        x.meta = (n > 1 ? "Beste Quelle: " : "Quelle: ") + cur.getString(6) + "   ·   OK öffnet midnox Live";
+                        x.img = cur.getString(3).isEmpty() ? null : cur.getString(3); x.backdrop = x.img; x.forceText = true;
+                        vod.add(x);
+                    }
+                } catch (Exception ignored) {
+                } finally { if (cur != null) cur.close(); }
+            }
+            for (Emby.Entry x : vod) if (x.img != null) x.bmp = img(x.img);
+            h.post(new Runnable() { public void run() { if (my == gen) { liveVod = vod; if (lastEmby != null) show(lastQ, lastE, lastEmby, lastTv); } } });
+        }}).start();
         new Thread(new Runnable() { public void run() {
             final List<Emby.Entry> emby = new ArrayList<>(), tv = new ArrayList<>();
             final Emby e = Emby.from(SearchActivity.this);
@@ -170,9 +195,12 @@ public class SearchActivity extends Activity {
         return b;
     }
 
+    volatile List<Emby.Entry> liveVod = new ArrayList<>();
+    String lastQ; Emby lastE; List<Emby.Entry> lastEmby, lastTv;
     void show(final String q, final Emby e, List<Emby.Entry> emby, List<Emby.Entry> tv) {
+        lastQ = q; lastE = e; lastEmby = emby; lastTv = tv;
         results.removeAllViews();
-        status.setText(emby.size() + " in Emby  ·  " + tv.size() + " im TV");
+        status.setText(emby.size() + " in Emby  ·  " + (liveVod.isEmpty() ? "" : liveVod.size() + " in midnox Live  ·  ") + tv.size() + " im TV");
         if (!emby.isEmpty()) row("EMBY", emby, new MediaCard.Listener() {
             public void onFocus(MediaCard c) {}
             public void onClick(MediaCard c) {
@@ -181,6 +209,19 @@ public class SearchActivity extends Activity {
                 startActivity(i);
             }
             public void onLongClick(MediaCard c) { Emby.open(SearchActivity.this, "play", e == null ? null : e.serverId(), c.e.linkId); }
+        });
+        if (!liveVod.isEmpty()) row("MIDNOX LIVE  ·  FILME & SERIEN", liveVod, new MediaCard.Listener() {
+            public void onFocus(MediaCard c) {}
+            public void onClick(MediaCard c) {
+                try {
+                    Intent i = new Intent("de.midnox.live.PLAY");
+                    i.setPackage(TvRows.LIVE);
+                    i.putExtra("vod", c.e.id);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                } catch (Exception ex) { Style.toast(SearchActivity.this, "midnox Live lässt sich nicht öffnen"); }
+            }
+            public void onLongClick(MediaCard c) { onClick(c); }
         });
         if (!tv.isEmpty()) row("IM TV  ·  NÄCHSTE 30 STUNDEN", tv, new MediaCard.Listener() {
             public void onFocus(MediaCard c) {}

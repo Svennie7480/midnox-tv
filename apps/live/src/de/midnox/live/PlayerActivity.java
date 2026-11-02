@@ -114,6 +114,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     void handleIntent(Intent i, boolean start) {
         String name = i == null ? null : i.getStringExtra("channel");
         Model.Channel ch = null;
+        if (i != null && i.getStringExtra("vod") != null) {
+            VodSearch.Hit hit = VodSearch.load(this, i.getStringExtra("vod"));
+            if (hit != null) { if (player != null) player.stop(); banner.setVisibility(View.GONE); library.openHit(hit); return; }
+        }
+        if (i != null && i.getStringExtra("search") != null) { if (player != null) player.stop(); library.open(); library.search(i.getStringExtra("search")); return; }
         String tvg = i == null ? null : i.getStringExtra("tvg");
         if (tvg != null) ch = Lib.byTvg(tvg);
         if (ch == null && name != null) ch = Lib.byName(name);
@@ -378,6 +383,19 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     final Library.Cb libCb = new Library.Cb() {
         public void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs) { startVod(it, ep, next, startMs); }
         public void close() { closeLibrary(); }
+        public void askSearch(String last) {
+            final EditText et = new EditText(PlayerActivity.this);
+            et.setHint("Film oder Serie, z. B. Avatar");
+            et.setText(last); et.setSelectAllOnFocus(true);
+            et.setInputType(InputType.TYPE_CLASS_TEXT);
+            et.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+            final AlertDialog d = new AlertDialog.Builder(PlayerActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Filme & Serien suchen").setView(et)
+                .setPositiveButton("Suchen", new DialogInterface.OnClickListener() { public void onClick(DialogInterface dd, int w) { String q = et.getText().toString().trim(); if (q.length() >= 2) library.search(q); } })
+                .setNegativeButton("Abbrechen", null).create();
+            et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int a, KeyEvent e) {
+                String q = et.getText().toString().trim(); if (q.length() >= 2) { d.dismiss(); library.search(q); } return true; } });
+            d.show(); et.requestFocus();
+        }
     };
     void openLibrary() {
         banner.setVisibility(View.GONE); menu.setVisibility(View.GONE); guide.setVisibility(View.GONE);

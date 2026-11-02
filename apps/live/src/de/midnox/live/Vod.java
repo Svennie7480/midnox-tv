@@ -92,7 +92,7 @@ final class Vod {
             if (all == null) {
                 all = new ArrayList<>();
                 String b = Xtream.base(s), q = "?username=" + Xtream.enc(s.user) + "&password=" + Xtream.enc(s.pass);
-                JSONArray a = new JSONArray(U.get(b + "/player_api.php" + q + "&action=" + (cat.kind == MOVIE ? "get_vod_streams" : "get_series") + "&category_id=" + Xtream.enc(cat.id)));
+                JSONArray a = new JSONArray(U.get(b + "/player_api.php" + q + "&action=" + (cat.kind == MOVIE ? "get_vod_streams" : "get_series") + (cat.id.isEmpty() ? "" : "&category_id=" + Xtream.enc(cat.id))));
                 for (int i = 0; i < a.length(); i++) {
                     JSONObject o = a.getJSONObject(i);
                     Item it = new Item(); it.src = s.id; it.kind = cat.kind;
@@ -119,19 +119,7 @@ final class Vod {
             JSONObject js = Stalker.call(ss, "type=" + type + "&action=get_ordered_list&category=" + Stalker.enc(cat.id) + "&genre=" + Stalker.enc(cat.id) + "&sortby=added&p=" + page).optJSONObject("js");
             JSONArray a = js == null ? null : js.optJSONArray("data");
             for (int i = 0; a != null && i < a.length(); i++) {
-                JSONObject o = a.getJSONObject(i);
-                Item it = new Item(); it.src = s.id; it.kind = cat.kind;
-                it.id = o.optString("id"); it.name = o.optString("name").trim();
-                it.poster = abs(ss, clean(o.optString("screenshot_uri", o.optString("cover_big"))));
-                it.year = clean(o.optString("year")); if (it.year.length() > 4) it.year = it.year.replaceAll(".*?(\\d{4}).*", "$1");
-                it.rating = clean(o.optString("rating_imdb", o.optString("rating_kinopoisk")));
-                it.plot = clean(o.optString("description")); it.genre = clean(o.optString("genres_str"));
-                it.cast = clean(o.optString("actors")); it.director = clean(o.optString("director"));
-                String t = clean(o.optString("time")); it.duration = t.isEmpty() ? "" : t + " Min.";
-                it.cmd = o.optString("cmd");
-                it.series = cat.stalkerSeries || o.optInt("is_series") == 1 || (o.optJSONArray("series") != null && o.optJSONArray("series").length() > 0);
-                if (it.series) it.kind = SERIES;
-                p.items.add(it);
+                p.items.add(stalkerItem(ss, s, cat, a.getJSONObject(i)));
             }
             int total = js == null ? 0 : js.optInt("total_items"), per = js == null ? 14 : Math.max(1, js.optInt("max_page_items", 14));
             p.more = page * per < total;
@@ -142,6 +130,21 @@ final class Vod {
             p.more = from + 60 < all.size();
         }
         return p;
+    }
+
+    static Item stalkerItem(Stalker.Session ss, Model.Source s, Cat cat, JSONObject o) {
+        Item it = new Item(); it.src = s.id; it.kind = cat.kind;
+        it.id = o.optString("id"); it.name = o.optString("name").trim();
+        it.poster = abs(ss, clean(o.optString("screenshot_uri", o.optString("cover_big"))));
+        it.year = clean(o.optString("year")); if (it.year.length() > 4) it.year = it.year.replaceAll(".*?(\\d{4}).*", "$1");
+        it.rating = clean(o.optString("rating_imdb", o.optString("rating_kinopoisk")));
+        it.plot = clean(o.optString("description")); it.genre = clean(o.optString("genres_str"));
+        it.cast = clean(o.optString("actors")); it.director = clean(o.optString("director"));
+        String t = clean(o.optString("time")); it.duration = t.isEmpty() ? "" : t + " Min.";
+        it.cmd = o.optString("cmd");
+        it.series = cat.stalkerSeries || o.optInt("is_series") == 1 || (o.optJSONArray("series") != null && o.optJSONArray("series").length() > 0);
+        if (it.series) it.kind = SERIES;
+        return it;
     }
 
     // ------------------------------------------------------------ Details und Folgen

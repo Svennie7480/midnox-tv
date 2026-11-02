@@ -1,6 +1,6 @@
 {
- "versionCode": 64,
- "versionName": "10.4",
+ "versionCode": 65,
+ "versionName": "10.5",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Neuer Einrichtungsassistent: führt durch Entwickleroptionen und ADB, macht midnox TV zur Startseite und räumt auf Wunsch auf"
+ "notes": "Suche findet jetzt auch Filme und Serien aus midnox Live (alle IPTV-Quellen, doppelte Titel zusammengefasst)"
 }

@@ -11,7 +11,7 @@ import java.util.*;
 
 /** Mediathek: Filme und Serien mit Postern, Kategorien, Detailseite, Staffeln/Folgen und Weiterschauen. */
 final class Library extends View {
-    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); }
+    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); void askSearch(String last); }
 
     final Cb cb;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -28,6 +28,50 @@ final class Library extends View {
     Vod.Item d; TreeMap<Integer, List<Vod.Episode>> eps; List<Integer> seasons = new ArrayList<>();
     int dFocus, dBtn, si, ei, epTop; String dStatus = "";
     final List<Object[]> hits = new ArrayList<>();   // {RectF, Runnable} fuer Touch
+    // Suche
+    static final int SEARCH = 2;
+    List<VodSearch.Hit> found = new ArrayList<>(); String query = ""; boolean searching;
+    List<Vod.Item> alts = new ArrayList<>(); int altIdx;
+
+    void search(final String q) {
+        query = q; tab = SEARCH; searching = true; found.clear(); items.clear(); gi = 0; rowTop = 0; area = 1;
+        status = "Suche „" + q + "“ in allen Quellen …"; invalidate();
+        final int g = ++gen;
+        new Thread(new Runnable() { public void run() {
+            final List<VodSearch.Hit> r = VodSearch.search(getContext(), q);
+            ui.post(new Runnable() { public void run() {
+                if (g != gen) return;
+                searching = false; found = r;
+                for (VodSearch.Hit h : r) items.add(h.best());
+                status = r.isEmpty() ? "Nichts gefunden für „" + q + "“" : "";
+                if (!items.isEmpty()) { area = 2; gi = 0; }
+                invalidate();
+            }});
+        }}).start();
+    }
+    VodSearch.Hit hitOf(Vod.Item it) { for (VodSearch.Hit h : found) for (Vod.Item x : h.sources) if (x.key().equals(it.key())) return h; return null; }
+    /** Aus midnox TV: Treffer direkt oeffnen. */
+    void openHit(VodSearch.Hit h) {
+        found = new ArrayList<>(); found.add(h); tab = SEARCH; query = h.title;
+        items.clear(); items.add(h.best());
+        setVisibility(VISIBLE);
+        openDetail(h.best());
+    }
+    String srcLabel(Vod.Item it) {
+        String n = Lib.srcNames.containsKey(it.src) ? Lib.srcNames.get(it.src) : null;
+        if (n == null) { Model.Source s = Lib.source(getContext(), it.src); n = s == null ? "?" : s.name; }
+        int q = VodSearch.quality(it.name);
+        return n + (q == 3 ? " · 4K" : q == 2 ? " · FHD" : q == 1 ? " · HD" : "");
+    }
+    void nextSource() {
+        if (alts.size() < 2) return;
+        altIdx = (altIdx + 1) % alts.size();
+        Vod.Item n = alts.get(altIdx);
+        VodSearch.prefer(getContext(), n.src);
+        List<Vod.Item> keep = alts; int ki = altIdx;
+        openDetail(n);
+        alts = keep; altIdx = ki;
+    }
 
     Library(Context c, Cb cb) { super(c); this.cb = cb; }
 
@@ -41,6 +85,13 @@ final class Library extends View {
     void loadCats() {
         final int g = ++gen;
         cats.clear(); items.clear(); ci = 0; catTop = 0; gi = 0; rowTop = 0;
+        if (tab == SEARCH) {
+            Vod.Cat sc = new Vod.Cat(); sc.id = "#search"; sc.name = query.isEmpty() ? "\uD83D\uDD0D  Suchbegriff eingeben …" : "\uD83D\uDD0D  „" + query + "“ – neu suchen"; sc.kind = 0; cats.add(sc);
+            for (VodSearch.Hit h : found) items.add(h.best());
+            status = query.isEmpty() ? "OK drücken und Titel eingeben – gesucht wird in allen Quellen" : found.isEmpty() ? "Nichts gefunden" : "";
+            invalidate();
+            return;
+        }
         Vod.Cat cont = new Vod.Cat(); cont.id = CONTINUE; cont.name = "▶  Weiterschauen"; cont.kind = tab; cats.add(cont);
         status = "Lade Kategorien …"; invalidate();
         new Thread(new Runnable() { public void run() {
@@ -60,7 +111,7 @@ final class Library extends View {
         return l;
     }
     void loadItems(boolean reset) {
-        if (cats.isEmpty()) return;
+        if (cats.isEmpty() || tab == SEARCH) return;
         final Vod.Cat cat = cats.get(ci);
         if (reset) { items.clear(); gi = 0; rowTop = 0; page = 0; more = false; gen++; }
         if (cat.id.equals(CONTINUE)) { items.addAll(continueItems()); more = false; invalidate(); return; }
@@ -81,7 +132,10 @@ final class Library extends View {
         }}).start();
     }
     void openDetail(final Vod.Item it) {
-        d = it; eps = null; seasons.clear(); si = 0; ei = 0; epTop = 0; dFocus = 0; dBtn = 0; dStatus = it.series ? "Lade Folgen …" : "";
+        VodSearch.Hit hh = hitOf(it);
+        alts = hh != null ? hh.sources : new ArrayList<>(Collections.singletonList(it));
+        altIdx = Math.max(0, alts.indexOf(it));
+        d = it; eps = null; seasons.clear(); si = 0; ei = 0; epTop = 0; dFocus = it.series ? 2 : 0; dBtn = 0; dStatus = it.series ? "Lade Folgen …" : "";
         area = 3; invalidate();
         final int g = ++gen;
         new Thread(new Runnable() { public void run() {
@@ -123,12 +177,13 @@ final class Library extends View {
         }
         switch (area) {
             case 0:
-                if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) { int nt = k == KeyEvent.KEYCODE_DPAD_LEFT ? 0 : 1; if (nt != tab) { tab = nt; loadCats(); } invalidate(); return true; }
+                if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) { int nt = Math.max(0, Math.min(2, tab + (k == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1))); if (nt != tab) { tab = nt; loadCats(); if (tab == SEARCH && query.isEmpty()) { area = 1; cb.askSearch(query); } } invalidate(); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_DOWN || ok) { area = 1; invalidate(); return true; }
                 return true;
             case 1:
                 if (k == KeyEvent.KEYCODE_DPAD_UP) { if (ci == 0) area = 0; else { ci--; loadItems(true); } invalidate(); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_DOWN) { if (ci < cats.size() - 1) { ci++; loadItems(true); } invalidate(); return true; }
+                if (tab == SEARCH && (ok || items.isEmpty())) { if (ok || k == KeyEvent.KEYCODE_DPAD_RIGHT) cb.askSearch(query); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_RIGHT || ok) { if (!items.isEmpty()) { area = 2; gi = 0; } invalidate(); return true; }
                 return true;
             case 2: {
@@ -150,13 +205,16 @@ final class Library extends View {
         if (!d.series) {
             JSONObject r = Vod.resume(getContext(), d.key());
             int nb = r != null && r.optLong("pos") > 60000 ? 2 : 1;
+            int all = nb + (alts.size() > 1 ? 1 : 0);
             if (k == KeyEvent.KEYCODE_DPAD_LEFT) dBtn = Math.max(0, dBtn - 1);
-            else if (k == KeyEvent.KEYCODE_DPAD_RIGHT) dBtn = Math.min(nb - 1, dBtn + 1);
+            else if (k == KeyEvent.KEYCODE_DPAD_RIGHT) dBtn = Math.min(all - 1, dBtn + 1);
+            else if (ok && dBtn == nb) { nextSource(); return true; }
             else if (ok) cb.playVod(d, null, null, nb == 2 && dBtn == 0 ? r.optLong("pos") : 0);
             invalidate(); return true;
         }
         List<Vod.Episode> l = curEps();
-        if (k == KeyEvent.KEYCODE_DPAD_UP) { if (dFocus == 2 && ei > 0) ei--; else if (dFocus > 0) dFocus--; }
+        if (ok && dFocus == 0 && alts.size() > 1) { nextSource(); return true; }
+        if (k == KeyEvent.KEYCODE_DPAD_UP) { if (dFocus == 2 && ei > 0) ei--; else if (dFocus > 0) { dFocus--; if (dFocus == 1 && seasons.size() <= 1) dFocus = 0; if (dFocus == 0 && alts.size() < 2) dFocus = seasons.size() > 1 ? 1 : 2; } }
         else if (k == KeyEvent.KEYCODE_DPAD_DOWN) { if (dFocus < 2) { if (dFocus == 0 && seasons.size() <= 1) dFocus = 2; else dFocus++; } else if (ei < l.size() - 1) ei++; }
         else if (k == KeyEvent.KEYCODE_DPAD_LEFT && dFocus == 1) { if (si > 0) { si--; ei = 0; epTop = 0; } }
         else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && dFocus == 1) { if (si < seasons.size() - 1) { si++; ei = 0; epTop = 0; } }
@@ -199,7 +257,7 @@ final class Library extends View {
             if (i == tab) { p.setShader(area == 0 ? U.brand(r.left, r.right) : null); p.setColor(0xFF26243A); c.drawRoundRect(r, 17 * dp, 17 * dp, p); p.setShader(null); }
             else if (area == 0) { p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.5f * dp); p.setColor(0x55FFFFFF); c.drawRoundRect(r, 17 * dp, 17 * dp, p); p.setStyle(Paint.Style.FILL); }
             t.setColor(i == tab ? Color.WHITE : 0xFFB4B8CC); c.drawText(tabs[i], tx + 17 * dp, 43 * dp, t);
-            final int ti = i; hit(r, new Runnable() { public void run() { if (tab != ti) { tab = ti; loadCats(); } area = 1; } });
+            final int ti = i; hit(r, new Runnable() { public void run() { if (tab != ti) { tab = ti; loadCats(); } area = 1; if (ti == SEARCH) cb.askSearch(query); } });
             tx += tw + 10 * dp;
         }
         t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.RIGHT);
@@ -259,7 +317,8 @@ final class Library extends View {
             t.setTypeface(s ? U.BOLD : U.POP); t.setTextSize(11.5f * dp); t.setColor(s ? Color.WHITE : 0xFFC9CCE0);
             c.drawText(Views.ell(t, it.name, pw), cx, cy + ph + 18 * dp, t);
             t.setTextSize(10.5f * dp); t.setColor(U.MUTED); t.setTypeface(U.POP);
-            c.drawText(Views.ell(t, (it.year.isEmpty() ? "" : it.year) + (it.rating.isEmpty() ? "" : "  ★ " + it.rating) + (it.series ? "  · Serie" : ""), pw), cx, cy + ph + 34 * dp, t);
+            VodSearch.Hit hh = tab == SEARCH ? hitOf(it) : null;
+            c.drawText(Views.ell(t, (it.year.isEmpty() ? "" : it.year) + (it.rating.isEmpty() ? "" : "  ★ " + it.rating) + (it.series ? "  · Serie" : "") + (hh != null && hh.sources.size() > 1 ? "  · " + hh.sources.size() + " Quellen" : ""), pw), cx, cy + ph + 34 * dp, t);
             final Vod.Item fi = it; final int idx = i;
             hit(new RectF(cx, cy, cx + pw, cy + cellH), new Runnable() { public void run() { gi = idx; area = 2; openDetail(fi); } });
         }
@@ -321,6 +380,7 @@ final class Library extends View {
             List<String> btn = new ArrayList<>();
             if (r != null && r.optLong("pos") > 60000) { btn.add("▶  Fortsetzen ab " + time(r.optLong("pos"))); btn.add("↺  Von vorn"); }
             else btn.add("▶  Abspielen");
+            if (alts.size() > 1) btn.add("\u21C4  Quelle: " + srcLabel(d) + "  (" + (altIdx + 1) + "/" + alts.size() + ")");
             float bx = tx;
             for (int i = 0; i < btn.size(); i++) {
                 t.setTypeface(U.BOLD); t.setTextSize(15 * dp);
@@ -330,13 +390,25 @@ final class Library extends View {
                 else { p.setColor(0xFF26243A); c.drawRoundRect(br, 22 * dp, 22 * dp, p); }
                 t.setColor(Color.WHITE); c.drawText(btn.get(i), bx + 20 * dp, y + 28 * dp, t);
                 final int bi = i; final JSONObject rr = r;
-                hit(br, new Runnable() { public void run() { dBtn = bi; cb.playVod(d, null, null, rr != null && rr.optLong("pos") > 60000 && bi == 0 ? rr.optLong("pos") : 0); } });
+                final boolean isSrc = alts.size() > 1 && i == btn.size() - 1;
+                hit(br, new Runnable() { public void run() { dBtn = bi; if (isSrc) { nextSource(); return; } cb.playVod(d, null, null, rr != null && rr.optLong("pos") > 60000 && bi == 0 ? rr.optLong("pos") : 0); } });
                 bx += bw + 14 * dp;
             }
             if (r != null && r.optLong("dur") > 0) { t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setColor(U.MUTED); c.drawText("Gesehen: " + time(r.optLong("pos")) + " von " + time(r.optLong("dur")), tx, y + 70 * dp, t); }
             return;
         }
         // Serie: Staffeln + Folgen
+        if (alts.size() > 1) {
+            String sl = "\u21C4  Quelle: " + srcLabel(d) + "  (" + (altIdx + 1) + "/" + alts.size() + ")";
+            t.setTypeface(U.BOLD); t.setTextSize(13.5f * dp);
+            float bw = t.measureText(sl) + 32 * dp;
+            RectF br = new RectF(tx, y, tx + bw, y + 34 * dp);
+            if (dFocus == 0) { p.setShader(U.brand(br.left, br.right)); c.drawRoundRect(br, 17 * dp, 17 * dp, p); p.setShader(null); }
+            else { p.setColor(0xFF26243A); c.drawRoundRect(br, 17 * dp, 17 * dp, p); }
+            t.setColor(Color.WHITE); c.drawText(sl, tx + 16 * dp, y + 22 * dp, t);
+            hit(br, new Runnable() { public void run() { dFocus = 0; nextSource(); } });
+            y += 46 * dp;
+        }
         if (!dStatus.isEmpty()) { t.setTypeface(U.POP); t.setTextSize(15 * dp); t.setColor(U.MUTED); c.drawText(dStatus, tx, y + 10 * dp, t); return; }
         float sx = tx;
         for (int i = 0; i < seasons.size(); i++) {

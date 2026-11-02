@@ -25,13 +25,14 @@ final class Img {
     static void init(Context c) { dir = new File(c.getCacheDir(), "logos"); dir.mkdirs(); }
 
     /** Sofort aus dem Speicher; sonst laden und danach cb aufrufen (z. B. invalidate). */
-    static Bitmap get(final String url, final Runnable cb) {
+    static Bitmap get(final String url, final Runnable cb) { return get(url, 160, cb); }
+    static Bitmap get(final String url, final int size, final Runnable cb) {
         if (url == null || url.isEmpty() || failed.contains(url)) return null;
         Bitmap b = mem.get(url);
         if (b != null) return b;
         if (!pending.add(url)) return null;
         pool.execute(new Runnable() { public void run() {
-            Bitmap r = fetch(url, 160);
+            Bitmap r = fetch(url, size);
             pending.remove(url);
             if (r != null) mem.put(url, r); else failed.add(url);
             if (cb != null) ui.post(cb);   // auch bei Fehler neu zeichnen (naechste Logo-Quelle)

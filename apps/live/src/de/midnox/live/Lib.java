@@ -7,7 +7,7 @@ import java.util.*;
 
 /** Quellen, Senderliste (mit Cache), Gruppen, Favoriten, ausgeblendete Gruppen. */
 final class Lib {
-    static final String FAV = "★ Favoriten", ALL = "Alle Sender", SETTINGS = "\u2699 Einstellungen";
+    static final String FAV = "★ Favoriten", ALL = "Alle Sender", SETTINGS = "\u2699 Einstellungen", VOD = "\uD83C\uDFAC Filme & Serien";
     static volatile List<Model.Channel> channels = new ArrayList<>();
     static volatile List<String> groups = new ArrayList<>();
     static final Map<String, String> errors = Collections.synchronizedMap(new HashMap<String, String>());
@@ -59,9 +59,10 @@ final class Lib {
                         M3u.Result r = M3u.parse(new BufferedReader(new InputStreamReader(in, "UTF-8"), 65536), s.id);
                         in.close();
                         l = r.channels;
+                        Vod.saveM3u(c, s.id, r.vod);
                         U.prefs(c).edit().putString("epg_auto_" + s.id, r.epg).apply();
                     }
-                    if (l.isEmpty()) throw new Exception("keine Sender gefunden");
+                    if (l.isEmpty() && !(s.type.equals("m3u") && Vod.m3uFile(c, s.id).length() > 5)) throw new Exception("keine Sender gefunden");
                     all.addAll(l);
                     errors.remove(s.id);
                 } catch (Exception e) {
@@ -98,7 +99,7 @@ final class Lib {
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
         List<String> g = new ArrayList<>();
-        g.add(FAV); g.add(ALL); g.addAll(gs); g.add(SETTINGS);
+        g.add(FAV); g.add(ALL); g.add(VOD); g.addAll(gs); g.add(SETTINGS);
         groups = g;
     }
     static boolean stale() { return System.currentTimeMillis() - loadedAt > 12 * 3600000L; }

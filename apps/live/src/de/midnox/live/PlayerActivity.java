@@ -55,6 +55,10 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         guide = new Views.Guide(this, this); guide.setVisibility(View.GONE);
         root.addView(guide, new FrameLayout.LayoutParams(-1, -1));
         menu = new Views.Menu(this); menu.setVisibility(View.GONE);
+        vodOsd = new Views.VodOsd(this); vodOsd.setVisibility(View.GONE);
+        root.addView(vodOsd, new FrameLayout.LayoutParams(-1, -1));
+        library = new Library(this, libCb); library.setVisibility(View.GONE);
+        root.addView(library, new FrameLayout.LayoutParams(-1, -1));
         root.addView(menu, new FrameLayout.LayoutParams(-1, -1));
         status = U.text(this, "", 16, Color.WHITE);
         status.setPadding(U.px(18), U.px(10), U.px(18), U.px(10));
@@ -199,12 +203,14 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         player.setVideoSurfaceView(surface);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int st) {
+                if (vodMode) { vodState(st); return; }
                 h.removeCallbacks(stallWatch);
                 if (st == Player.STATE_BUFFERING) { if (!tryMsg) showStatus("Lädt …", 0); h.postDelayed(stallWatch, everReady ? 25000 : 15000); }
                 else if (st == Player.STATE_READY) { hideStatus(); tryMsg = false; retries = 0; everReady = true; updateBadge(); succeeded(); }
                 else if (st == Player.STATE_ENDED && current != null) h.postDelayed(new Runnable() { public void run() { if (current != null) runTry(); } }, 1500);
             }
             @Override public void onPlayerError(PlaybackException e) {
+                if (vodMode) { showStatus("Film lässt sich nicht abspielen (" + e.getErrorCodeName().replace("ERROR_CODE_", "").toLowerCase(Locale.ROOT).replace('_', ' ') + ")", 0); return; }
                 if (current == null) return;
                 lastError = e.getErrorCodeName().replace("ERROR_CODE_", "").toLowerCase(Locale.ROOT).replace('_', ' ');
                 // lief schon: einmal neu verbinden; sonst gleich naechste MAC / Quelle
@@ -362,6 +368,119 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         list.setVisibility(View.GONE); guide.setVisibility(View.VISIBLE);
     }
     @Override public void settings() { closeList(); openMenu(); }
+    @Override public void library() { closeList(); openLibrary(); }
+
+    // ------------------------------------------------------------ Mediathek (Filme und Serien)
+    Library library;
+    Views.VodOsd vodOsd;
+    boolean vodMode;
+    Vod.Item vodItem; Vod.Episode vodEp; List<Vod.Episode> vodNext;
+    final Library.Cb libCb = new Library.Cb() {
+        public void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs) { startVod(it, ep, next, startMs); }
+        public void close() { closeLibrary(); }
+    };
+    void openLibrary() {
+        banner.setVisibility(View.GONE); menu.setVisibility(View.GONE); guide.setVisibility(View.GONE);
+        if (player != null) player.stop();   // Live-TV pausieren, spart Bandbreite
+        hideStatus();
+        library.open();
+    }
+    void closeLibrary() {
+        library.setVisibility(View.GONE);
+        if (current != null) { buildPlan(current); runTry(); showBanner(current); }
+    }
+    void startVod(final Vod.Item it, final Vod.Episode ep, List<Vod.Episode> next, final long startMs) {
+        vodMode = true; vodItem = it; vodEp = ep; vodNext = next == null ? new ArrayList<Vod.Episode>() : new ArrayList<>(next);
+        library.setVisibility(View.GONE);
+        vodOsd.title = it.name; vodOsd.sub = ep == null ? (it.year + (it.duration.isEmpty() ? "" : "  ·  " + it.duration)) : "Staffel " + ep.season + "  ·  Folge " + ep.num + (ep.title.isEmpty() || ep.title.startsWith("Folge ") ? "" : "  ·  " + ep.title);
+        vodOsd.pos = startMs; vodOsd.dur = 0; vodOsd.paused = false;
+        showVodOsd();
+        showStatus("Lädt …", 0);
+        new Thread(new Runnable() { public void run() {
+            try {
+                final String u = Vod.link(PlayerActivity.this, it, ep);
+                final Model.Source s = Lib.source(PlayerActivity.this, it.src);
+                h.post(new Runnable() { public void run() {
+                    if (!vodMode || vodItem != it || vodEp != ep) return;
+                    DefaultHttpDataSource.Factory ds = new DefaultHttpDataSource.Factory()
+                        .setUserAgent(s != null && s.type.equals("stalker") ? Stalker.MAG_UA : U.UA)
+                        .setAllowCrossProtocolRedirects(true).setConnectTimeoutMs(12000).setReadTimeoutMs(20000);
+                    MediaItem.Builder mi = new MediaItem.Builder().setUri(u);
+                    if (u.toLowerCase(Locale.ROOT).contains(".m3u8")) mi.setMimeType(MimeTypes.APPLICATION_M3U8);
+                    player.setMediaSource(new DefaultMediaSourceFactory(ds).createMediaSource(mi.build()));
+                    player.prepare();
+                    if (startMs > 0) player.seekTo(startMs);
+                    player.setPlayWhenReady(true);
+                    h.removeCallbacks(vodSaver); h.postDelayed(vodSaver, 10000);
+                }});
+            } catch (final Exception e) {
+                h.post(new Runnable() { public void run() { if (vodMode) showStatus("\u26A0  " + e.getMessage(), 0); } });
+            }
+        }}).start();
+    }
+    final Runnable vodSaver = new Runnable() { public void run() {
+        if (!vodMode || player == null) return;
+        saveVodPos();
+        if (vodOsd.getVisibility() == View.VISIBLE) { vodOsd.pos = player.getCurrentPosition(); vodOsd.invalidate(); }
+        h.postDelayed(this, 10000);
+    }};
+    void saveVodPos() {
+        if (player == null || vodItem == null) return;
+        long d = player.getDuration();
+        if (d > 0 && d != C.TIME_UNSET) Vod.savePos(this, vodItem, vodEp, player.getCurrentPosition(), d);
+    }
+    void vodState(int st) {
+        if (st == Player.STATE_BUFFERING) showStatus("Lädt …", 0);
+        else if (st == Player.STATE_READY) { hideStatus(); updateBadge(); vodOsd.tech = banner.tech; vodOsd.dur = Math.max(0, player.getDuration()); vodOsd.invalidate(); }
+        else if (st == Player.STATE_ENDED) {
+            saveVodPos();
+            if (vodNext != null && !vodNext.isEmpty()) {
+                Vod.Episode n = vodNext.remove(0);
+                toast("Nächste Folge: " + n.num + (n.title.isEmpty() || n.title.startsWith("Folge ") ? "" : " · " + n.title));
+                startVod(vodItem, n, vodNext, 0);
+            } else stopVod();
+        }
+    }
+    void stopVod() {
+        saveVodPos();
+        vodMode = false;
+        h.removeCallbacks(vodSaver);
+        if (player != null) player.stop();
+        vodOsd.setVisibility(View.GONE); hideStatus();
+        library.setVisibility(View.VISIBLE); library.invalidate();
+    }
+    void showVodOsd() {
+        if (player != null && vodMode) { vodOsd.pos = Math.max(0, player.getCurrentPosition()); long d = player.getDuration(); if (d > 0 && d != C.TIME_UNSET) vodOsd.dur = d; vodOsd.paused = !player.getPlayWhenReady(); }
+        vodOsd.setVisibility(View.VISIBLE); vodOsd.invalidate();
+        h.removeCallbacks(vodOsdTick); h.postDelayed(vodOsdTick, 1000);
+        hideLater(vodOsd, vodOsd.paused ? 3600000L : 5000);
+    }
+    final Runnable vodOsdTick = new Runnable() { public void run() {
+        if (vodOsd.getVisibility() != View.VISIBLE || player == null) return;
+        vodOsd.pos = Math.max(0, player.getCurrentPosition()); vodOsd.invalidate();
+        h.postDelayed(this, 1000);
+    }};
+    long seekAcc;
+    void vodKey(int k, int repeat) {
+        if (player == null) return;
+        long step = 0;
+        switch (k) {
+            case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case KeyEvent.KEYCODE_MEDIA_PLAY: case KeyEvent.KEYCODE_MEDIA_PAUSE:
+                player.setPlayWhenReady(!player.getPlayWhenReady()); saveVodPos(); showVodOsd(); return;
+            case KeyEvent.KEYCODE_DPAD_LEFT: step = -10000; break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT: step = 30000; break;
+            case KeyEvent.KEYCODE_MEDIA_REWIND: step = -60000; break;
+            case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD: step = 60000; break;
+            case KeyEvent.KEYCODE_MENU: openMenu(); return;
+            default: showVodOsd(); return;
+        }
+        if (repeat > 6) step *= 6; else if (repeat > 2) step *= 3;   // gedrueckt halten = schneller
+        long d = player.getDuration();
+        long np = Math.max(0, player.getCurrentPosition() + step);
+        if (d > 0 && d != C.TIME_UNSET) np = Math.min(np, d - 2000);
+        player.seekTo(np);
+        showVodOsd(); vodOsd.pos = np; vodOsd.invalidate();
+    }
     @Override public void fav(Model.Channel ch) { toast(Lib.toggleFav(this, ch.id) ? "★ " + ch.name + " ist jetzt Favorit" : ch.name + " aus den Favoriten entfernt"); }
 
     // ------------------------------------------------------------ Tasten
@@ -374,6 +493,8 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             @Override public boolean onDown(MotionEvent e) { acc = 0; return true; }
             @Override public boolean onSingleTapUp(MotionEvent e) {
                 float x = e.getX(), y = e.getY();
+                if (menu.getVisibility() != View.VISIBLE && vodMode) { if (vodOsd.getVisibility() == View.VISIBLE) vodKey(KeyEvent.KEYCODE_DPAD_CENTER, 0); else showVodOsd(); return true; }
+                if (menu.getVisibility() != View.VISIBLE && library.getVisibility() == View.VISIBLE) { library.tap(x, y); return true; }
                 if (menu.getVisibility() == View.VISIBLE) { if (!menu.tap(x, y)) menu.setVisibility(View.GONE); return true; }
                 if (guide.getVisibility() == View.VISIBLE) { guide.tap(x, y); return true; }
                 if (list.getVisibility() == View.VISIBLE) { if (!list.tap(x, y)) closeList(); else hideLater(list, 30000); return true; }
@@ -387,6 +508,12 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             }
             @Override public boolean onScroll(MotionEvent a, MotionEvent b, float dx, float dy) {
                 float row = 60 * U.dp;
+                if (library.getVisibility() == View.VISIBLE) {
+                    acc += dy;
+                    while (Math.abs(acc) >= row * 2) { int n = acc > 0 ? 1 : -1; acc -= n * row * 2; library.scrollRows(n); }
+                    return true;
+                }
+                if (vodMode) { acc += dx; while (Math.abs(acc) >= row) { int n = acc > 0 ? 1 : -1; acc -= n * row; vodKey(n > 0 ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_DPAD_RIGHT, 0); } return true; }
                 if (list.getVisibility() == View.VISIBLE || guide.getVisibility() == View.VISIBLE) {
                     acc += dy;
                     while (Math.abs(acc) >= row) { int n = acc > 0 ? 1 : -1; acc -= n * row; if (guide.getVisibility() == View.VISIBLE) guide.scrollRows(n); else list.scrollRows(n); }
@@ -409,13 +536,19 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         int k = e.getKeyCode();
         if (e.getAction() != KeyEvent.ACTION_DOWN) return k == KeyEvent.KEYCODE_BACK || k == KeyEvent.KEYCODE_MENU ? true : super.dispatchKeyEvent(e);
         boolean rep = e.getRepeatCount() > 0;
-        if (k == KeyEvent.KEYCODE_BACK) { back(); return true; }
+        if (k == KeyEvent.KEYCODE_BACK) {
+            if (menu.getVisibility() != View.VISIBLE && vodMode) { stopVod(); return true; }
+            if (menu.getVisibility() != View.VISIBLE && library.getVisibility() == View.VISIBLE) { library.key(k); return true; }
+            back(); return true;
+        }
         if (setup.getVisibility() == View.VISIBLE) {
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) { askCode(); return true; }
             if (k == KeyEvent.KEYCODE_MENU) { openMenu(); return true; }
             return super.dispatchKeyEvent(e);
         }
         if (menu.getVisibility() == View.VISIBLE) { menu.key(k); return true; }
+        if (vodMode) { vodKey(k, e.getRepeatCount()); return true; }
+        if (library.getVisibility() == View.VISIBLE) { library.key(k); return true; }
         if (guide.getVisibility() == View.VISIBLE) { guide.key(k); return true; }
         if (list.getVisibility() == View.VISIBLE) {
             if (!list.key(k, rep) && k == KeyEvent.KEYCODE_DPAD_LEFT) closeList();
@@ -517,6 +650,21 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     // ------------------------------------------------------------ Menue
     void openMenu() {
         List<String> l = new ArrayList<>(); List<Runnable> a = new ArrayList<>();
+        if (vodMode) {
+            final List<String[]> audio = audioTracks();
+            if (audio.size() > 1) { l.add("\uD83D\uDD0A  Tonspur wechseln"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); nextAudio(); } }); }
+            if (vodNext != null && !vodNext.isEmpty()) { l.add("\u23ED  Nächste Folge"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); saveVodPos(); Vod.Episode n = vodNext.remove(0); startVod(vodItem, n, vodNext, 0); } }); }
+            l.add("\u21BA  Von vorn"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); player.seekTo(0); showVodOsd(); } });
+            l.add("\u25A3  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() { scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
+            l.add(osdLabel()); final int oi = l.size() - 1; a.add(new Runnable() { public void run() { setOsd(U.osdPct >= 100 ? 30 : U.osdPct + 10, oi); } });
+            l.add("\u23F9  Film beenden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); stopVod(); } });
+            menu.set(vodItem == null ? "Film" : vodItem.name, l, a);
+            for (int i = 0; i < l.size(); i++) if (l.get(i).startsWith("\u25D0")) { final int idx = i;
+                menu.sliders.put(i, new Runnable[]{ new Runnable() { public void run() { setOsd(U.osdPct - 10, idx); } }, new Runnable() { public void run() { setOsd(U.osdPct + 10, idx); } } }); }
+            menu.setVisibility(View.VISIBLE);
+            return;
+        }
+        l.add("\uD83C\uDFAC  Filme & Serien"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); openLibrary(); } });
         if (current != null) {
             l.add("📅  TV-Guide"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); openGuide(); } });
             final boolean fav = Lib.isFav(this, current.id);
@@ -642,6 +790,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     @Override protected void onStart() { super.onStart(); if (player == null) { initPlayer(); if (current != null) start(current, false); } }
     @Override protected void onStop() {
         super.onStop();
+        if (vodMode) { saveVodPos(); vodMode = false; vodOsd.setVisibility(View.GONE); library.setVisibility(View.VISIBLE); }
         if (player != null) { player.release(); player = null; }
     }
     @Override protected void onDestroy() { Web.onChange = null; Web.onPin = null; super.onDestroy(); }

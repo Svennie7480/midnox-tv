@@ -7,7 +7,7 @@ import java.util.regex.*;
 /** M3U/M3U8-Playlisten (#EXTINF mit tvg-id, tvg-logo, group-title, tvg-chno; #EXTGRP; #EXTVLCOPT). */
 final class M3u {
     static final Pattern ATTR = Pattern.compile("([a-zA-Z0-9_-]+)=\"([^\"]*)\"");
-    static final class Result { final List<Model.Channel> channels = new ArrayList<>(); String epg = ""; }
+    static final class Result { final List<Model.Channel> channels = new ArrayList<>(), vod = new ArrayList<>(); String epg = ""; }
 
     static Result parse(BufferedReader r, String src) throws IOException {
         Result out = new Result();
@@ -47,11 +47,10 @@ final class M3u {
                 cur.url = line;
                 if (cur.name.isEmpty()) cur.name = "Sender " + (n + 1);
                 // Nur Live-TV: Filme/Serien-Eintraege aus Xtream-Listen weglassen
-                if (!line.matches("(?i).*/(movie|series)/.*")) {
-                    cur.id = src + ":" + Integer.toHexString((cur.name + "|" + cur.url).hashCode());
-                    out.channels.add(cur);
-                    n++;
-                }
+                cur.id = src + ":" + Integer.toHexString((cur.name + "|" + cur.url).hashCode());
+                // Filme/Serien (Xtream-Listen und typische Dateiendungen) in die Mediathek, Rest ist Live-TV
+                if (line.matches("(?i).*/(movie|series)/.*") || line.matches("(?i).*\\.(mkv|mp4|avi|m4v|mov)(\\?.*)?$")) out.vod.add(cur);
+                else { out.channels.add(cur); n++; }
                 cur = null;
             }
         }

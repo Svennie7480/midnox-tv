@@ -64,7 +64,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -107,6 +107,7 @@ final class Views {
                 Model.Channel ch = selected(); if (ch != null) cb.guide(ch); return true;
             }
             if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
+            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.VOD)) { cb.library(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.play(ch); return true;
@@ -120,7 +121,7 @@ final class Views {
             if (y < top) return true;
             if (x < gw) {
                 int i = gTop + (int) ((y - top) / (44 * dp));
-                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
+                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } if (group().equals(Lib.VOD)) { cb.library(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
                 return true;
             }
             if (x < gw + cw + 16 * dp) {
@@ -181,7 +182,7 @@ final class Views {
             if (ci < cTop) cTop = ci; if (ci >= cTop + cv) cTop = ci - cv + 1;
             if (chans.isEmpty()) {
                 t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED);
-                c.drawText(group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
+                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
             }
             for (int i = cTop; i < chans.size() && i < cTop + cv; i++) {
                 Model.Channel ch = chans.get(i);
@@ -314,6 +315,42 @@ final class Views {
             float techW = 0;
             if (!tech.isEmpty()) { t.setColor(0xFF67E8F9); t.setTextAlign(Paint.Align.RIGHT); String tt = ell(t, tech, tw * 0.62f); techW = t.measureText(tt); c.drawText(tt, right, y, t); t.setTextAlign(Paint.Align.LEFT); }
             if (nx != null) { t.setColor(U.MUTED); c.drawText(ell(t, "Danach  " + hm(nx.start) + "  " + nx.title, tw - techW - 16 * dp), tx, y, t); }
+        }
+    }
+
+    // ============================================================ Film-Anzeige (Zeitleiste)
+    static final class VodOsd extends View {
+        final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        String title = "", sub = "", tech = ""; long pos, dur; boolean paused; String poster = "";
+        VodOsd(Context c) { super(c); }
+        @Override protected void onDraw(Canvas c) {
+            float dp = U.dp, w = getWidth(), h = getHeight();
+            float cw = Math.min(w - 100 * dp, 900 * dp), chh = 118 * dp;
+            RectF card = new RectF((w - cw) / 2, h - 24 * dp - chh, (w + cw) / 2, h - 24 * dp);
+            p.setShader(null); p.setColor(U.osd(0x121120)); c.drawRoundRect(card, 20 * dp, 20 * dp, p);
+            p.setShader(U.brand(card.left, card.right)); c.drawRect(card.left + 20 * dp, card.top, card.right - 20 * dp, card.top + 2.5f * dp, p); p.setShader(null);
+            float x = card.left + 22 * dp, right = card.right - 22 * dp, tw = right - x;
+            // Pause/Play-Symbol
+            p.setColor(Color.WHITE);
+            float ix = x, iy = card.top + 22 * dp;
+            if (paused) { c.drawRoundRect(new RectF(ix, iy, ix + 6 * dp, iy + 22 * dp), 2 * dp, 2 * dp, p); c.drawRoundRect(new RectF(ix + 11 * dp, iy, ix + 17 * dp, iy + 22 * dp), 2 * dp, 2 * dp, p); }
+            else { Path tri = new Path(); tri.moveTo(ix, iy); tri.lineTo(ix + 18 * dp, iy + 11 * dp); tri.lineTo(ix, iy + 22 * dp); tri.close(); c.drawPath(tri, p); }
+            float tx = x + 32 * dp;
+            t.setTypeface(U.BOLD); t.setTextSize(19 * dp); t.setColor(Color.WHITE); t.setTextAlign(Paint.Align.LEFT);
+            c.drawText(ell(t, title, tw - 120 * dp), tx, card.top + 40 * dp, t);
+            t.setTypeface(U.POP); t.setTextSize(12.5f * dp); t.setColor(0xFFC9CCE0); t.setTextAlign(Paint.Align.RIGHT);
+            c.drawText(hm(System.currentTimeMillis()), right, card.top + 38 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            if (!sub.isEmpty()) { t.setColor(0xFF9EC5FF); c.drawText(ell(t, sub, tw), tx, card.top + 60 * dp, t); }
+            float by = card.top + 82 * dp;
+            t.setTextSize(12.5f * dp); t.setColor(Color.WHITE);
+            String a = Library.time(pos), b = dur > 0 ? Library.time(dur) : "–";
+            c.drawText(a, x, by + 5 * dp, t);
+            t.setTextAlign(Paint.Align.RIGHT); c.drawText(b + (dur > 0 ? "   noch " + Library.time(Math.max(0, dur - pos)) : ""), right, by + 5 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            float bx = x + t.measureText(a) + 12 * dp, bw = tw - (bx - x) - t.measureText(b + "   noch " + Library.time(Math.max(0, dur - pos))) - 14 * dp;
+            bar(c, p, bx, by, bw, 5 * dp, dur > 0 ? pos / (float) dur : 0);
+            t.setTextSize(11.5f * dp); t.setColor(U.MUTED);
+            c.drawText(ell(t, "OK Pause   \u25C0\u25B6 10 / 30 Sek.   \u23EA\u23E9 1 Min.   ZURÜCK Ende" + (tech.isEmpty() ? "" : "      " + tech), tw), x, card.bottom - 12 * dp, t);
         }
     }
 

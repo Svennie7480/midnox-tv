@@ -182,6 +182,23 @@ function elevenCall(string $path, ?array $body, string $key, string $accept = 'a
     $r = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     return [$code, $r];
 }
+/** Moderatoren-Stimme automatisch wählen: deutsche Männerstimme bevorzugt, sonst Daniel/Brian, sonst die erste. */
+function autoVoice(string $key): string {
+    [$c, $r] = elevenCall('/v1/voices', null, $key);
+    $vs = json_decode((string)$r, true)['voices'] ?? [];
+    $best = ''; $score = -1;
+    foreach ($vs as $v) {
+        $l = array_map('strtolower', array_map('strval', $v['labels'] ?? []));
+        $txt = strtolower(($v['name'] ?? '') . ' ' . implode(' ', $l) . ' ' . ($v['description'] ?? ''));
+        $sc = 0;
+        if (str_contains($txt, 'german') || str_contains($txt, 'deutsch')) $sc += 10;
+        if (($l['gender'] ?? '') === 'male') $sc += 4;
+        if (preg_match('/narrat|broadcast|news|announc|presenter|host|deep|warm/', $txt)) $sc += 3;
+        if (in_array(strtolower($v['name'] ?? ''), ['daniel', 'brian'], true)) $sc += 2;
+        if ($sc > $score) { $score = $sc; $best = (string)$v['voice_id']; }
+    }
+    return preg_replace('/[^A-Za-z0-9]/', '', $best);
+}
 function ttsText(): ?string {
     if (isset($_GET['p'])) return PHRASES[$_GET['p']] ?? null;
     $id = (string)($_GET['q'] ?? '');
@@ -324,6 +341,7 @@ if (isset($_GET['admin'])) {
             $lk = lockAll(); $cfg = load('config', []);
             if (trim((string)($_POST['el_key'] ?? '')) !== '') $cfg['el_key'] = trim((string)$_POST['el_key']);
             if (isset($_POST['el_voice'])) $cfg['el_voice'] = preg_replace('/[^A-Za-z0-9]/', '', (string)$_POST['el_voice']);
+            if (empty($cfg['el_voice']) && !empty($cfg['el_key'])) $cfg['el_voice'] = autoVoice($cfg['el_key']);   // nur Schlüssel eingegeben: passende Moderatoren-Stimme selbst wählen
             $cfg['el_off'] = isset($_POST['el_off']);
             save('config', $cfg); unset($_SESSION['voices']);
             $msg = 'Stimme gespeichert.';
@@ -360,7 +378,7 @@ function adminVoice(): void {
     }
     $st = load('tts_stats', ['chars' => 0, 'files' => 0]);
     echo '<form method="post" class="card"><h3>Moderatoren-Stimme (ElevenLabs)</h3>';
-    echo '<p class="hint">Der Schlüssel bleibt auf diesem Server. Jede Frage wird nur einmal gesprochen und gespeichert – danach kostet sie keine Zeichen mehr.</p>';
+    echo '<p class="hint">Einfach den API-Schlüssel eintragen und speichern – eine passende Moderatoren-Stimme wird automatisch gewählt (am liebsten eine deutsche Männerstimme aus deinem Konto). Ändern kannst du sie unten jederzeit. Der Schlüssel bleibt auf diesem Server; jede Frage wird nur einmal gesprochen und gespeichert.</p>';
     echo '<label>API-Schlüssel</label><input type="password" name="el_key" placeholder="' . ($key ? 'gespeichert (…' . h(substr($key, -4)) . ') – leer lassen, um ihn zu behalten' : 'ElevenLabs → Profil → API Keys') . '" style="width:100%">';
     if ($voices) {
         echo '<label>Stimme</label><select name="el_voice" style="width:100%">';

@@ -1,0 +1,104 @@
+sport|1|Wie oft findet die Fußball-Weltmeisterschaft der Männer normalerweise statt?|Alle vier Jahre|Alle zwei Jahre|Jedes Jahr|Alle fünf Jahre
+sport|1|Wie viele Ringe zeigt das Symbol der Olympischen Spiele?|Fünf|Vier|Sechs|Sieben
+sport|1|In welcher Sportart gibt es einen „Elfmeter“?|Fußball|Handball|Basketball|Tennis
+sport|1|Wie viele Spieler stehen beim Handball pro Mannschaft auf dem Feld (inklusive Torwart)?|Sieben|Sechs|Elf|Fünf
+sport|1|Wie lange dauert eine reguläre Fußballhalbzeit?|45 Minuten|30 Minuten|40 Minuten|60 Minuten
+sport|1|Welches Gerät benutzt man beim Tischtennis zum Schlagen?|Schläger|Kelle|Queue|Stab
+sport|1|Bei welcher Sportart fährt man die „Tour de France“?|Radsport|Motorradrennen|Marathonlauf|Rudern
+sport|1|Welche Farbe hat die Karte, die beim Fußball einen Platzverweis bedeutet?|Rot|Gelb|Grün|Blau
+sport|1|Wie heißt der Fußballverein aus München mit den meisten deutschen Meistertiteln?|FC Bayern München|TSV 1860 München|SpVgg Unterhaching|Türkgücü München
+sport|2|Wie lange dauert ein reguläres Handballspiel der Erwachsenen insgesamt?|60 Minuten|90 Minuten|40 Minuten|70 Minuten
+sport|2|Wie viele Punkte gibt ein Wurf von außerhalb der Dreierlinie beim Basketball?|Drei|Zwei|Vier|Eins
+sport|2|In welchem Jahr wurde Deutschland in Brasilien Fußball-Weltmeister?|2014|2010|2018|2006
+sport|2|Wie viele Löcher hat eine Standardrunde Golf?|18|9|12|24
+sport|2|Wie heißt der höchste Punktwert, den man mit drei Darts erzielen kann?|180|150|160|200
+sport|2|Wie lang ist die Marathon-Distanz?|42,195 km|40 km|45 km|41,5 km
+sport|2|Wie heißt die Trophäe, die der deutsche Fußballmeister erhält?|Meisterschale|DFB-Pokal|Goldener Ball|Viktoria
+sport|2|Wie viele Grand-Slam-Turniere gibt es im Tennis pro Jahr?|Vier|Drei|Fünf|Sechs
+sport|2|Welcher Formel-1-Fahrer wurde 2010 bis 2013 viermal in Folge Weltmeister?|Sebastian Vettel|Michael Schumacher|Nico Rosberg|Lewis Hamilton
+sport|2|Wie viele Minuten dauert ein Drittel beim Eishockey?|20|15|25|30
+sport|2|Wie heißt der Handballverein aus Bad Schwartau und Lübeck?|VfL Lübeck-Schwartau|THW Kiel|SG Flensburg-Handewitt|HSV Hamburg
+sport|3|Wie viele Weltmeistertitel holte Michael Schumacher in der Formel 1?|Sieben|Fünf|Sechs|Acht
+sport|3|In welcher Stadt fanden die Olympischen Sommerspiele 1972 statt?|München|Berlin|Montreal|Mexiko-Stadt
+sport|3|Wer war bei der WM 2014 im Finale der Torschütze zum 1:0 für Deutschland?|Mario Götze|Thomas Müller|André Schürrle|Miroslav Klose
+sport|3|Wie viele Tore erzielte Miroslav Klose insgesamt bei Fußball-Weltmeisterschaften – ein Rekord?|16|15|14|18
+sport|3|Welche Nation gewann die allererste Fußball-Weltmeisterschaft 1930?|Uruguay|Brasilien|Argentinien|Italien
+sport|3|Wie schwer ist eine Wettkampf-Kugel beim Kugelstoßen der Männer?|7,26 kg|5 kg|6,5 kg|8 kg
+sport|3|Welcher Verein gewann 2023 die Deutsche Fußballmeisterschaft am letzten Spieltag knapp vor Borussia Dortmund?|FC Bayern München|RB Leipzig|Bayer Leverkusen|Union Berlin
+sport|3|Welcher Verein wurde 2024 ungeschlagen Deutscher Fußballmeister?|Bayer 04 Leverkusen|FC Bayern München|VfB Stuttgart|Borussia Dortmund
+sport|3|In welcher Sportart wird der „Stanley Cup“ vergeben?|Eishockey|Baseball|American Football|Basketball
+sport|3|Wie hoch hängt ein Basketballkorb?|3,05 m|2,90 m|3,20 m|3,50 m
+musik|1|Wie viele Saiten hat eine normale Gitarre?|Sechs|Vier|Fünf|Acht
+musik|1|Welches Instrument hat schwarze und weiße Tasten?|Klavier|Geige|Trompete|Harfe
+musik|1|Wie hieß die Band von John Lennon und Paul McCartney?|The Beatles|The Rolling Stones|The Who|Queen
+musik|1|Wer wird oft als „King of Pop“ bezeichnet?|Michael Jackson|Elvis Presley|Prince|Justin Timberlake
+musik|1|Wer wird als „King of Rock ’n’ Roll“ bezeichnet?|Elvis Presley|Chuck Berry|Little Richard|Johnny Cash
+musik|1|Wie viele Musiker spielen in einem Quartett?|Vier|Drei|Fünf|Sechs
+musik|2|Aus welchem Land kommt die Band ABBA?|Schweden|Norwegen|Dänemark|Finnland
+musik|2|Wer komponierte die „Mondscheinsonate“?|Ludwig van Beethoven|Wolfgang Amadeus Mozart|Frédéric Chopin|Johann Sebastian Bach
+musik|2|Wie hieß der Leadsänger der Band Queen?|Freddie Mercury|Brian May|Roger Taylor|David Bowie
+musik|2|In welcher Stadt wurde Wolfgang Amadeus Mozart geboren?|Salzburg|Wien|Prag|München
+musik|2|Welche deutsche Sängerin gewann 2010 den Eurovision Song Contest mit „Satellite“?|Lena|Nicole|Helene Fischer|Sarah Connor
+musik|2|Wie heißt das Ensemble aus vielen Streichern, Bläsern und Schlagwerk?|Orchester|Quartett|Kammerchor|Combo
+musik|2|Von welcher Band stammt der Song „Smells Like Teen Spirit“?|Nirvana|Pearl Jam|Foo Fighters|Soundgarden
+musik|2|Welcher DJ und Produzent aus Schweden veröffentlichte „Wake Me Up“ (2013)?|Avicii|Alesso|Swedish House Mafia|Kygo
+musik|2|Welche Stilrichtung wird mit der Abkürzung „EDM“ bezeichnet?|Electronic Dance Music|Easy Dance Mix|Electric Disco Music|Extended Dance Mode
+musik|2|Wie viele Schläge hat ein 4/4-Takt?|Vier|Drei|Zwei|Acht
+musik|3|Wie viele Tasten hat ein normales Konzertklavier?|88|72|76|96
+musik|3|Welcher Komponist schrieb die „Brandenburgischen Konzerte“?|Johann Sebastian Bach|Georg Friedrich Händel|Antonio Vivaldi|Joseph Haydn
+musik|3|Aus welcher Stadt stammt die Band Kraftwerk?|Düsseldorf|Berlin|Köln|Hamburg
+musik|3|Wie heißt die Maßeinheit für das Tempo in der Musik, angegeben in Schlägen pro Minute?|BPM|Hz|dB|RPM
+musik|3|Welches Studio-Album von Michael Jackson ist das meistverkaufte Album aller Zeiten?|Thriller|Bad|Off the Wall|Dangerous
+musik|3|Welche Band veröffentlichte 1973 „The Dark Side of the Moon“?|Pink Floyd|Led Zeppelin|Genesis|Deep Purple
+musik|3|Wie viele Sinfonien hat Ludwig van Beethoven vollendet?|Neun|Sieben|Zehn|Zwölf
+musik|3|Aus welchem Land stammt der Komponist Edvard Grieg?|Norwegen|Schweden|Dänemark|Finnland
+film|1|Wie heißt die Maus mit den runden Ohren von Walt Disney?|Micky Maus|Jerry|Speedy Gonzales|Pinky
+film|1|Welche Farbe hat Shrek?|Grün|Blau|Gelb|Braun
+film|1|Wie heißt der Zauberlehrling mit der Blitznarbe?|Harry Potter|Frodo Beutlin|Percy Jackson|Bilbo
+film|1|In welcher Sendung ermitteln wechselnde Kommissare jeden Sonntag in der ARD?|Tatort|Derrick|SOKO|Der Alte
+film|1|Wie heißt der gelbe Schwamm, der in einer Ananas unter dem Meer lebt?|SpongeBob|Patrick|Thaddäus|Mr. Krabs
+film|1|Wie heißt die Familie mit gelber Haut aus Springfield?|Die Simpsons|Die Griffins|Die Flintstones|Die Addams
+film|2|Wie heißt der Geheimagent mit der Nummer 007?|James Bond|Jason Bourne|Ethan Hunt|Jack Ryan
+film|2|Welcher Film gewann 1998 elf Oscars und erzählt vom Untergang eines Schiffes?|Titanic|Der Sturm|Poseidon|Das Boot
+film|2|Wie heißt der Hobbit, der in „Der Herr der Ringe“ den Ring zum Schicksalsberg bringt?|Frodo|Sam|Bilbo|Pippin
+film|2|Wer spielte den Joker im Film „The Dark Knight“ (2008)?|Heath Ledger|Joaquin Phoenix|Jack Nicholson|Jared Leto
+film|2|Welcher Regisseur drehte „Der weiße Hai“ und „E.T.“?|Steven Spielberg|George Lucas|James Cameron|Ridley Scott
+film|2|In welcher Stadt spielt die Serie „Friends“?|New York|Los Angeles|Chicago|Boston
+film|2|Wie heißt der Bösewicht in der ursprünglichen „Star Wars“-Trilogie mit schwarzer Maske?|Darth Vader|Boba Fett|Imperator Palpatine|Kylo Ren
+film|2|Welches Tier ist in der „Sendung mit der Maus“ klein und blau?|Der Elefant|Der Bär|Die Ente|Der Hund
+film|2|Welcher deutsche Film von Wolfgang Petersen spielt in einem U-Boot?|Das Boot|Die Brücke|Stalingrad|Der Untergang
+film|3|Welcher Film gewann 2020 als erster nicht englischsprachiger Film den Oscar als „Bester Film“?|Parasite|Roma|Das Leben der Anderen|Amélie
+film|3|Wie heißt der fiktive Kontinent in „Game of Thrones“, auf dem die Sieben Königslande liegen?|Westeros|Essos|Mittelerde|Narnia
+film|3|Welcher deutsche Film gewann 2007 den Oscar als bester fremdsprachiger Film?|Das Leben der Anderen|Der Untergang|Good Bye, Lenin!|Nirgendwo in Afrika
+film|3|Wer führte Regie bei „Pulp Fiction“?|Quentin Tarantino|Martin Scorsese|David Fincher|Guy Ritchie
+film|3|Wie heißt der Androide in „Star Trek: The Next Generation“?|Data|Spock|Worf|Q
+film|3|In welchem Jahr kam der erste „Toy Story“-Film in die Kinos?|1995|1999|1993|2001
+film|3|Wie heißt das Raumschiff von Han Solo?|Millennium Falcon|Enterprise|Serenity|Nostromo
+natur|1|Welcher Planet ist der Sonne am nächsten?|Merkur|Venus|Mars|Erde
+natur|1|Was atmen Pflanzen bei der Photosynthese hauptsächlich aus?|Sauerstoff|Kohlendioxid|Stickstoff|Wasserstoff
+natur|1|Welches ist das größte Säugetier der Welt?|Blauwal|Afrikanischer Elefant|Pottwal|Giraffe
+natur|1|Bei wie viel Grad Celsius gefriert Wasser (unter Normaldruck)?|0 °C|-10 °C|4 °C|100 °C
+natur|1|Wie heißt unser Heimatplanet?|Erde|Mars|Venus|Jupiter
+natur|1|Welches Tier legt Eier und ist ein Säugetier?|Schnabeltier|Huhn|Delfin|Fledermaus
+natur|1|Was ist das chemische Zeichen für Wasser?|H₂O|CO₂|O₂|NaCl
+natur|2|Wie viele Planeten hat unser Sonnensystem?|Acht|Neun|Sieben|Zehn
+natur|2|Welcher ist der größte Planet unseres Sonnensystems?|Jupiter|Saturn|Neptun|Uranus
+natur|2|Welches Organ pumpt das Blut durch den Körper?|Herz|Lunge|Leber|Niere
+natur|2|Was ist das chemische Symbol für Gold?|Au|Ag|Go|Gd
+natur|2|Wie viele Knochen hat ein erwachsener Mensch ungefähr?|206|150|256|312
+natur|2|Wie heißt der größte Knochen des menschlichen Körpers?|Oberschenkelknochen|Schienbein|Oberarmknochen|Wirbelsäule
+natur|2|Welches Gas macht den größten Teil der Erdatmosphäre aus?|Stickstoff|Sauerstoff|Kohlendioxid|Argon
+natur|2|Wie lange braucht das Licht der Sonne ungefähr bis zur Erde?|Etwa 8 Minuten|Etwa 8 Sekunden|Etwa 1 Stunde|Etwa 1 Tag
+natur|2|Welches Tier ist das schnellste Landtier?|Gepard|Löwe|Gazelle|Pferd
+natur|2|Welcher Vogel kann rückwärts fliegen?|Kolibri|Spatz|Schwalbe|Eisvogel
+natur|2|Wie heißt der Vorgang, bei dem eine Raupe zum Schmetterling wird?|Metamorphose|Mutation|Mitose|Photosynthese
+natur|3|Was ist das chemische Symbol für Kalium?|K|Ka|Ca|P
+natur|3|Wie heißt das härteste natürliche Mineral?|Diamant|Quarz|Korund|Topas
+natur|3|Wie viele Herzen hat ein Oktopus?|Drei|Eins|Zwei|Vier
+natur|3|Wie heißt der größere der beiden Marsmonde?|Phobos|Deimos|Europa|Titan
+natur|3|Wie hoch ist die Lichtgeschwindigkeit im Vakuum ungefähr?|300.000 km/s|30.000 km/s|3.000.000 km/s|150.000 km/s
+natur|3|Welches Element hat die Ordnungszahl 1?|Wasserstoff|Helium|Sauerstoff|Lithium
+natur|3|Welches Blutgefäß führt das Blut vom Herzen weg?|Arterie|Vene|Kapillare|Lymphgefäß
+natur|3|Welcher Planet hat die meisten bekannten Monde (Stand 2025)?|Saturn|Jupiter|Uranus|Neptun
+natur|3|Wie heißt die Einheit der elektrischen Stromstärke?|Ampere|Volt|Ohm|Watt
+natur|3|Wie viele Chromosomen hat eine normale menschliche Körperzelle?|46|23|44|48

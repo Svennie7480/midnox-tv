@@ -11,6 +11,15 @@
    "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Einrichten per Handy, PC oder Einrichtungscode."
   },
   {
+   "id": "midnox-quiz",
+   "name": "midnox Quiz",
+   "cat": "midnox",
+   "pkg": "de.midnox.quiz",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-quiz.apk",
+   "version": "1.0",
+   "desc": "Quiz-Show für den Fernseher: „Die Million“ mit Jokern, das tägliche Tages-Duell mit weltweit gleichen Fragen und Party-Modus für bis zu 12 Spieler mit dem Handy. Weltweite Bestenliste."
+  },
+  {
    "id": "midnox-radio",
    "name": "midnox Radio",
    "cat": "midnox",

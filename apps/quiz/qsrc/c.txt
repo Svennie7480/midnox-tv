@@ -1,0 +1,68 @@
+technik|1|Wofür steht die Abkürzung „WLAN“ sinngemäß?|Drahtloses lokales Netzwerk|Weltweites Langnetz|Wireless Long Antenna Network|Web Link Access Node
+technik|1|Welche Firma stellt das iPhone her?|Apple|Samsung|Google|Nokia
+technik|1|Wie heißt das Gerät, mit dem man am Computer den Mauszeiger bewegt?|Maus|Tastatur|Monitor|Drucker
+technik|1|Wie viele Räder hat ein normales Fahrrad?|Zwei|Drei|Eins|Vier
+technik|1|Womit wird ein Elektroauto angetrieben?|Elektromotor|Dieselmotor|Dampfmaschine|Ottomotor
+technik|2|Wie viele Bit hat ein Byte?|8|4|16|10
+technik|2|Wofür steht die Abkürzung „USB“?|Universal Serial Bus|United System Board|Universal Signal Box|Ultra Speed Bus
+technik|2|Welches Unternehmen entwickelt das Betriebssystem Android?|Google|Apple|Microsoft|Samsung
+technik|2|Wer gilt als Erfinder des Buchdrucks mit beweglichen Lettern in Europa?|Johannes Gutenberg|Martin Luther|Albrecht Dürer|Konrad Zuse
+technik|2|Welche Einheit gibt die Leistung eines Geräts an?|Watt|Volt|Ampere|Joule
+technik|2|Wie heißt der deutsche Ingenieur, der 1941 mit der Z3 den ersten funktionsfähigen Computer baute?|Konrad Zuse|Werner von Siemens|Carl Benz|Rudolf Diesel
+technik|2|Welche Firma baut die Fire-TV-Geräte?|Amazon|Google|Apple|Roku
+technik|2|Wofür steht „HDMI“?|High Definition Multimedia Interface|High Data Media Input|Home Digital Media Interface|High Density Monitor Interface
+technik|3|Wie viele Kilobyte sind ein Megabyte (binär gerechnet, MiB)?|1024|1000|512|2048
+technik|3|Wer gründete die Firma Microsoft zusammen mit Paul Allen?|Bill Gates|Steve Jobs|Steve Wozniak|Larry Page
+technik|3|In welchem Jahr kam das erste iPhone auf den Markt?|2007|2005|2008|2010
+technik|3|Welche Programmiersprache ist nach einer britischen Comedy-Gruppe benannt?|Python|Ruby|Java|Perl
+technik|3|Was bedeutet die Abkürzung „HTTP“?|Hypertext Transfer Protocol|High Transfer Text Protocol|Hyperlink Text Transport Program|Home Tool Transfer Protocol
+technik|3|Wer erfand den Dieselmotor?|Rudolf Diesel|Nikolaus Otto|Gottlieb Daimler|Wilhelm Maybach
+technik|3|Wie heißt der Erfinder des World Wide Web?|Tim Berners-Lee|Vint Cerf|Linus Torvalds|Alan Turing
+essen|1|Aus welcher Frucht wird Ketchup hauptsächlich hergestellt?|Tomate|Paprika|Erdbeere|Kürbis
+essen|1|Aus welchem Land stammt die Pizza ursprünglich?|Italien|Griechenland|USA|Spanien
+essen|1|Was ist die Hauptzutat von Pommes frites?|Kartoffeln|Reis|Mais|Weizen
+essen|1|Welches Tier liefert Milch für die meisten Käsesorten in Deutschland?|Kuh|Schaf|Ziege|Büffel
+essen|1|Welche Farbe hat eine reife Banane normalerweise?|Gelb|Rot|Blau|Lila
+essen|2|Aus welchem Land kommt das Gericht Paella?|Spanien|Italien|Mexiko|Portugal
+essen|2|Was ist die Hauptzutat von Guacamole?|Avocado|Gurke|Erbse|Zucchini
+essen|2|Welches Getreide wird hauptsächlich zum Bierbrauen in Deutschland verwendet?|Gerste|Hafer|Roggen|Mais
+essen|2|Aus welchem Land stammt Sushi?|Japan|China|Korea|Thailand
+essen|2|Was ist „Labskaus“?|Ein norddeutsches Seemannsgericht|Ein bayerisches Bier|Ein Schweizer Käse|Ein Kuchen aus Sachsen
+essen|2|Welche Stadt ist berühmt für ihr Marzipan?|Lübeck|Nürnberg|Dresden|Aachen
+essen|2|Welches Gewürz ist das teuerste der Welt?|Safran|Vanille|Zimt|Pfeffer
+essen|3|Aus welcher Pflanze wird Tequila hergestellt?|Agave|Kaktus|Zuckerrohr|Mais
+essen|3|Welcher Käse stammt ursprünglich aus der Normandie?|Camembert|Gouda|Emmentaler|Feta
+essen|3|Was ist „Mise en place“ in der Küche?|Das Vorbereiten aller Zutaten vor dem Kochen|Eine französische Nachspeise|Das Anrichten auf dem Teller|Eine Kochtechnik mit Wasserdampf
+essen|3|Aus welchem Teil der Pflanze wird Zimt gewonnen?|Rinde|Wurzel|Blüte|Samen
+essen|3|Was versteht man unter „al dente“ bei Nudeln?|Bissfest gekocht|Mit Knoblauch|Weich gekocht|In Butter geschwenkt
+essen|3|In welchem Jahr wurde das bayerische Reinheitsgebot für Bier erlassen?|1516|1648|1871|1406
+nord|1|In welchem Bundesland liegt Lübeck?|Schleswig-Holstein|Niedersachsen|Mecklenburg-Vorpommern|Hamburg
+nord|1|Wie heißt das berühmte Stadttor von Lübeck?|Holstentor|Brandenburger Tor|Steintor|Hafentor
+nord|1|Welche Insel liegt vor der Küste von Schleswig-Holstein in der Nordsee und ist die größte deutsche Nordseeinsel?|Sylt|Rügen|Fehmarn|Usedom
+nord|1|Wie heißt der Ostseebadeort, der zu Lübeck gehört?|Travemünde|Warnemünde|Timmendorfer Strand|Grömitz
+nord|1|Welcher Fluss fließt durch Lübeck?|Trave|Elbe|Schwentine|Eider
+nord|2|Welche Stadt in Schleswig-Holstein ist Sitz der Landesregierung?|Kiel|Lübeck|Flensburg|Schleswig
+nord|2|Welche Kirche in Lübeck gilt als „Mutterkirche der Backsteingotik“?|St. Marien|St. Petri|Lübecker Dom|St. Jakobi
+nord|2|Welcher Kanal verbindet Nord- und Ostsee?|Nord-Ostsee-Kanal|Elbe-Lübeck-Kanal|Mittellandkanal|Dortmund-Ems-Kanal
+nord|2|Wie heißt die Brücke, die Fehmarn mit dem Festland verbindet?|Fehmarnsundbrücke|Köhlbrandbrücke|Rügenbrücke|Storebæltbrücke
+nord|2|Welches Lübecker Bauwerk war auf dem alten 50-DM-Schein abgebildet?|Holstentor|Rathaus|Dom|Salzspeicher
+nord|2|Seit welchem Jahr ist die Lübecker Altstadt UNESCO-Weltkulturerbe?|1987|1999|1975|2005
+nord|2|Wie heißt die Hamburger Hafenstraße mit vielen Amüsierbetrieben?|Reeperbahn|Mönckebergstraße|Jungfernstieg|Elbchaussee
+nord|2|Wie heißt das Konzerthaus in der Hamburger HafenCity?|Elbphilharmonie|Laeiszhalle|Musikhalle Nord|Elbarena
+nord|3|Welcher Schriftsteller schrieb „Die Buddenbrooks“, die in Lübeck spielen?|Thomas Mann|Theodor Storm|Günter Grass|Heinrich Böll
+nord|3|Welcher Nobelpreisträger lebte in Behlendorf bei Lübeck und hat in Lübeck ein Museumshaus?|Günter Grass|Thomas Mann|Siegfried Lenz|Heinrich Böll
+nord|3|Wie heißt das Viermastschiff, das in Travemünde als Museumsschiff liegt?|Passat|Gorch Fock|Rickmer Rickmers|Seute Deern
+nord|3|Welcher Schriftsteller schrieb „Der Schimmelreiter“?|Theodor Storm|Thomas Mann|Theodor Fontane|Klaus Groth
+nord|2|Welche Ostseeinsel ist die größte Deutschlands?|Rügen|Fehmarn|Usedom|Poel
+nord|3|Wie heißt die Landeshauptstadt von Mecklenburg-Vorpommern?|Schwerin|Rostock|Stralsund|Greifswald
+sprache|1|Was ist das Gegenteil von „heiß“?|Kalt|Warm|Nass|Hell
+sprache|1|Wie viele Buchstaben hat das deutsche Alphabet ohne Umlaute und ß?|26|24|28|30
+sprache|1|Was sagt man in Norddeutschland oft zur Begrüßung?|Moin|Servus|Grüezi|Grüß Gott
+sprache|2|Was bedeutet das englische Wort „butterfly“?|Schmetterling|Butterbrot|Fliege|Libelle
+sprache|2|Welches Wort ist ein Verb?|laufen|schnell|Haus|grün
+sprache|2|Was bedeutet „Carpe diem“?|Nutze den Tag|Ich kam, sah und siegte|Im Wein liegt die Wahrheit|Gott sei mit dir
+sprache|2|Was bedeutet das plattdeutsche Wort „Schietwetter“?|Schlechtes Wetter|Schönes Wetter|Gewitter|Nebel
+sprache|3|Welche Sprache hat weltweit die meisten Muttersprachler?|Chinesisch (Mandarin)|Englisch|Spanisch|Hindi
+sprache|3|Wie nennt man ein Wort, das gleich klingt, aber anders geschrieben wird und etwas anderes bedeutet (z. B. „Lehre“/„Leere“)?|Homophon|Synonym|Antonym|Akronym
+sprache|3|Was bedeutet „Veni, vidi, vici“?|Ich kam, sah und siegte|Teile und herrsche|Nutze den Tag|Der Würfel ist gefallen
+sprache|3|Woher stammt das Wort „Tschüss“ ursprünglich?|Von „adieu“ bzw. „adiós“ (Gott befohlen)|Vom englischen „cheers“|Vom italienischen „ciao“|Vom niederländischen „doei“

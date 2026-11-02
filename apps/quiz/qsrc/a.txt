@@ -1,0 +1,102 @@
+# Kategorie|Stufe(1-3)|Frage|Richtig|Falsch|Falsch|Falsch
+allg|1|Wie viele Minuten hat eine Stunde?|60|100|30|90
+allg|1|Welche Farbe entsteht, wenn man Blau und Gelb mischt?|Grün|Lila|Orange|Braun
+allg|1|Wie viele Beine hat eine Spinne?|Acht|Sechs|Zehn|Vier
+allg|1|Wie heißt der erste Monat des Jahres?|Januar|Februar|März|Dezember
+allg|1|Wie viele Tage hat eine Woche?|Sieben|Fünf|Sechs|Acht
+allg|1|Was zeigt ein Thermometer an?|Temperatur|Luftdruck|Windstärke|Uhrzeit
+allg|1|Welches Tier gilt als „König der Tiere“?|Löwe|Elefant|Tiger|Adler
+allg|1|Wie viele Spieler einer Mannschaft stehen beim Fußball gleichzeitig auf dem Platz?|Elf|Zehn|Zwölf|Neun
+allg|1|Was benutzt man, um auf einem Brief das Porto zu bezahlen?|Briefmarke|Stempelkissen|Siegel|Aufkleber
+allg|1|Welche Form hat ein Stoppschild in Deutschland?|Achteck|Dreieck|Kreis|Quadrat
+allg|1|Wie nennt man ein Jahr mit 366 Tagen?|Schaltjahr|Langjahr|Sonnenjahr|Doppeljahr
+allg|1|Wer bringt in Deutschland traditionell am 6. Dezember Geschenke?|Der Nikolaus|Der Osterhase|Die Zahnfee|Der Weihnachtsmann
+allg|1|Welche Farbe hat bei einer Ampel das Signal für „Halt“?|Rot|Gelb|Grün|Blau
+allg|1|Wie viele Stunden hat ein Tag?|24|12|20|48
+allg|1|Was ist ein Rappe?|Ein schwarzes Pferd|Ein weißes Pferd|Ein junger Hund|Ein Raubvogel
+allg|1|In welchem Raum wird in der Regel gekocht?|Küche|Diele|Keller|Bad
+allg|2|Wie viele Felder hat ein Schachbrett?|64|36|81|100
+allg|2|Wie viele Karten hat ein klassisches Skatblatt?|32|52|36|24
+allg|2|Wie heißt die Hauptfigur in Goethes bekanntestem Drama?|Faust|Werther|Wilhelm Tell|Nathan
+allg|2|Welcher Hochzeitstag wird nach 25 Jahren gefeiert?|Silberne Hochzeit|Goldene Hochzeit|Rubinhochzeit|Porzellanhochzeit
+allg|2|Welcher Hochzeitstag wird nach 50 Jahren gefeiert?|Goldene Hochzeit|Silberne Hochzeit|Diamantene Hochzeit|Eiserne Hochzeit
+allg|2|Wie viele Zähne hat ein vollständiges Erwachsenengebiss inklusive Weisheitszähne?|32|28|30|36
+allg|2|Wie viele Augen hat ein normaler Spielwürfel insgesamt?|21|18|24|36
+allg|2|Welches Sternzeichen folgt auf den Widder?|Stier|Fische|Zwillinge|Krebs
+allg|2|Wie heißt die Angst vor Spinnen?|Arachnophobie|Klaustrophobie|Akrophobie|Agoraphobie
+allg|2|Welche Zahl schreibt man in römischen Ziffern als „L“?|50|100|500|1000
+allg|2|Was misst die Einheit „Hertz“?|Frequenz|Lautstärke|Leistung|Spannung
+allg|2|Wie heißt das Geld in der Schweiz?|Franken|Euro|Krone|Gulden
+allg|2|Welcher Wochentag ist nach dem römischen Gott Saturn benannt – im Englischen?|Saturday|Sunday|Thursday|Tuesday
+allg|2|Wie viele Bundesländer hat Deutschland?|16|12|14|18
+allg|3|Wie lautet die römische Zahl für 1999?|MCMXCIX|MIM|MCMXCVIIII|MDCCCCXCIX
+allg|3|Wie viele Takte hat ein klassischer Blues-Durchlauf (Twelve Bar Blues)?|12|8|16|24
+allg|3|Aus wie vielen Steinen besteht ein Standard-Dominospiel (Doppel-Sechs)?|28|24|32|36
+allg|3|Welches Tier ist das Wappentier von Schottland?|Einhorn|Löwe|Hirsch|Adler
+allg|3|Was bezeichnet man als „Palindrom“?|Ein Wort, das vorwärts und rückwärts gleich gelesen wird|Ein Wort mit nur Vokalen|Ein Wort aus zwei Sprachen|Ein Reim am Zeilenanfang
+allg|3|Wie viele Quadratmeter hat ein Hektar?|10.000|1.000|100.000|5.000
+allg|3|Was ist ein Oxymoron?|Eine Verbindung widersprüchlicher Begriffe|Ein Wort mit gleicher Aussprache|Ein übertriebener Vergleich|Eine Wiederholung am Satzanfang
+allg|3|Wie heißt die Wissenschaft von den Fahnen und Flaggen?|Vexillologie|Heraldik|Numismatik|Philatelie
+allg|3|Was sammelt ein Numismatiker?|Münzen|Briefmarken|Bierdeckel|Postkarten
+geo|1|Was ist die Hauptstadt von Deutschland?|Berlin|München|Hamburg|Bonn
+geo|1|Was ist die Hauptstadt von Frankreich?|Paris|Lyon|Marseille|Nizza
+geo|1|Auf welchem Kontinent liegt Ägypten?|Afrika|Asien|Europa|Südamerika
+geo|1|Welcher Ozean liegt zwischen Europa und Amerika?|Atlantik|Pazifik|Indischer Ozean|Arktischer Ozean
+geo|1|In welchem Land steht der Eiffelturm?|Frankreich|Belgien|Italien|Spanien
+geo|1|Welche Stadt ist die Hauptstadt von Italien?|Rom|Mailand|Neapel|Venedig
+geo|1|Welches Land hat die Form eines Stiefels?|Italien|Griechenland|Portugal|Kroatien
+geo|1|Wie heißt der längste Fluss, der durch Deutschland fließt?|Rhein|Elbe|Donau|Weser
+geo|1|In welchem Land liegt die Stadt Wien?|Österreich|Schweiz|Ungarn|Deutschland
+geo|1|Welcher Kontinent ist der größte?|Asien|Afrika|Europa|Nordamerika
+geo|1|Wie heißt die Hauptstadt von Spanien?|Madrid|Barcelona|Sevilla|Valencia
+geo|1|An welchem Meer liegt Lübeck?|Ostsee|Nordsee|Mittelmeer|Schwarzes Meer
+geo|2|Wie heißt die Hauptstadt von Australien?|Canberra|Sydney|Melbourne|Perth
+geo|2|Welches ist der höchste Berg Deutschlands?|Zugspitze|Watzmann|Brocken|Feldberg
+geo|2|Wie heißt die Hauptstadt von Kanada?|Ottawa|Toronto|Vancouver|Montreal
+geo|2|Welches ist das flächenmäßig größte Land der Erde?|Russland|Kanada|China|USA
+geo|2|In welchem Land liegt die Stadt Marrakesch?|Marokko|Tunesien|Ägypten|Algerien
+geo|2|Welches Bundesland hat die meisten Einwohner?|Nordrhein-Westfalen|Bayern|Baden-Württemberg|Niedersachsen
+geo|2|Wie heißt die Hauptstadt von Norwegen?|Oslo|Bergen|Stockholm|Kopenhagen
+geo|2|Welcher Fluss fließt durch Dresden?|Elbe|Oder|Saale|Spree
+geo|2|Welcher ist der größte See Deutschlands, der vollständig in Deutschland liegt?|Müritz|Bodensee|Chiemsee|Starnberger See
+geo|2|Wie heißt die Hauptstadt der Türkei?|Ankara|Istanbul|Izmir|Antalya
+geo|2|Welches Land grenzt NICHT an Deutschland?|Ungarn|Tschechien|Luxemburg|Dänemark
+geo|2|Wie heißt die Meerenge zwischen Spanien und Marokko?|Straße von Gibraltar|Bosporus|Ärmelkanal|Straße von Messina
+geo|2|Wie viele Nachbarländer hat Deutschland?|Neun|Sieben|Acht|Zehn
+geo|2|Welche Stadt ist die Hauptstadt von Schleswig-Holstein?|Kiel|Lübeck|Flensburg|Neumünster
+geo|3|Wie heißt die Hauptstadt von Neuseeland?|Wellington|Auckland|Christchurch|Queenstown
+geo|3|Welcher Fluss ist der wasserreichste der Erde?|Amazonas|Nil|Jangtse|Mississippi
+geo|3|Wie heißt die Hauptstadt von Kasachstan?|Astana|Almaty|Taschkent|Bischkek
+geo|3|In welchem Land liegt die Atacama-Wüste?|Chile|Mexiko|Australien|Namibia
+geo|3|Welcher ist der tiefste See der Erde?|Baikalsee|Tanganjikasee|Kaspisches Meer|Lago Maggiore
+geo|3|Wie heißt die Hauptstadt von Myanmar?|Naypyidaw|Rangun|Mandalay|Bangkok
+geo|3|Welcher Staat ist der flächenmäßig kleinste der Welt?|Vatikanstadt|Monaco|San Marino|Liechtenstein
+geo|3|Auf welcher Insel liegt die Stadt Palermo?|Sizilien|Sardinien|Korsika|Malta
+geo|3|Welches Land hat die meisten Zeitzonen (inklusive Überseegebiete)?|Frankreich|Russland|USA|Großbritannien
+geo|3|Welcher Fluss bildet einen großen Teil der Grenze zwischen Deutschland und Polen?|Oder|Weichsel|Elbe|Spree
+gesch|1|In welchem Jahr fiel die Berliner Mauer?|1989|1990|1987|1991
+gesch|1|Wer war der erste Mensch auf dem Mond?|Neil Armstrong|Buzz Aldrin|Juri Gagarin|John Glenn
+gesch|1|Wie hieß der erste Bundeskanzler der Bundesrepublik Deutschland?|Konrad Adenauer|Willy Brandt|Helmut Schmidt|Ludwig Erhard
+gesch|1|Welches Schiff sank 1912 nach der Kollision mit einem Eisberg?|Titanic|Lusitania|Bismarck|Queen Mary
+gesch|1|In welchem Land standen die alten Pyramiden von Gizeh?|Ägypten|Mexiko|Peru|Griechenland
+gesch|1|Seit welchem Jahr ist Deutschland wiedervereinigt?|1990|1989|1991|1993
+gesch|2|Wer entdeckte 1492 Amerika für die spanische Krone?|Christoph Kolumbus|Vasco da Gama|Ferdinand Magellan|Amerigo Vespucci
+gesch|2|In welchem Jahr begann der Erste Weltkrieg?|1914|1918|1912|1939
+gesch|2|Welcher römische Feldherr wurde an den Iden des März 44 v. Chr. ermordet?|Gaius Julius Caesar|Augustus|Nero|Marcus Antonius
+gesch|2|Welche Stadt war Hauptstadt der Bundesrepublik vor Berlin?|Bonn|Frankfurt am Main|Köln|Düsseldorf
+gesch|2|Wie hieß die Königin, die von 1837 bis 1901 Großbritannien regierte?|Victoria|Elisabeth I.|Anne|Mary II.
+gesch|2|Wer schlug 1517 der Überlieferung nach seine Thesen an eine Kirchentür in Wittenberg?|Martin Luther|Johannes Calvin|Philipp Melanchthon|Thomas Müntzer
+gesch|2|Welcher Städtebund hatte Lübeck als „Königin“?|Die Hanse|Der Rheinbund|Der Schwäbische Bund|Die Union
+gesch|2|In welchem Jahr wurde die Bundesrepublik Deutschland gegründet?|1949|1945|1955|1961
+gesch|2|Wann wurde die Berliner Mauer gebaut?|1961|1953|1949|1968
+gesch|2|Welcher Pharao wurde durch die Entdeckung seines fast unberührten Grabes 1922 berühmt?|Tutanchamun|Ramses II.|Cheops|Echnaton
+gesch|3|In welchem Jahr endete der Dreißigjährige Krieg?|1648|1618|1555|1683
+gesch|3|Wer war der letzte deutsche Kaiser?|Wilhelm II.|Friedrich III.|Wilhelm I.|Franz Joseph I.
+gesch|3|In welchem Jahr wurde Lübeck durch Kaiser Friedrich II. zur Freien Reichsstadt?|1226|1143|1356|1410
+gesch|3|Welche Schlacht im Jahr 9 n. Chr. ist auch als „Varusschlacht“ bekannt?|Schlacht im Teutoburger Wald|Schlacht bei Alesia|Schlacht bei Cannae|Schlacht auf den Katalaunischen Feldern
+gesch|3|Wie hieß der erste Präsident der USA?|George Washington|Thomas Jefferson|John Adams|Abraham Lincoln
+gesch|3|Welches Abkommen beendete 1919 offiziell den Ersten Weltkrieg mit Deutschland?|Versailler Vertrag|Vertrag von Locarno|Brest-Litowsk|Wiener Kongress
+gesch|3|Wer war der erste Bundespräsident der Bundesrepublik?|Theodor Heuss|Heinrich Lübke|Gustav Heinemann|Walter Scheel
+gesch|3|In welchem Jahr wurde der Euro als Bargeld in Deutschland eingeführt?|2002|1999|2001|2000
+gesch|3|Welcher Lübecker erhielt 1929 den Literaturnobelpreis?|Thomas Mann|Heinrich Mann|Günter Grass|Hermann Hesse
+gesch|3|Welcher in Lübeck geborene Politiker wurde 1971 mit dem Friedensnobelpreis ausgezeichnet?|Willy Brandt|Helmut Schmidt|Gustav Stresemann|Walter Scheel

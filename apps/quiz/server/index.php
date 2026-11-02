@@ -191,7 +191,7 @@ function autoVoice(string $key): string {
         $l = array_map('strtolower', array_map('strval', $v['labels'] ?? []));
         $txt = strtolower(($v['name'] ?? '') . ' ' . implode(' ', $l) . ' ' . ($v['description'] ?? ''));
         $sc = 0;
-        if (str_contains($txt, 'german') || str_contains($txt, 'deutsch')) $sc += 10;
+        if (strpos($txt, 'german') !== false || strpos($txt, 'deutsch') !== false) $sc += 10;
         if (($l['gender'] ?? '') === 'male') $sc += 4;
         if (preg_match('/narrat|broadcast|news|announc|presenter|host|deep|warm/', $txt)) $sc += 3;
         if (in_array(strtolower($v['name'] ?? ''), ['daniel', 'brian'], true)) $sc += 2;

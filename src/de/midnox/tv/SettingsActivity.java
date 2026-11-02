@@ -678,15 +678,69 @@ public class SettingsActivity extends Activity {
         store(c);
     }
 
+    /** Schutz vor Amazon: Startseite reparieren, Updates sperren, Telemetrie, Pi-hole. */
+    void guard() {
+        final boolean adb = Style.prefs(this).getBoolean("adb_ok", false);
+        toggle("Startseite nach Fire-OS-Updates automatisch zurückholen", "guard_home", true, false);
+        final Row chk = add("    Jetzt prüfen");
+        chk.value.setText(adb ? "OK" : "erst ADB einrichten");
+        chk.onOk = new Runnable() { public void run() {
+            if (!adb) return;
+            chk.value.setText("prüfe …");
+            bg(new Runnable() { public void run() { Guard.heal(SettingsActivity.this, true, false); } }, new Runnable() { public void run() {
+                chk.value.setText("ok".equals(Guard.lastResult) ? "midnox ist Startseite \u2713" : Guard.lastResult);
+            } });
+        } };
+
+        final Row tel = add("Amazon-Telemetrie und Werbedienste");
+        final Runnable telUpd = new Runnable() { public void run() { tel.value.setText(pr.getBoolean("wiz_cleaned", false) ? "abgeschaltet" : "an"); } };
+        telUpd.run();
+        tel.onOk = new Runnable() { public void run() {
+            if (!adb) { Style.toast(SettingsActivity.this, "Erst den Einrichtungsassistenten (ADB) durchlaufen"); return; }
+            final boolean off = !pr.getBoolean("wiz_cleaned", false);
+            tel.value.setText("…");
+            final String[] msg = {""};
+            bg(new Runnable() { public void run() { msg[0] = Guard.telemetryOff(SettingsActivity.this, off); } }, new Runnable() { public void run() { telUpd.run(); Style.toast(SettingsActivity.this, msg[0]); } });
+        } };
+
+        final Row ota = add("Systemupdates von Amazon");
+        final Runnable otaUpd = new Runnable() { public void run() { ota.value.setText(pr.getBoolean("guard_ota", false) ? "gesperrt" : "an"); } };
+        otaUpd.run();
+        ota.onOk = new Runnable() { public void run() {
+            if (!adb) { Style.toast(SettingsActivity.this, "Erst den Einrichtungsassistenten (ADB) durchlaufen"); return; }
+            final boolean off = !pr.getBoolean("guard_ota", false);
+            final Runnable go = new Runnable() { public void run() {
+                ota.value.setText("…");
+                final String[] msg = {""};
+                bg(new Runnable() { public void run() { msg[0] = Guard.updatesOff(SettingsActivity.this, off); } }, new Runnable() { public void run() { otaUpd.run(); Style.toast(SettingsActivity.this, msg[0]); } });
+            } };
+            if (!off) { go.run(); return; }
+            new AlertDialog.Builder(SettingsActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+                .setTitle("Systemupdates sperren?")
+                .setMessage("Amazon kann midnox TV dann nicht mehr per Update aushebeln.\n\nAber: Du bekommst auch keine Sicherheitsupdates mehr. Apps aus dem Amazon Appstore aktualisieren sich weiter.\n\nDu kannst die Sperre hier jederzeit wieder aufheben, z. B. einmal im Halbjahr kurz für ein Update.")
+                .setPositiveButton("Sperren", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { go.run(); } })
+                .setNegativeButton("Abbrechen", null).show();
+        } };
+
+        Row ph = add("    Zusätzlich im Pi-hole sperren");
+        ph.value.setText("Adresse zeigen  \u203a");
+        ph.onOk = new Runnable() { public void run() {
+            new AlertDialog.Builder(SettingsActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+                .setTitle("Pi-hole-Blockliste")
+                .setMessage("Im Pi-hole unter Adlists diese Adresse eintragen und danach die Listen aktualisieren:\n\n" + Guard.PIHOLE_LIST
+                    + "\n\nSperrt Amazon-Telemetrie und die Update-Server. Allein reicht das bei neuem Fire OS nicht immer – zusammen mit der Sperre oben ist es doppelt gesichert.")
+                .setPositiveButton("OK", null).show();
+        } };
+    }
+    void bg(final Runnable work, final Runnable ui) {
+        new Thread(new Runnable() { public void run() { try { work.run(); } catch (Exception ignored) {} runOnUiThread(ui); } }).start();
+    }
+
     void connections() {
         Row wiz = add("Einrichtungsassistent (ADB, Startseite, Aufräumen)");
         wiz.value.setText(Style.prefs(this).getBoolean("adb_ok", false) ? "eingerichtet \u2713" : "starten");
         wiz.onOk = new Runnable() { public void run() { Style.prefs(SettingsActivity.this).edit().remove("wiz_clean_skip").apply(); startActivity(new Intent(SettingsActivity.this, WizardActivity.class)); } };
-        if (Style.prefs(this).getBoolean("wiz_cleaned", false)) {
-            final Row undo = add("Abgeschaltete Amazon-Dienste wieder einschalten");
-            undo.value.setText("OK");
-            undo.onOk = new Runnable() { public void run() { WizardActivity.undoClean(SettingsActivity.this); undo.value.setText("erledigt"); } };
-        }
+        guard();
         Row phone = add("Mit Handy einrichten");
         phone.value.setText("QR-Code  \u203a");
         phone.onOk = new Runnable() { public void run() { startActivity(new Intent(SettingsActivity.this, SetupActivity.class)); } };

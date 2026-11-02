@@ -1,6 +1,6 @@
 {
- "versionCode": 65,
- "versionName": "10.5",
+ "versionCode": 66,
+ "versionName": "10.6",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Suche findet jetzt auch Filme und Serien aus midnox Live (alle IPTV-Quellen, doppelte Titel zusammengefasst)"
+ "notes": "Schutz vor Amazon: Startseite wird nach Fire-OS-Updates automatisch zurückgeholt, Systemupdates und Telemetrie in den Einstellungen abschaltbar"
 }

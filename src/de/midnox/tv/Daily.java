@@ -21,7 +21,8 @@ public class Daily {
     static Boolean wasOn;
     static void tick(Context c) {
         boolean on = screenOn(c);
-        if (on && Boolean.FALSE.equals(wasOn)) Morning.maybe(c);
+        if (on && Boolean.FALSE.equals(wasOn)) { Morning.maybe(c); Guard.healAsync(c, true, false); }
+        else if (on) Guard.healAsync(c, false, false);
         wasOn = on;
         try { reminders(c); } catch (Exception ignored) {}
         try { GoalAlert.tick(c); } catch (Exception ignored) {}

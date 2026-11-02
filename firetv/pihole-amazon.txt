@@ -1,0 +1,14 @@
+# midnox TV – Amazon Fire TV: Telemetrie und Systemupdates
+# Als Adlist im Pi-hole eintragen. Appstore, Prime Video und Alexa bleiben erreichbar.
+# Telemetrie / Metriken
+0.0.0.0 device-metrics-us.amazon.com
+0.0.0.0 device-metrics-us-2.amazon.com
+0.0.0.0 device-metrics-eu.amazon.com
+0.0.0.0 mads-eu.amazon.com
+0.0.0.0 mads.amazon.com
+0.0.0.0 aviary.amazon.com
+0.0.0.0 crashlytics.com
+0.0.0.0 settings.crashlytics.com
+# Systemupdates (Fire OS)
+0.0.0.0 softwareupdates.amazon.com
+0.0.0.0 updates.amazon.com

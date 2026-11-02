@@ -11,6 +11,10 @@ final class Web {
     static ServerSocket server;
     static int port;
     static Runnable onChange;
+    /** Anmeldung am PC ohne QR-Code: 4-stelliger Code wird am Fernseher angezeigt. */
+    interface PinCb { void show(String pin); }
+    static PinCb onPin;
+    static volatile String pin; static volatile long pinUntil; static volatile int pinFails;
 
     static String key(Context c) {
         String k = U.prefs(c).getString("webkey", "");
@@ -65,8 +69,10 @@ final class Web {
                 byte[] b = new byte[(int) Math.min(len, 2L * 1024 * 1024)]; int r = 0;
                 while (r < b.length) { int n = in.read(b, r, b.length - r); if (n < 0) break; r += n; }
                 String data = new String(b, 0, r, "UTF-8");
-                if (path.startsWith("/api/")) body = ok ? api(c, path.substring(5).replaceAll("\\?.*", ""), data.isEmpty() ? new JSONObject() : new JSONObject(data)) : "{\"ok\":false,\"msg\":\"QR-Code neu scannen\"}";
-                else { type = "text/html"; body = ok ? page(key(c)) : "<meta charset=utf-8><body style='background:#0b0a14;color:#ddd;font-family:sans-serif;padding:30px'>Bitte den QR-Code am Fernseher scannen (midnox Live → MENU → Quellen einrichten).</body>"; }
+                if (path.startsWith("/api/pin")) body = newPin();
+                else if (path.startsWith("/api/login")) body = login(c, data);
+                else if (path.startsWith("/api/")) body = ok ? api(c, path.substring(5).replaceAll("\\?.*", ""), data.isEmpty() ? new JSONObject() : new JSONObject(data)) : "{\"ok\":false,\"msg\":\"QR-Code neu scannen\"}";
+                else { type = "text/html"; body = ok ? page(key(c)) : loginPage(); }
             }
             byte[] out = body.getBytes("UTF-8");
             OutputStream o = s.getOutputStream();
@@ -74,6 +80,38 @@ final class Web {
             o.write(out); o.flush();
         } catch (Exception ignored) {
         } finally { try { s.close(); } catch (Exception ignored) {} }
+    }
+
+    static String newPin() {
+        if (onPin == null) return "{\"ok\":false,\"msg\":\"Bitte midnox Live am Fernseher öffnen\"}";
+        pin = String.format(Locale.ROOT, "%04d", new Random().nextInt(10000));
+        pinUntil = System.currentTimeMillis() + 3 * 60000L; pinFails = 0;
+        final String p = pin;
+        Img.ui.post(new Runnable() { public void run() { if (onPin != null) onPin.show(p); } });
+        return "{\"ok\":true}";
+    }
+    static String login(Context c, String data) {
+        try {
+            String p = new JSONObject(data).optString("pin");
+            if (pin == null || System.currentTimeMillis() > pinUntil) return "{\"ok\":false,\"msg\":\"Code abgelaufen – neu anfordern\"}";
+            if (!pin.equals(p)) { if (++pinFails >= 5) pin = null; return "{\"ok\":false,\"msg\":\"Code falsch\"}"; }
+            pin = null;
+            Img.ui.post(new Runnable() { public void run() { if (onPin != null) onPin.show(null); } });
+            return new JSONObject().put("ok", true).put("k", key(c)).toString();
+        } catch (Exception e) { return "{\"ok\":false}"; }
+    }
+    static String loginPage() {
+        return "<!doctype html><html lang=de><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><title>midnox Live – Anmelden</title><style>"
+            + "body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0b0a14;color:#e6e8f2;display:flex;min-height:100vh;align-items:center;justify-content:center}"
+            + ".c{background:#15141f;border:1px solid #26243a;border-radius:18px;padding:30px;max-width:380px;width:90%;text-align:center}h1{font-weight:300;margin:0 0 6px}h1 b{background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:300}"
+            + "p{color:#8a8fa8;font-size:14px}input{width:100%;box-sizing:border-box;font-size:34px;letter-spacing:.4em;text-align:center;padding:12px;border-radius:12px;border:1px solid #2e2c45;background:#0e0d18;color:#fff;margin:10px 0}"
+            + "button{padding:11px 20px;border:0;border-radius:999px;background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4);color:#fff;font-size:15px;cursor:pointer;margin:4px}#m{min-height:20px;color:#fca5a5;font-size:14px}</style></head><body><div class=c>"
+            + "<h1><b>midnox</b> Live</h1><p>Zur Einrichtung am PC einmal anmelden – der Browser merkt sich das.</p><button onclick=req()>Code am Fernseher anzeigen</button>"
+            + "<input id=p maxlength=4 inputmode=numeric placeholder='····' oninput=\"if(this.value.length==4)go()\"><div id=m></div></div><script>"
+            + "var k=null;try{k=localStorage.getItem('mlk')}catch(e){}if(k&&location.search.indexOf('k=')<0)location.replace('/?k='+k);"
+            + "function req(){fetch('/api/pin',{method:'POST'}).then(function(r){return r.json()}).then(function(j){document.getElementById('m').style.color=j.ok?'#86efac':'#fca5a5';document.getElementById('m').textContent=j.ok?'Der Code steht jetzt auf dem Fernseher.':j.msg;document.getElementById('p').focus()})}"
+            + "function go(){fetch('/api/login',{method:'POST',body:JSON.stringify({pin:document.getElementById('p').value})}).then(function(r){return r.json()}).then(function(j){if(j.ok){try{localStorage.setItem('mlk',j.k)}catch(e){}location.replace('/?k='+j.k)}else{document.getElementById('m').style.color='#fca5a5';document.getElementById('m').textContent=j.msg;document.getElementById('p').value=''}})}"
+            + "</script></body></html>";
     }
 
     static void changed() { if (onChange != null) Img.ui.post(onChange); }
@@ -292,7 +330,7 @@ final class Web {
             + "<h3>SICHERN UND AUF ANDEREN STICK ÜBERTRAGEN</h3><div class=card><p class=hint style=margin-top:0>Die Sicherung enthält alle Quellen mit Zugangsdaten und MACs, Favoriten, ausgeblendete Gruppen und EPG-Adressen. Gut aufbewahren – sie enthält deine Passwörter.</p>"
             + "<p><a href='/export?k=" + k + "'><button>⬇ Sicherung herunterladen</button></a></p><p class=hint>Auf dem anderen Stick midnox Live öffnen, dessen QR-Code scannen und hier die Datei einspielen:</p><input type=file id=imp accept='.json,application/json'><button onclick=imp()>⬆ Sicherung einspielen</button></div>"
             + "<p><button class=g onclick=\"api('reload').then(msg)\">Alles neu laden</button></p><div id=msg></div></div><script>"
-            + "var K='" + k + "';function $(i){return document.getElementById(i)}function esc(s){return String(s==null?'':s).replace(/[&<>\"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}"
+            + "var K='" + k + "';try{localStorage.setItem('mlk',K)}catch(e){}function $(i){return document.getElementById(i)}function esc(s){return String(s==null?'':s).replace(/[&<>\"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}"
             + "function api(c,o){return fetch('/api/'+c+'?k='+K,{method:'POST',body:JSON.stringify(o||{})}).then(function(r){return r.json()})}"
             + "function msg(j){var m=$('msg');m.textContent=j&&j.msg?j.msg:'OK';m.style.display='block';clearTimeout(m.t);m.t=setTimeout(function(){m.style.display='none'},3500);setTimeout(load,600)}"
             + "document.querySelectorAll('.tabs button').forEach(function(b){b.onclick=function(){document.querySelectorAll('.tabs button').forEach(function(x){x.classList.toggle('on',x==b)});['m3u','file','xtream','stalker'].forEach(function(t){$('f_'+t).style.display=t==b.dataset.t?'block':'none'})}});"

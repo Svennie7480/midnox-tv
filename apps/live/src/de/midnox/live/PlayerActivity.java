@@ -78,6 +78,15 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         group = U.prefs(this).getString("group", Lib.ALL);
         Web.start(this);
         Web.onChange = new Runnable() { public void run() { refreshAll(); } };
+        Web.onPin = new Web.PinCb() { public void show(String p) {
+            if (p == null) { if (pinDlg != null) pinDlg.dismiss(); pinDlg = null; toast("PC ist angemeldet \u2713"); return; }
+            if (pinDlg != null) pinDlg.dismiss();
+            TextView t = U.text(PlayerActivity.this, p.charAt(0) + "  " + p.charAt(1) + "  " + p.charAt(2) + "  " + p.charAt(3), 56, Color.WHITE);
+            t.setTypeface(U.BOLD); t.setGravity(Gravity.CENTER); t.setPadding(U.px(40), U.px(26), U.px(40), U.px(26));
+            pinDlg = new AlertDialog.Builder(PlayerActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Anmeldecode für den PC").setView(t).setPositiveButton("Schließen", null).show();
+            final AlertDialog d = pinDlg;
+            h.postDelayed(new Runnable() { public void run() { if (pinDlg == d) { d.dismiss(); pinDlg = null; } } }, 3 * 60000L);
+        }};
         Lib.loadCache(this);
         for (Model.Source s : Lib.sources(this)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(this).getInt("mac_" + s.id, 0));
         Epg.loadCache(this);
@@ -358,6 +367,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     // ------------------------------------------------------------ Tasten
     // ------------------------------------------------------------ Touch (Tablet/Handy)
     GestureDetector gestures;
+    AlertDialog pinDlg;
     @Override public boolean dispatchTouchEvent(MotionEvent ev) {
         if (gestures == null) gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             float acc;
@@ -595,7 +605,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         v.setOrientation(LinearLayout.VERTICAL); v.setGravity(Gravity.CENTER_HORIZONTAL);
         v.setPadding(U.px(30), U.px(20), U.px(30), U.px(10));
         v.addView(new QrView(this, Web.url(this)), new LinearLayout.LayoutParams(U.px(240), U.px(240)));
-        TextView t = U.text(this, Web.url(this) + "\n\nMit dem Handy scannen oder am PC öffnen:\nQuellen hinzufügen, EPG-Adressen, Gruppen ausblenden.", 15, U.TEXT);
+        TextView t = U.text(this, "Handy: QR-Code scannen\n\nPC: im Browser  http://" + U.ownIp() + ":" + Web.port + "  öffnen\nund „Code am Fernseher anzeigen“ klicken", 15, U.TEXT);
         t.setPadding(0, U.px(16), 0, 0); t.setGravity(Gravity.CENTER);
         v.addView(t);
         new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Quellen einrichten").setView(v).setPositiveButton("Fertig", null).show();
@@ -634,5 +644,5 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         super.onStop();
         if (player != null) { player.release(); player = null; }
     }
-    @Override protected void onDestroy() { Web.onChange = null; super.onDestroy(); }
+    @Override protected void onDestroy() { Web.onChange = null; Web.onPin = null; super.onDestroy(); }
 }

@@ -11,7 +11,7 @@ import java.util.*;
 
 /** Mediathek: Filme und Serien mit Postern, Kategorien, Detailseite, Staffeln/Folgen und Weiterschauen. */
 final class Library extends View {
-    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); void askSearch(String last); }
+    interface Cb { void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs); void close(); void askSearch(String last); void manageCats(List<Vod.Cat> all, Set<String> hidden, Runnable done); void toast(String s); }
 
     final Cb cb;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -20,7 +20,8 @@ final class Library extends View {
     static final String CONTINUE = "#continue";
 
     int tab, area = 1;                      // area: 0 Reiter, 1 Kategorien, 2 Raster, 3 Detail
-    final List<Vod.Cat> cats = new ArrayList<>();
+    final List<Vod.Cat> cats = new ArrayList<>(), allCats = new ArrayList<>();
+    static final String MANAGE = "#manage";
     int ci, catTop; String status = "";
     final List<Vod.Item> items = new ArrayList<>();
     int gi, rowTop, page; boolean more, loadingItems; int gen;
@@ -98,12 +99,30 @@ final class Library extends View {
             final List<Vod.Cat> l = Vod.categories(getContext(), tab);
             ui.post(new Runnable() { public void run() {
                 if (g != gen) return;
-                cats.addAll(l);
+                allCats.clear(); allCats.addAll(l);
+                Set<String> hid = Lib.hiddenVod(getContext());
+                for (Vod.Cat k : l) if (!hid.contains(Lib.vodKey(k))) cats.add(k);
+                if (!l.isEmpty()) { Vod.Cat m = new Vod.Cat(); m.id = MANAGE; m.name = "\uD83D\uDC41  Kategorien ein-/ausblenden" + (hid.isEmpty() ? "" : "  (" + countHidden(l, hid) + " aus)"); m.kind = tab; cats.add(m); }
                 status = l.isEmpty() ? (tab == Vod.MOVIE ? "Deine Quellen bieten keine Filme an" : "Deine Quellen bieten keine Serien an – bei manchen Portalen stecken sie unter „Filme“") : "";
                 if (cats.size() > 1 && continueItems().isEmpty()) ci = 1;
                 loadItems(true);
             }});
         }}).start();
+    }
+    static int countHidden(List<Vod.Cat> l, Set<String> hid) { int n = 0; for (Vod.Cat k : l) if (hid.contains(Lib.vodKey(k))) n++; return n; }
+    void manage() {
+        cb.manageCats(new ArrayList<>(allCats), Lib.hiddenVod(getContext()), new Runnable() { public void run() { loadCats(); } });
+    }
+    void hideCat() {
+        if (ci >= cats.size()) return;
+        Vod.Cat k = cats.get(ci);
+        if (k.id.equals(CONTINUE) || k.id.equals(MANAGE) || k.id.startsWith("#")) return;
+        Set<String> s = Lib.hiddenVod(getContext()); s.add(Lib.vodKey(k)); Lib.setHiddenVod(getContext(), s);
+        cats.remove(ci);
+        for (Vod.Cat m : cats) if (m.id.equals(MANAGE)) m.name = "\uD83D\uDC41  Kategorien ein-/ausblenden  (" + countHidden(allCats, s) + " aus)";
+        ci = Math.min(ci, cats.size() - 1);
+        cb.toast("„" + k.name + "“ ausgeblendet");
+        loadItems(true);
     }
     List<Vod.Item> continueItems() {
         List<Vod.Item> l = new ArrayList<>();
@@ -114,6 +133,8 @@ final class Library extends View {
         if (cats.isEmpty() || tab == SEARCH) return;
         final Vod.Cat cat = cats.get(ci);
         if (reset) { items.clear(); gi = 0; rowTop = 0; page = 0; more = false; gen++; }
+        if (cat.id.equals(MANAGE)) { more = false; status = "OK: Kategorien an- und abhaken  ·  MENU auf einer Kategorie blendet sie sofort aus"; invalidate(); return; }
+        if (status.startsWith("OK: Kategorien")) status = "";
         if (cat.id.equals(CONTINUE)) { items.addAll(continueItems()); more = false; invalidate(); return; }
         if (loadingItems && !reset) return;
         final int g = gen, pg = page + 1;
@@ -183,6 +204,8 @@ final class Library extends View {
             case 1:
                 if (k == KeyEvent.KEYCODE_DPAD_UP) { if (ci == 0) area = 0; else { ci--; loadItems(true); } invalidate(); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_DOWN) { if (ci < cats.size() - 1) { ci++; loadItems(true); } invalidate(); return true; }
+                if (k == KeyEvent.KEYCODE_MENU && tab != SEARCH) { hideCat(); invalidate(); return true; }
+                if (ok && tab != SEARCH && ci < cats.size() && cats.get(ci).id.equals(MANAGE)) { manage(); return true; }
                 if (tab == SEARCH && (ok || items.isEmpty())) { if (ok || k == KeyEvent.KEYCODE_DPAD_RIGHT) cb.askSearch(query); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_RIGHT || ok) { if (!items.isEmpty()) { area = 2; gi = 0; } invalidate(); return true; }
                 return true;
@@ -279,7 +302,7 @@ final class Library extends View {
             String nm = k.name + (srcs.size() > 1 && k.src != null && Lib.srcNames.containsKey(k.src) ? "  ·  " + Lib.srcNames.get(k.src) : "");
             t.setTypeface(sel ? U.BOLD : U.POP); t.setTextSize(14 * dp); t.setColor(sel ? Color.WHITE : 0xFFC9CCE0);
             c.drawText(Views.ell(t, nm, cw - 16 * dp), x + 4 * dp, y + rh / 2 + 5 * dp, t);
-            final int idx = i; hit(r, new Runnable() { public void run() { ci = idx; area = 1; loadItems(true); } });
+            final int idx = i; hit(r, new Runnable() { public void run() { boolean again = ci == idx && area == 1; ci = idx; area = 1; if (again && cats.get(idx).id.equals(MANAGE)) manage(); else loadItems(true); } });
         }
         // Raster
         float gx = x + cw + 30 * dp, gw = w - gx - 30 * dp;
@@ -340,6 +363,7 @@ final class Library extends View {
         c.save();
         Path clip = new Path(); clip.addRoundRect(r, rad, rad, Path.Direction.CW); c.clipPath(clip);
         if (b != null) {
+            p.setShader(null); p.setColor(Color.WHITE);   // volle Deckkraft (Pinsel hatte noch die Transparenz der Kategorie-Markierung)
             float s = Math.max(r.width() / b.getWidth(), r.height() / b.getHeight());
             float bw = b.getWidth() * s, bh = b.getHeight() * s;
             c.drawBitmap(b, null, new RectF(r.centerX() - bw / 2, r.centerY() - bh / 2, r.centerX() + bw / 2, r.centerY() + bh / 2), p);

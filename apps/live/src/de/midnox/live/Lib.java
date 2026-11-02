@@ -7,7 +7,7 @@ import java.util.*;
 
 /** Quellen, Senderliste (mit Cache), Gruppen, Favoriten, ausgeblendete Gruppen. */
 final class Lib {
-    static final String FAV = "★ Favoriten", ALL = "Alle Sender", SETTINGS = "\u2699 Einstellungen", VOD = "\uD83C\uDFAC Filme & Serien";
+    static final String FAV = "★ Favoriten", ALL = "Alle Sender", SETTINGS = "\u2699 Einstellungen", VOD = "\uD83C\uDFAC Filme & Serien", MANAGE = "\uD83D\uDC41 Gruppen ein-/ausblenden";
     static volatile List<Model.Channel> channels = new ArrayList<>();
     static volatile List<String> groups = new ArrayList<>();
     static final Map<String, String> errors = Collections.synchronizedMap(new HashMap<String, String>());
@@ -99,7 +99,7 @@ final class Lib {
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
         List<String> g = new ArrayList<>();
-        g.add(FAV); g.add(ALL); g.add(VOD); g.addAll(gs); g.add(SETTINGS);
+        g.add(FAV); g.add(ALL); g.add(VOD); g.addAll(gs); g.add(MANAGE); g.add(SETTINGS);
         groups = g;
     }
     static boolean stale() { return System.currentTimeMillis() - loadedAt > 12 * 3600000L; }
@@ -115,6 +115,16 @@ final class Lib {
         for (Map.Entry<String, Integer> e : count.entrySet()) l.add(new String[]{e.getKey(), String.valueOf(e.getValue())});
         return l;
     }
+    static boolean special(String g) { return g.equals(FAV) || g.equals(ALL) || g.equals(VOD) || g.equals(SETTINGS) || g.equals(MANAGE); }
+    static void hideGroup(Context c, String g, boolean hide) {
+        Set<String> s = hiddenGroups(c);
+        if (hide) s.add(g); else s.remove(g);
+        setHidden(c, s);
+    }
+    /** Filme/Serien-Kategorien: Schluessel Quelle|Art|Name (Name statt ID, damit es Portal-Neuladen uebersteht). */
+    static String vodKey(Vod.Cat k) { return k.src + "|" + k.kind + "|" + k.name; }
+    static Set<String> hiddenVod(Context c) { return new HashSet<>(U.prefs(c).getStringSet("vod_hidden", new HashSet<String>())); }
+    static void setHiddenVod(Context c, Set<String> s) { U.prefs(c).edit().putStringSet("vod_hidden", new HashSet<>(s)).apply(); }
     static Set<String> hiddenGroups(Context c) { return new HashSet<>(U.prefs(c).getStringSet("hidden", new HashSet<String>())); }
     static void setHidden(Context c, Set<String> s) {
         U.prefs(c).edit().putStringSet("hidden", new HashSet<>(s)).apply();

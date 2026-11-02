@@ -8,7 +8,9 @@
    "pkg": "de.midnox.live",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
    "version": "2.1",
-   "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Einrichten per Handy, PC oder Einrichtungscode."
+   "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Einrichten per Handy, PC oder Einrichtungscode.",
+   "versionCode": 12,
+   "versionName": "2.2"
   },
   {
    "id": "midnox-radio",

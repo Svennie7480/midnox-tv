@@ -374,6 +374,29 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
     @Override public void settings() { closeList(); openMenu(); }
     @Override public void library() { closeList(); openLibrary(); }
+    @Override public void toast(String s) { showStatus(s, 3500); }
+    @Override public void manageGroups() {
+        List<String[]> all = Lib.allGroups(this);
+        final Set<String> hid = Lib.hiddenGroups(this);
+        final String[] names = new String[all.size()]; final boolean[] on = new boolean[all.size()];
+        String[] labels = new String[all.size()];
+        for (int i = 0; i < all.size(); i++) { names[i] = all.get(i)[0]; on[i] = !hid.contains(names[i]); labels[i] = (names[i].isEmpty() ? "(ohne Gruppe)" : names[i]) + "   · " + all.get(i)[1]; }
+        pickVisible("Welche Sender-Gruppen anzeigen?", labels, on, new Runnable() { public void run() {
+            Set<String> h = new HashSet<>();
+            for (int i = 0; i < names.length; i++) if (!on[i]) h.add(names[i]);
+            Lib.setHidden(PlayerActivity.this, h);
+            list.open(Lib.MANAGE, current == null ? null : current.id);
+        } });
+    }
+    /** Auswahlliste mit Haken (Fernbedienung: hoch/runter, OK hakt an/ab). */
+    void pickVisible(String title, String[] labels, final boolean[] on, final Runnable save) {
+        if (labels.length == 0) { showStatus("Noch nichts geladen", 3000); return; }
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title)
+            .setMultiChoiceItems(labels, on, new android.content.DialogInterface.OnMultiChoiceClickListener() { public void onClick(android.content.DialogInterface d, int w, boolean v) { on[w] = v; } })
+            .setPositiveButton("Speichern", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { save.run(); } })
+            .setNeutralButton("Alle an", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { java.util.Arrays.fill(on, true); save.run(); } })
+            .setNegativeButton("Abbrechen", null).show();
+    }
 
     // ------------------------------------------------------------ Mediathek (Filme und Serien)
     Library library;
@@ -383,6 +406,22 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     final Library.Cb libCb = new Library.Cb() {
         public void playVod(Vod.Item it, Vod.Episode ep, List<Vod.Episode> next, long startMs) { startVod(it, ep, next, startMs); }
         public void close() { closeLibrary(); }
+        public void toast(String s) { showStatus(s, 3500); }
+        public void manageCats(List<Vod.Cat> all, Set<String> hidden, final Runnable done) {
+            final List<Vod.Cat> l = all;
+            final boolean[] on = new boolean[l.size()]; String[] labels = new String[l.size()];
+            Set<String> srcs = new HashSet<>(); for (Vod.Cat k : l) srcs.add(k.src);
+            for (int i = 0; i < l.size(); i++) {
+                Vod.Cat k = l.get(i); on[i] = !hidden.contains(Lib.vodKey(k));
+                labels[i] = k.name + (srcs.size() > 1 && Lib.srcNames.containsKey(k.src) ? "   · " + Lib.srcNames.get(k.src) : "");
+            }
+            pickVisible("Welche Kategorien anzeigen?", labels, on, new Runnable() { public void run() {
+                Set<String> h = Lib.hiddenVod(PlayerActivity.this);
+                for (int i = 0; i < l.size(); i++) { String key = Lib.vodKey(l.get(i)); if (on[i]) h.remove(key); else h.add(key); }
+                Lib.setHiddenVod(PlayerActivity.this, h);
+                done.run();
+            } });
+        }
         public void askSearch(String last) {
             final EditText et = new EditText(PlayerActivity.this);
             et.setHint("Film oder Serie, z. B. Avatar");
@@ -663,7 +702,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
     final Runnable hideStatusR = new Runnable() { public void run() { status.setVisibility(View.GONE); } };
     void hideStatus() { status.setVisibility(View.GONE); }
-    void toast(String s) { showStatus(s, 3000); }
+
 
     // ------------------------------------------------------------ Menue
     void openMenu() {

@@ -27,6 +27,7 @@ final class Views {
         if (b != null) {
             p.setShader(null);
             if (dark(b)) { p.setColor(0xF2F4F4F8); c.drawRoundRect(r, rad, rad, p); }   // dunkles Logo -> helle Karte
+            p.setColor(Color.WHITE);
             float s = Math.min((r.width() - 6 * U.dp) / b.getWidth(), (r.height() - 6 * U.dp) / b.getHeight());
             float bw = b.getWidth() * s, bh = b.getHeight() * s;
             c.drawBitmap(b, null, new RectF(r.centerX() - bw / 2, r.centerY() - bh / 2, r.centerX() + bw / 2, r.centerY() + bh / 2), p);
@@ -64,7 +65,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void manageGroups(); void toast(String s); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -108,6 +109,12 @@ final class Views {
             }
             if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
             if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.VOD)) { cb.library(); return true; }
+            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; }
+            if (k == KeyEvent.KEYCODE_MENU && col == 0) {
+                String g = group();
+                if (!Lib.special(g)) { Lib.hideGroup(getContext(), g, true); groups = Lib.groups; gi = Math.min(gi, groups.size() - 1); loadGroup(); cb.toast("„" + g + "“ ausgeblendet – zurückholen unter " + Lib.MANAGE); invalidate(); }
+                return true;
+            }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.play(ch); return true;
@@ -121,7 +128,7 @@ final class Views {
             if (y < top) return true;
             if (x < gw) {
                 int i = gTop + (int) ((y - top) / (44 * dp));
-                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } if (group().equals(Lib.VOD)) { cb.library(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
+                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } if (group().equals(Lib.VOD)) { cb.library(); return true; } if (group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
                 return true;
             }
             if (x < gw + cw + 16 * dp) {
@@ -182,7 +189,7 @@ final class Views {
             if (ci < cTop) cTop = ci; if (ci >= cTop + cv) cTop = ci - cv + 1;
             if (chans.isEmpty()) {
                 t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED);
-                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
+                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.MANAGE) ? "OK: Gruppen an- und abhaken  ·  MENU auf einer Gruppe blendet sie sofort aus" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
             }
             for (int i = cTop; i < chans.size() && i < cTop + cv; i++) {
                 Model.Channel ch = chans.get(i);

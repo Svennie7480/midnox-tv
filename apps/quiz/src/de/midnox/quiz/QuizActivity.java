@@ -197,9 +197,10 @@ public class QuizActivity extends Activity {
         void go(int s) { if (s == HOME || s == BOARD || s == LOBBY || s == PROFILE) Voice.stop(); screen = s; if (s == HOME) checkBadges(); invalidate(); }
 
         // ============================================================ Startseite
-        int hf = 0;   // 0..4 Kacheln, 5 Name, 6 Ton, 7 Moderator
-        final String[] tiles = {"Die Million", "Tages-Duell", "Party", "Bestenliste", "Profil"};
-        final String[] icons = {"€", "📅", "📱", "🏆", "👤"};
+        int hf = 0;   // 0..5 Kacheln, 6 Name, 7 Ton, 8 Moderator
+        static final int NT = 6;
+        final String[] tiles = {"Die Million", "Tages-Duell", "Duell", "Party", "Bestenliste", "Profil"};
+        final String[] icons = {"€", "📅", "⚔️", "📱", "🏆", "👤"};
         void drawHome(Canvas c) {
             float pad = 44 * dp;
             logo(c, pad, 70 * dp, 38 * dp);
@@ -212,22 +213,23 @@ public class QuizActivity extends Activity {
                 "15 Fragen bis zur Million. Drei Joker, zwei Sicherheitsstufen und die weltweite Bestenliste.",
                 dres != null ? "Heute geschafft: " + U.num(dres.optInt("s")) + " Punkte" + (dres.optInt("rank") > 0 ? " · Platz " + dres.optInt("rank") : "") + ". Morgen gibt’s neue Fragen."
                              : (streak > 0 ? "Halte deine Serie von " + streak + (streak == 1 ? " Tag" : " Tagen") + "! " : "") + "10 Fragen, für alle weltweit dieselben. Ein Versuch pro Tag.",
-                "Bis zu 12 Leute spielen mit dem Handy – auch mit deinen eigenen Fragenpaketen.",
+                "Fordere Freunde heraus: gleiche 10 Fragen per Code – wer ist besser?",
+                "Bis zu 12 Leute mit dem Handy – klassisch oder als Buzzer-Runde.",
                 "Weltweit, diese Woche und in deinen Freundesgruppen.",
                 Stats.count(QuizActivity.this) + " von " + Stats.ALL.length + " Abzeichen · Statistik · Freundesgruppen gründen und beitreten."};
-            float gap = 18 * dp, tw = (W - 2 * pad - 4 * gap) / 5, th = 250 * dp, ty = 140 * dp;
-            for (int i = 0; i < 5; i++) {
+            float gap = 14 * dp, tw = (W - 2 * pad - (NT - 1) * gap) / NT, th = 250 * dp, ty = 140 * dp;
+            for (int i = 0; i < NT; i++) {
                 RectF r = new RectF(pad + i * (tw + gap), ty, pad + i * (tw + gap) + tw, ty + th);
                 boolean f = hf == i;
                 if (f) { float g = 6 * dp; r.inset(-g, -g); }
                 card(c, r, f ? U.CARD2 : U.CARD, 22 * dp);
                 if (f) focus(c, r, 22 * dp);
-                float cx = r.left + 24 * dp + 26 * dp, cy = r.top + 56 * dp;
+                float cx = r.left + 20 * dp + 26 * dp, cy = r.top + 56 * dp;
                 p.setShader(U.brand(cx - 26 * dp, cx + 26 * dp)); c.drawCircle(cx, cy, 26 * dp, p); p.setShader(null);
                 centerText(c, icons[i], cx, cy + 9 * dp, 24 * dp, Color.WHITE, true);
-                text(c, tiles[i], r.left + 24 * dp, r.top + 122 * dp, 22 * dp, Color.WHITE, true);
-                t.setTypeface(U.POP); t.setTextSize(14 * dp); t.setColor(0xFFB4B8CC);
-                U.multi(c, t, desc[i], r.left + 24 * dp, r.top + 152 * dp, r.width() - 44 * dp, 5, false);
+                t.setTypeface(U.BOLD); t.setColor(Color.WHITE); U.fit(t, tiles[i], r.width() - 40 * dp, 1, 21 * dp, 15 * dp); c.drawText(tiles[i], r.left + 20 * dp, r.top + 122 * dp, t);
+                t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(0xFFB4B8CC);
+                U.multi(c, t, desc[i], r.left + 20 * dp, r.top + 150 * dp, r.width() - 36 * dp, 6, false);
                 if (i == 1 && dres != null) { p.setColor(U.OK); c.drawCircle(r.right - 28 * dp, r.top + 32 * dp, 12 * dp, p); centerText(c, "✓", r.right - 28 * dp, r.top + 38 * dp, 16 * dp, Color.WHITE, true); }
                 final int idx = i; hit(r, new Runnable() { public void run() { hf = idx; open(idx); } });
             }
@@ -235,11 +237,11 @@ public class QuizActivity extends Activity {
             float bx = pad, by = ty + th + 30 * dp, bw = (W - 2 * pad - 2 * 18 * dp) / 3;
             for (int i = 0; i < 3; i++) {
                 RectF r = new RectF(bx + i * (bw + 18 * dp), by, bx + i * (bw + 18 * dp) + bw, by + 46 * dp);
-                card(c, r, hf == 5 + i ? U.CARD2 : U.CARD, 23 * dp);
-                if (hf == 5 + i) focus(c, r, 23 * dp);
-                t.setTypeface(hf == 5 + i ? U.BOLD : U.POP); t.setTextSize(16 * dp); t.setColor(Color.WHITE);
+                card(c, r, hf == NT + i ? U.CARD2 : U.CARD, 23 * dp);
+                if (hf == NT + i) focus(c, r, 23 * dp);
+                t.setTypeface(hf == NT + i ? U.BOLD : U.POP); t.setTextSize(16 * dp); t.setColor(Color.WHITE);
                 c.drawText(ell(lab[i], r.width() - 40 * dp), r.left + 20 * dp, r.centerY() + 6 * dp, t);
-                final int ii = i; hit(r, new Runnable() { public void run() { hf = 5 + ii; bottomAction(ii); } });
+                final int ii = i; hit(r, new Runnable() { public void run() { hf = NT + ii; bottomAction(ii); } });
             }
             text(c, Bank.all.size() + " Fragen in " + Bank.cats.size() + " Kategorien  ·  Bestenliste auch im Browser: " + Scores.WEB, pad, H - 30 * dp, 14 * dp, U.MUTED, false);
             drawToast(c);
@@ -247,16 +249,16 @@ public class QuizActivity extends Activity {
         void bottomAction(int i) { if (i == 0) askName(null); else if (i == 1) cycleSound(); else toggleVoice(); }
         boolean homeKey(int k, boolean ok) {
             if (k == KeyEvent.KEYCODE_BACK) { finish(); return true; }
-            if (hf < 5) {
+            if (hf < NT) {
                 if (k == KeyEvent.KEYCODE_DPAD_LEFT && hf > 0) hf--;
-                else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf < 4) hf++;
-                else if (k == KeyEvent.KEYCODE_DPAD_DOWN) hf = 5 + Math.min(2, hf * 3 / 5);
+                else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf < NT - 1) hf++;
+                else if (k == KeyEvent.KEYCODE_DPAD_DOWN) hf = NT + Math.min(2, hf / 2);
                 else if (ok) open(hf);
             } else {
-                if (k == KeyEvent.KEYCODE_DPAD_LEFT && hf > 5) hf--;
-                else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf < 7) hf++;
-                else if (k == KeyEvent.KEYCODE_DPAD_UP) hf = Math.min(4, (hf - 5) * 2);
-                else if (ok) bottomAction(hf - 5);
+                if (k == KeyEvent.KEYCODE_DPAD_LEFT && hf > NT) hf--;
+                else if (k == KeyEvent.KEYCODE_DPAD_RIGHT && hf < NT + 2) hf++;
+                else if (k == KeyEvent.KEYCODE_DPAD_UP) hf = Math.min(NT - 1, (hf - NT) * 2);
+                else if (ok) bottomAction(hf - NT);
             }
             return true;
         }
@@ -302,11 +304,12 @@ public class QuizActivity extends Activity {
             Audio.music(wantMusic());
         }
         void open(final int i) {
-            if ((i == 0 || i == 1) && name().length() < 2) { askName(new Runnable() { public void run() { open(i); } }); return; }
+            if (i <= 2 && name().length() < 2) { askName(new Runnable() { public void run() { open(i); } }); return; }
             if (i == 0) startMillion();
             else if (i == 1) startDaily();
-            else if (i == 2) openLobby();
-            else if (i == 3) openBoard(0);
+            else if (i == 2) openChallenge();
+            else if (i == 3) openLobby();
+            else if (i == 4) openBoard(0);
             else openProfile();
         }
 
@@ -325,10 +328,13 @@ public class QuizActivity extends Activity {
         }
         void newQuestion() {
             mHidden = new boolean[4]; mAudience = null; mPhone = null; mPhoneAns = -1; mState = M_ASK; msel = 0; mrow = 0; Bank.markSeen(QuizActivity.this, mq.get(mi).id);
-            String pre = mi == 0 ? "p:welcome_million" : mi == 5 ? "p:safety5" : mi == 10 ? "p:safety10" : mi == 14 ? "p:last" : null;
+            String pre = mi == 0 ? Voice.pick("p:welcome_million", "p:welcome_million2", "p:welcome_million3") : mi == 5 ? Voice.pick("p:safety5", "p:safety5_2") : mi == 10 ? Voice.pick("p:safety10", "p:safety10_2")
+                : mi == 14 ? Voice.pick("p:last", "p:last2") : mi >= 11 && new Random().nextBoolean() ? Voice.pick("p:tense1", "p:tense2", "p:tense3") : null;
             if (pre != null) Voice.say(pre, "q:" + mq.get(mi).id); else Voice.say("q:" + mq.get(mi).id);
             if (mi + 1 < mq.size()) Voice.prefetch("q:" + mq.get(mi + 1).id);
         }
+        String rightPhrase() { return Voice.pick("p:right1", "p:right2", "p:right3", "p:right4", "p:right5", "p:right6", "p:right7", "p:right8"); }
+        String wrongPhrase() { return Voice.pick("p:wrong1", "p:wrong2", "p:wrong3", "p:wrong4", "p:wrong5"); }
         int safety(int answered) { return answered >= 10 ? Scores.LADDER[10] : answered >= 5 ? Scores.LADDER[5] : 0; }
         void millionTick() {
             long now = System.currentTimeMillis();
@@ -336,7 +342,7 @@ public class QuizActivity extends Activity {
                 boolean right = msel == mq.get(mi).correct;
                 beep(right);
                 Stats.answer(QuizActivity.this, mq.get(mi).cat, right);
-                if (!(right && mi == 14)) Voice.say(right ? Voice.pick("p:right1", "p:right2", "p:right3") : Voice.pick("p:wrong1", "p:wrong2"));
+                if (!(right && mi == 14)) Voice.say(right ? rightPhrase() : wrongPhrase());
                 mState = right ? M_RIGHT : M_WRONG; mStateAt = now;
             } else if (mState == M_RIGHT && now - mStateAt > 2400) {
                 if (mi == 14) endMillion(Scores.LADDER[15], "Du hast die Million geknackt!");
@@ -348,7 +354,7 @@ public class QuizActivity extends Activity {
         void endMillion(int won, String msg) {
             mWon = won; mEndMsg = msg; mState = M_END; mjf = 0;
             if (won >= 16000) Audio.fx("win");
-            if (won >= 1000000) Voice.say("p:million"); else if (mQuit) Voice.say("p:quit");
+            if (won >= 1000000) Voice.say(Voice.pick("p:million", "p:million2")); else if (mQuit) Voice.say(Voice.pick("p:quit", "p:quit2"));
             boolean usedJ = mJoker[0] || mJoker[1] || mJoker[2];
             Stats.millionEnd(QuizActivity.this, won, usedJ); checkBadges();
             mEndSec = (System.currentTimeMillis() - mStart) / 1000; mResult = null;
@@ -362,7 +368,7 @@ public class QuizActivity extends Activity {
             if (mJoker[j] || mState != M_ASK) return;
             Bank.Q q = mq.get(mi); Random rnd = new Random();
             mJoker[j] = true;
-            Voice.say(j == 0 ? "p:joker50" : j == 1 ? "p:jokeraud" : "p:jokerphone");
+            Voice.say(j == 0 ? Voice.pick("p:joker50", "p:joker50_2") : j == 1 ? Voice.pick("p:jokeraud", "p:jokeraud2") : Voice.pick("p:jokerphone", "p:jokerphone2"));
             if (j == 0) {   // 50:50
                 List<Integer> wrong = new ArrayList<>(); for (int i = 0; i < 4; i++) if (i != q.correct) wrong.add(i);
                 Collections.shuffle(wrong, rnd); mHidden[wrong.get(0)] = true; mHidden[wrong.get(1)] = true;
@@ -560,12 +566,14 @@ public class QuizActivity extends Activity {
 
         // ============================================================ Tages-Duell
         List<Bank.Q> dq; int di, dsel, dState; long dStart, dStateAt; int dScore, dCorrect; long dTotalMs; int[] dGain; JSONObject dRes; String dDay; int dFocus;
+        String dChallenge, dFrom = "";   // Code der Herausforderung (null = Tages-Duell)
         static final int D_ASK = 0, D_SHOW = 1, D_END = 2;
         static final long D_MS = 20000;
         JSONObject dailyResult(String day) {
             try { String s = U.prefs(QuizActivity.this).getString("daily_" + day, ""); return s.isEmpty() ? null : new JSONObject(s); } catch (Exception e) { return null; }
         }
         void startDaily() {
+            dChallenge = null;
             dDay = Scores.today();
             JSONObject done = dailyResult(dDay);
             dq = Bank.daily(dDay);
@@ -581,7 +589,8 @@ public class QuizActivity extends Activity {
             try {
                 JSONObject o = new JSONObject().put("s", dScore).put("c", dCorrect).put("t", Math.max(1, dTotalMs / 1000)).put("fin", fin);
                 if (dRes != null && dRes.optBoolean("ok")) o.put("rank", dRes.optInt("rank")).put("players", dRes.optInt("players"));
-                U.prefs(QuizActivity.this).edit().putString("daily_" + dDay, o.toString()).apply();
+                if (dChallenge != null && dRes != null && dRes.has("list")) o.put("list", dRes.optJSONArray("list"));
+                U.prefs(QuizActivity.this).edit().putString(dChallenge != null ? "ch_" + dChallenge : "daily_" + dDay, o.toString()).apply();
             } catch (Exception ignored) {}
         }
         void dailyAnswer(int a) {
@@ -594,7 +603,7 @@ public class QuizActivity extends Activity {
             dGain[di] = g; dScore += g; if (ok) dCorrect++;
             beep(ok);
             Stats.answer(QuizActivity.this, q.cat, ok);
-            Voice.say(a < 0 ? "p:timeup" : ok ? "p:right1" : "p:wrong2");
+            Voice.say(a < 0 ? Voice.pick("p:timeup", "p:timeup2", "p:timeup3") : !ok ? wrongPhrase() : t < 4000 ? Voice.pick("p:fast1", "p:fast2") : t > 17000 ? Voice.pick("p:close1", "p:close2") : rightPhrase());
             dState = D_SHOW; dStateAt = System.currentTimeMillis();
             saveDaily(false);
         }
@@ -604,7 +613,8 @@ public class QuizActivity extends Activity {
             if (dState == D_ASK && System.currentTimeMillis() - dStart >= D_MS) dailyAnswer(-1);
             else if (dState == D_SHOW && System.currentTimeMillis() - dStateAt > 2200) {
                 if (di + 1 >= dq.size()) {
-                    dState = D_END; saveDaily(true); Audio.fx("win"); Voice.say("p:daily_end");
+                    dState = D_END; saveDaily(true); Audio.fx("win"); Voice.say(dChallenge != null ? "p:challenge_end" : Voice.pick("p:daily_end", "p:daily_end2"));
+                    if (dChallenge != null) { finishChallenge(); return; }
                     Stats.dailyEnd(QuizActivity.this, dScore, dCorrect); checkBadges();
                     final int s = dScore; final long sec = Math.max(10, dTotalMs / 1000);
                     new Thread(new Runnable() { public void run() {
@@ -618,7 +628,7 @@ public class QuizActivity extends Activity {
             if (dState == D_END) {
                 if (k == KeyEvent.KEYCODE_BACK) { go(HOME); return true; }
                 if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) dFocus = 1 - dFocus;
-                else if (ok) { if (dFocus == 0) openBoard(0); else go(HOME); }
+                else if (ok) { if (dChallenge != null) { if (dFocus == 0) refreshChallenge(); else go(HOME); } else if (dFocus == 0) openBoard(0); else go(HOME); }
                 return true;
             }
             if (k == KeyEvent.KEYCODE_BACK) { go(HOME); return true; }   // zaehlt als gespielt
@@ -633,10 +643,10 @@ public class QuizActivity extends Activity {
         void drawDaily(Canvas c) {
             float pad = 48 * dp;
             logo(c, pad, 60 * dp, 26 * dp);
-            text(c, "Tages-Duell · " + dDay.substring(8) + "." + dDay.substring(5, 7) + ".", pad + 190 * dp, 60 * dp, 20 * dp, U.MUTED, false);
+            text(c, dChallenge != null ? "Herausforderung · " + dChallenge + (dFrom.isEmpty() ? "" : " von " + dFrom) : "Tages-Duell · " + dDay.substring(8) + "." + dDay.substring(5, 7) + ".", pad + 190 * dp, 60 * dp, 20 * dp, U.MUTED, false);
             t.setTypeface(U.BOLD); t.setTextSize(22 * dp); t.setColor(Color.WHITE);
             String sc = U.num(dScore) + " Punkte"; c.drawText(sc, W - pad - t.measureText(sc), 60 * dp, t);
-            if (dState == D_END) { drawDailyEnd(c, pad); return; }
+            if (dState == D_END) { if (dChallenge != null) drawChallengeEnd(c, pad); else drawDailyEnd(c, pad); return; }
             Bank.Q q = dq.get(di);
             // Fortschritt
             float px = pad, py = 86 * dp, pw = (W - 2 * pad - 9 * 8 * dp) / 10;
@@ -699,15 +709,127 @@ public class QuizActivity extends Activity {
             }
         }
 
+        // ============================================================ Herausforderung
+        JSONArray chRecent() { try { return new JSONArray(U.prefs(QuizActivity.this).getString("ch_recent", "[]")); } catch (Exception e) { return new JSONArray(); } }
+        void chRemember(String code, String from) {
+            JSONArray a = chRecent(), b = new JSONArray();
+            try { b.put(new JSONObject().put("code", code).put("from", from)); } catch (Exception ignored) {}
+            for (int i = 0; i < a.length() && b.length() < 6; i++) if (!a.optJSONObject(i).optString("code").equals(code)) b.put(a.optJSONObject(i));
+            U.prefs(QuizActivity.this).edit().putString("ch_recent", b.toString()).apply();
+        }
+        void openChallenge() {
+            final JSONArray rec = chRecent();
+            final List<String> items = new ArrayList<>();
+            items.add("⚔️  Neue Herausforderung starten"); items.add("🔑  Code eingeben und mitspielen");
+            for (int i = 0; i < rec.length(); i++) items.add("📋  Ergebnis " + rec.optJSONObject(i).optString("code") + (rec.optJSONObject(i).optString("from").isEmpty() ? "" : " (von " + rec.optJSONObject(i).optString("from") + ")"));
+            new AlertDialog.Builder(QuizActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Herausforderung")
+                .setItems(items.toArray(new String[0]), new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                    if (w == 0) newChallenge();
+                    else if (w == 1) askText("Herausforderung annehmen", "Gib den 6-stelligen Code ein.", "", new Cb() { public void done(String code) { joinChallenge(code.toUpperCase(Locale.ROOT)); } });
+                    else joinChallenge(rec.optJSONObject(w - 2).optString("code"));
+                }}).show();
+        }
+        void newChallenge() {
+            final List<String> ids = Bank.challengeIds(QuizActivity.this);
+            final long seed = new Random().nextLong() & 0x7FFFFFFFL;
+            toast("Herausforderung wird angelegt …");
+            new Thread(new Runnable() { public void run() {
+                JSONObject r; try { r = Scores.chNew(QuizActivity.this, name(), ids, seed); } catch (Exception e) { r = null; }
+                final JSONObject fr = r;
+                h.post(new Runnable() { public void run() {
+                    if (fr == null || !fr.optBoolean("ok")) { toast(fr == null ? "Keine Verbindung zum Server" : fr.optString("msg", "Fehler")); return; }
+                    String code = fr.optString("code"); chRemember(code, "");
+                    playChallenge(code, Bank.byIds(ids, seed), "");
+                }});
+            }}).start();
+        }
+        void joinChallenge(final String code) {
+            new Thread(new Runnable() { public void run() {
+                JSONObject r; try { r = Scores.chGet(QuizActivity.this, code); } catch (Exception e) { r = null; }
+                final JSONObject fr = r;
+                h.post(new Runnable() { public void run() {
+                    if (fr == null || !fr.optBoolean("ok")) { toast(fr == null ? "Keine Verbindung zum Server" : fr.optString("msg", "Nicht gefunden")); return; }
+                    String from = fr.optString("from");
+                    chRemember(code, from);
+                    if (fr.optBoolean("played")) { showChallengeResult(code, from, fr); return; }
+                    List<String> ids = new ArrayList<>(); JSONArray a = fr.optJSONArray("ids"); for (int i = 0; a != null && i < a.length(); i++) ids.add(a.optString(i));
+                    List<Bank.Q> qs = Bank.byIds(ids, fr.optLong("seed"));
+                    if (qs.size() < ids.size()) { toast("Fragen werden aktualisiert – gleich nochmal versuchen"); new Thread(new Runnable() { public void run() { Bank.update(QuizActivity.this); } }).start(); if (qs.size() < 5) return; }
+                    playChallenge(code, qs, from);
+                }});
+            }}).start();
+        }
+        void playChallenge(String code, List<Bank.Q> qs, String from) {
+            dChallenge = code; dFrom = from; dDay = Scores.today();
+            dq = qs; di = 0; dScore = 0; dCorrect = 0; dTotalMs = 0; dGain = new int[dq.size()]; dRes = null; dFocus = 0;
+            saveDaily(false);   // Abbrechen zaehlt als gespielt
+            Voice.say("p:welcome_challenge");
+            dNext(true);
+            go(DAILY);
+        }
+        void showChallengeResult(String code, String from, JSONObject r) {
+            dChallenge = code; dFrom = from; dState = D_END; dFocus = 0; dGain = null;
+            JSONObject mine = null; try { mine = new JSONObject(U.prefs(QuizActivity.this).getString("ch_" + code, "{}")); } catch (Exception ignored) {}
+            dScore = mine == null ? 0 : mine.optInt("s"); dCorrect = mine == null ? 0 : mine.optInt("c"); dTotalMs = mine == null ? 0 : mine.optLong("t") * 1000;
+            dRes = r; if (dq == null) dq = new ArrayList<>();
+            go(DAILY);
+        }
+        void finishChallenge() {
+            final String code = dChallenge; final int s = dScore, cc = dCorrect; final long sec = Math.max(5, dTotalMs / 1000);
+            new Thread(new Runnable() { public void run() {
+                JSONObject r; try { r = Scores.chResult(QuizActivity.this, code, name(), s, sec, cc); } catch (Exception e) { r = null; }
+                final JSONObject fr = r;
+                h.post(new Runnable() { public void run() {
+                    dRes = fr; saveDaily(true); invalidate();
+                    if (fr != null && fr.optBoolean("ok") && fr.optJSONArray("list") != null && fr.optJSONArray("list").length() > 1)
+                        Voice.say(fr.optInt("rank") == 1 ? "p:challenge_win" : "p:challenge_lose");
+                }});
+            }}).start();
+        }
+        void refreshChallenge() {
+            final String code = dChallenge;
+            new Thread(new Runnable() { public void run() {
+                JSONObject r; try { r = Scores.chGet(QuizActivity.this, code); } catch (Exception e) { r = null; }
+                final JSONObject fr = r;
+                h.post(new Runnable() { public void run() { if (fr != null && fr.optBoolean("ok")) { dRes = fr; saveDaily(true); toast("Aktualisiert"); } else toast("Keine Verbindung zum Server"); invalidate(); } });
+            }}).start();
+        }
+        void drawChallengeEnd(Canvas c, float pad) {
+            float lx = pad, lw = (W - 2 * pad) * 0.42f;
+            text(c, "Dein Ergebnis", lx, 120 * dp, 18 * dp, U.MUTED, false);
+            t.setTypeface(U.BOLD); t.setTextSize(58 * dp);
+            String sc = U.num(dScore); float sw = t.measureText(sc);
+            t.setShader(U.brand(lx, lx + sw)); c.drawText(sc, lx, 186 * dp, t); t.setShader(null);
+            text(c, dCorrect + " richtig  ·  Zeit " + U.dur(Math.max(1, dTotalMs / 1000)), lx, 218 * dp, 18 * dp, 0xFFC9CCE0, false);
+            text(c, "Code für deine Freunde:", lx, 270 * dp, 17 * dp, U.MUTED, false);
+            t.setTypeface(U.BOLD); t.setTextSize(52 * dp); t.setColor(Color.WHITE);
+            float cx = lx; for (char ch : dChallenge.toCharArray()) { String s1 = String.valueOf(ch); RectF r = new RectF(cx, 286 * dp, cx + 48 * dp, 350 * dp); card(c, r, U.CARD2, 10 * dp); c.drawText(s1, r.centerX() - t.measureText(s1) / 2, r.bottom - 14 * dp, t); cx += 56 * dp; }
+            t.setTypeface(U.POP); t.setTextSize(15 * dp); t.setColor(U.MUTED);
+            U.multi(c, t, "Wer den Code unter „Duell → Code eingeben“ eintippt, bekommt genau dieselben 10 Fragen. Jeder hat einen Versuch.", lx, 382 * dp, lw, 3, false);
+            // rechts: Rangliste
+            float rx = pad + lw + 40 * dp, rw = W - pad - rx;
+            text(c, "Rangliste dieser Herausforderung", rx, 120 * dp, 18 * dp, Color.WHITE, true);
+            JSONArray l = dRes == null ? null : dRes.optJSONArray("list");
+            if (dRes == null) text(c, "Wird eingetragen …", rx, 160 * dp, 16 * dp, U.MUTED, false);
+            else if (!dRes.optBoolean("ok") && l == null) text(c, dRes.optString("msg", "Server nicht erreichbar"), rx, 160 * dp, 16 * dp, U.MUTED, false);
+            else drawRows(c, l, rx, 136 * dp, rw, "p", 7, true);
+            String[] b = {"Aktualisieren", "Menü"};
+            for (int i = 0; i < 2; i++) {
+                RectF br = new RectF(rx + i * (rw / 2 + 6 * dp), H - 66 * dp, rx + i * (rw / 2 + 6 * dp) + rw / 2 - 6 * dp, H - 20 * dp);
+                pill(c, br, b[i], dFocus == i);
+                final int ii = i; hit(br, new Runnable() { public void run() { if (ii == 0) refreshChallenge(); else go(HOME); } });
+            }
+        }
+
         // ============================================================ Party: Lobby
-        int lf = 2, lCount = 10, lCat = 0; // lf: 0 Fragen, 1 Kategorie, 2 Start
+        int lf = 3, lCount = 10, lCat = 0, lMode = 0; // lf: 0 Fragen, 1 Kategorie, 2 Modus, 3 Start
         final int[] COUNTS = {5, 10, 15, 20};
         io.nayuki.qrcodegen.QrCode qr; String qrUrl = "";
         final int[] PCOL = {0xFF7C3AED, 0xFF06B6D4, 0xFFF59E0B, 0xFFEC4899, 0xFF22C55E, 0xFF3B82F6, 0xFFEF4444, 0xFFA855F7};
         void openLobby() {
             Party.start(QuizActivity.this);
             Party.reset();
-            lf = 2;
+            lf = 3;
             go(LOBBY);
         }
         JSONObject lPack;
@@ -730,15 +852,16 @@ public class QuizActivity extends Activity {
         boolean lobbyKey(int k, boolean ok) {
             if (k == KeyEvent.KEYCODE_BACK) { Party.stop(); go(HOME); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_UP) lf = Math.max(0, lf - 1);
-            else if (k == KeyEvent.KEYCODE_DPAD_DOWN) lf = Math.min(2, lf + 1);
+            else if (k == KeyEvent.KEYCODE_DPAD_DOWN) lf = Math.min(3, lf + 1);
             else if (k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 int d = k == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
                 if (lf == 0) { int i = 0; for (int j = 0; j < COUNTS.length; j++) if (COUNTS[j] == lCount) i = j; lCount = COUNTS[(i + d + COUNTS.length) % COUNTS.length]; }
                 else if (lf == 1) { int n = catKeys().size(); lCat = (lCat + d + n) % n; }
+                else if (lf == 2) lMode = 1 - lMode;
             }
-            else if (ok && lf == 2) startParty();
+            else if (ok && lf == 3) startParty();
             else if (ok && lf == 1 && "#pack".equals(catKeys().get(lCat))) askPack();
-            else if (ok && lf < 2) lobbyKey(KeyEvent.KEYCODE_DPAD_RIGHT, false);
+            else if (ok && lf < 3) lobbyKey(KeyEvent.KEYCODE_DPAD_RIGHT, false);
             return true;
         }
         void startParty() {
@@ -746,6 +869,7 @@ public class QuizActivity extends Activity {
             String cat = catKeys().get(lCat);
             if ("#pack".equals(cat) && lPack == null) { askPack(); return; }
             int n = Math.min(lCount, catCount(cat));
+            Party.mode = lMode;
             Party.begin("#pack".equals(cat) ? Groups.packQuestions(lPack, n) : Bank.party(QuizActivity.this, cat, n));
             partyWelcome = true;
             pStateAt = System.currentTimeMillis(); pf = 0;
@@ -772,22 +896,22 @@ public class QuizActivity extends Activity {
             float rx = qx + qs + 50 * dp, rw = W - pad - rx;
             List<Party.Player> pl = new ArrayList<>(Party.players.values());
             text(c, pl.isEmpty() ? "Warte auf Mitspieler …" : pl.size() + (pl.size() == 1 ? " Spieler ist dabei" : " Spieler sind dabei"), rx, qy + 24 * dp, 24 * dp, Color.WHITE, true);
-            float cw = (rw - 2 * 14 * dp) / 3, ch = 58 * dp;
+            float cw = (rw - 3 * 10 * dp) / 4, ch = 44 * dp;
             for (int i = 0; i < pl.size(); i++) {
                 Party.Player pp = pl.get(i);
-                RectF r = new RectF(rx + (i % 3) * (cw + 14 * dp), qy + 46 * dp + (i / 3) * (ch + 12 * dp), rx + (i % 3) * (cw + 14 * dp) + cw, qy + 46 * dp + (i / 3) * (ch + 12 * dp) + ch);
+                RectF r = new RectF(rx + (i % 4) * (cw + 10 * dp), qy + 40 * dp + (i / 4) * (ch + 8 * dp), rx + (i % 4) * (cw + 10 * dp) + cw, qy + 40 * dp + (i / 4) * (ch + 8 * dp) + ch);
                 card(c, r, U.CARD, 16 * dp);
-                p.setColor(PCOL[pp.color % PCOL.length]); c.drawCircle(r.left + 30 * dp, r.centerY(), 18 * dp, p);
-                centerText(c, pp.name.substring(0, 1).toUpperCase(Locale.GERMAN), r.left + 30 * dp, r.centerY() + 7 * dp, 18 * dp, Color.WHITE, true);
-                t.setTypeface(U.BOLD); t.setTextSize(18 * dp); t.setColor(Color.WHITE);
-                c.drawText(ell(pp.name, cw - 70 * dp), r.left + 58 * dp, r.centerY() + 7 * dp, t);
+                p.setColor(PCOL[pp.color % PCOL.length]); c.drawCircle(r.left + 24 * dp, r.centerY(), 14 * dp, p);
+                centerText(c, initial(pp.name), r.left + 24 * dp, r.centerY() + 6 * dp, 15 * dp, Color.WHITE, true);
+                t.setTypeface(U.BOLD); t.setTextSize(15 * dp); t.setColor(Color.WHITE);
+                c.drawText(ell(pp.name, cw - 54 * dp), r.left + 46 * dp, r.centerY() + 6 * dp, t);
             }
             // Einstellungen
-            float sy = H - 190 * dp;
-            String[] lab = {"Fragen", "Kategorie"};
-            String cur = catKeys().get(lCat); String[] val = {String.valueOf(lCount), catName(cur) + ("#pack".equals(cur) && lPack == null ? "" : "  (" + catCount(cur) + ")")};
-            for (int i = 0; i < 2; i++) {
-                RectF r = new RectF(rx, sy + i * 56 * dp, rx + rw, sy + i * 56 * dp + 46 * dp);
+            float sy = H - 226 * dp;
+            String[] lab = {"Fragen", "Kategorie", "Modus"};
+            String cur = catKeys().get(lCat); String[] val = {String.valueOf(lCount), catName(cur) + ("#pack".equals(cur) && lPack == null ? "" : "  (" + catCount(cur) + ")"), lMode == 0 ? "Klassisch – alle antworten" : "🔔 Buzzer – wer zuerst drückt"};
+            for (int i = 0; i < 3; i++) {
+                RectF r = new RectF(rx, sy + i * 50 * dp, rx + rw, sy + i * 50 * dp + 42 * dp);
                 card(c, r, lf == i ? U.CARD2 : U.CARD, 23 * dp);
                 if (lf == i) focus(c, r, 23 * dp);
                 text(c, lab[i], r.left + 22 * dp, r.centerY() + 6 * dp, 17 * dp, U.MUTED, false);
@@ -795,29 +919,48 @@ public class QuizActivity extends Activity {
                 String v = "‹  " + val[i] + "  ›"; c.drawText(v, r.right - 22 * dp - t.measureText(v), r.centerY() + 6 * dp, t);
                 final int ii = i; hit(r, new Runnable() { public void run() { lf = ii; lobbyKey(KeyEvent.KEYCODE_DPAD_RIGHT, false); } });
             }
-            RectF sr = new RectF(rx, sy + 116 * dp, rx + rw, sy + 168 * dp);
-            pill(c, sr, pl.isEmpty() ? "Spiel starten (wartet auf Spieler)" : "▶  Spiel starten", lf == 2);
-            hit(sr, new Runnable() { public void run() { lf = 2; startParty(); } });
+            RectF sr = new RectF(rx, sy + 156 * dp, rx + rw, sy + 204 * dp);
+            pill(c, sr, pl.isEmpty() ? "Spiel starten (wartet auf Spieler)" : "▶  Spiel starten", lf == 3);
+            hit(sr, new Runnable() { public void run() { lf = 3; startParty(); } });
         }
+        String initial(String n) { if (n == null || n.isEmpty()) return "?"; int cp = n.codePointAt(0); return new String(Character.toChars(cp)).toUpperCase(Locale.GERMAN); }
         String ell(String s, float w) { if (t.measureText(s) <= w) return s; while (s.length() > 1 && t.measureText(s + "…") > w) s = s.substring(0, s.length() - 1); return s + "…"; }
 
         // ============================================================ Party: Spiel
         long pStateAt; int pLastPhase = -1, pf; boolean partyWelcome;
+        String lastLeader;
         void partyTick() {
             long now = System.currentTimeMillis();
+            Party.buzzTick();
             int ph = Party.phase;
             if (ph != pLastPhase) {
-                pLastPhase = ph; pStateAt = now;
-                if (ph == Party.REVEAL) { Voice.stop(); Audio.fx("right"); }
-                else if (ph == Party.END) { Audio.fx("win"); Voice.say("p:party_end"); Stats.partyEnd(QuizActivity.this); checkBadges(); }
+                int prev = pLastPhase; pLastPhase = ph; pStateAt = now;
+                if (ph == Party.REVEAL) {
+                    Voice.stop();
+                    boolean anyRight = false;
+                    if (Party.mode == 1) { for (Party.Player pp : new ArrayList<>(Party.players.values())) if (pp.gained > 0) anyRight = true; }
+                    else anyRight = Party.votes()[Party.qs.get(Party.qn).correct] > 0;
+                    Audio.fx(anyRight ? "right" : "wrong");
+                    if (!anyRight) Voice.say("p:nobody");
+                } else if (ph == Party.SCORES) {
+                    List<Party.Player> rk = Party.ranking();
+                    String lead = rk.isEmpty() || rk.get(0).score <= 0 ? null : rk.get(0).id;
+                    if (Party.qn + 1 == Party.qs.size() / 2) Voice.say("p:halfway");
+                    else if (lead != null && lastLeader != null && !lead.equals(lastLeader)) Voice.say(Voice.pick("p:lead1", "p:lead2"));
+                    lastLeader = lead;
+                } else if (ph == Party.END) { Audio.fx("win"); Voice.say(Voice.pick("p:party_end", "p:party_end2")); Stats.partyEnd(QuizActivity.this); checkBadges(); }
+                else if (ph == Party.ANSWERING) { Voice.stop(); Audio.blip("click"); Voice.say(Voice.pick("p:buzz1", "p:buzz2", "p:buzz3")); }
                 else if (ph == Party.QUESTION) {
-                    String q = "q:" + Party.qs.get(Party.qn).id;
-                    if (partyWelcome) { partyWelcome = false; Voice.say("p:welcome_party", q); } else Voice.say(q);
-                    if (Party.qn + 1 < Party.qs.size()) Voice.prefetch("q:" + Party.qs.get(Party.qn + 1).id);
+                    if (prev == Party.ANSWERING) { Audio.fx("wrong"); Voice.say(Voice.pick("p:buzz_wrong1", "p:buzz_wrong2")); }
+                    else {
+                        String q = "q:" + Party.qs.get(Party.qn).id;
+                        if (partyWelcome) { partyWelcome = false; lastLeader = null; Voice.say(Party.mode == 1 ? "p:welcome_buzz" : Voice.pick("p:welcome_party", "p:welcome_party2", "p:welcome_party3"), q); } else Voice.say(q);
+                        if (Party.qn + 1 < Party.qs.size()) Voice.prefetch("q:" + Party.qs.get(Party.qn + 1).id);
+                    }
                 }
             }
             if (ph == Party.QUESTION) { int ls = (int) ((Party.left() + 999) / 1000); if (ls <= 5 && ls > 0 && ls != dTickSec) { dTickSec = ls; Audio.blip("tick"); } }
-            if (ph == Party.QUESTION && (Party.left() <= 0 || Party.allAnswered())) Party.reveal();
+            if (ph == Party.QUESTION && (Party.left() <= 0 || (Party.mode == 0 && Party.allAnswered()))) Party.reveal();
             else if (ph == Party.REVEAL && now - pStateAt > 4500) Party.scores();
             else if (ph == Party.SCORES && now - pStateAt > 5000) Party.next();
         }
@@ -852,7 +995,7 @@ public class QuizActivity extends Activity {
             String cat = Bank.cats.containsKey(q.cat) ? Bank.cats.get(q.cat) : "pack".equals(q.cat) && lPack != null ? lPack.optString("name") : q.cat;
             t.setTypeface(U.BOLD); t.setTextSize(14 * dp); t.setColor(0xFF9EC5FF); c.drawText(cat.toUpperCase(Locale.GERMAN), W / 2 - t.measureText(cat.toUpperCase(Locale.GERMAN)) / 2, 52 * dp, t);
             // Zeit-Kreis
-            long left = ph == Party.QUESTION ? Party.left() : 0;
+            long left = ph == Party.QUESTION || ph == Party.ANSWERING ? Party.left() : 0;
             float cx = W - pad - 34 * dp, cy = 50 * dp;
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(6 * dp); p.setColor(0x22FFFFFF); c.drawCircle(cx, cy, 30 * dp, p);
             p.setShader(U.brand(cx - 30 * dp, cx + 30 * dp)); c.drawArc(new RectF(cx - 30 * dp, cy - 30 * dp, cx + 30 * dp, cy + 30 * dp), -90, 360f * left / Party.Q_MS, false, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
@@ -872,7 +1015,7 @@ public class QuizActivity extends Activity {
                 boolean rev = ph == Party.REVEAL;
                 int fill = rev ? (i == q.correct ? U.OK : 0xFF23212F) : U.ANS[i];
                 card(c, r, fill, 22 * dp);
-                if (rev) { // Anteil der Stimmen als Balken
+                if (rev && Party.mode == 0) { // Anteil der Stimmen als Balken
                     RectF vb = new RectF(r.left, r.bottom - 8 * dp, r.left + r.width() * votes[i] / total, r.bottom);
                     p.setColor(0x66FFFFFF); c.drawRect(vb, p);
                 }
@@ -881,17 +1024,24 @@ public class QuizActivity extends Activity {
                 U.fit(t, q.answers[i], r.width() - 130 * dp, 2, 24 * dp, 14 * dp);
                 int ln = Math.min(2, U.wrap(t, q.answers[i], r.width() - 130 * dp).size()); float l2 = t.getTextSize() * 1.28f;
                 U.multi(c, t, q.answers[i], r.left + 72 * dp, r.centerY() - ln * l2 / 2 + t.getTextSize() * 0.95f, r.width() - 130 * dp, 2, false);
-                if (rev) { t.setTextSize(24 * dp); t.setColor(Color.WHITE); String v = String.valueOf(votes[i]); c.drawText(v, r.right - 26 * dp - t.measureText(v), r.centerY() + 9 * dp, t); }
+                if (rev && Party.mode == 0) { t.setTextSize(24 * dp); t.setColor(Color.WHITE); String v = String.valueOf(votes[i]); c.drawText(v, r.right - 26 * dp - t.measureText(v), r.centerY() + 9 * dp, t); }
+            }
+            if (Party.mode == 1 && ph == Party.ANSWERING) {   // wer gebuzzert hat
+                RectF br = new RectF(W / 2 - 260 * dp, qr.bottom - 30 * dp, W / 2 + 260 * dp, qr.bottom + 60 * dp);
+                p.setShader(U.brand(br.left, br.right)); c.drawRoundRect(br, 45 * dp, 45 * dp, p); p.setShader(null);
+                long al = Math.max(0, Party.BUZZ_ANSWER_MS - (System.currentTimeMillis() - Party.buzzAt));
+                centerText(c, "🔔  " + Party.buzzerName() + " antwortet …  " + ((al + 999) / 1000), W / 2, br.centerY() + 11 * dp, 30 * dp, Color.WHITE, true);
             }
             // Fusszeile: wer hat geantwortet
             float fy = H - 30 * dp, fx = pad;
             for (Party.Player pp : new ArrayList<>(Party.players.values())) {
-                boolean done = pp.answeredQn == Party.qn;
+                boolean done = Party.mode == 1 ? !Party.locked.contains(pp.id) : pp.answeredQn == Party.qn;
                 p.setColor(done ? PCOL[pp.color % PCOL.length] : 0x22FFFFFF); c.drawCircle(fx + 14 * dp, fy - 6 * dp, 14 * dp, p);
-                centerText(c, pp.name.substring(0, 1).toUpperCase(Locale.GERMAN), fx + 14 * dp, fy, 14 * dp, done ? Color.WHITE : U.MUTED, true);
+                centerText(c, initial(pp.name), fx + 14 * dp, fy, 14 * dp, done ? Color.WHITE : U.MUTED, true);
                 fx += 36 * dp;
             }
-            String st = ph == Party.QUESTION ? Party.answeredCount() + " von " + Party.players.size() + " haben geantwortet" : "OK = weiter";
+            String st = Party.mode == 1 ? (ph == Party.QUESTION ? "🔔 Buzzer ist frei!" + (Party.locked.isEmpty() ? "" : "  ·  " + Party.locked.size() + " gesperrt") : ph == Party.ANSWERING ? "" : "OK = weiter")
+                : ph == Party.QUESTION ? Party.answeredCount() + " von " + Party.players.size() + " haben geantwortet" : "OK = weiter";
             t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED); c.drawText(st, W - pad - t.measureText(st), fy, t);
         }
         void drawRanking(Canvas c, boolean fin) {
@@ -910,7 +1060,7 @@ public class QuizActivity extends Activity {
                 text(c, (i + 1) + ".", r.left + 18 * dp, r.centerY() + 7 * dp, 20 * dp, U.MUTED, true);
                 text(c, pp.name, r.left + 64 * dp, r.centerY() + 7 * dp, 20 * dp, Color.WHITE, true);
                 t.setTypeface(U.BOLD); t.setTextSize(20 * dp); t.setColor(Color.WHITE);
-                String s = U.num(pp.score) + (pp.gained > 0 ? "   +" + pp.gained : ""); c.drawText(s, r.right - 20 * dp - t.measureText(s), r.centerY() + 7 * dp, t);
+                String s = U.num(pp.score) + (pp.gained > 0 ? "   +" + pp.gained : pp.gained < 0 ? "   −" + (-pp.gained) : ""); c.drawText(s, r.right - 20 * dp - t.measureText(s), r.centerY() + 7 * dp, t);
                 if (pp.streak >= 3) text(c, "🔥 " + pp.streak, r.left + 64 * dp + t.measureText(pp.name) + 20 * dp, r.centerY() + 7 * dp, 16 * dp, U.LOCK, true);
             }
         }
@@ -927,7 +1077,7 @@ public class QuizActivity extends Activity {
                 p.setShader(new LinearGradient(0, r.top, 0, r.bottom, i == 0 ? U.GOLD : i == 1 ? 0xFFCBD5E1 : 0xFFF59E0B, 0xFF15141F, Shader.TileMode.CLAMP)); c.drawRoundRect(r, 18 * dp, 18 * dp, p); p.setShader(null);
                 centerText(c, String.valueOf(i + 1), r.centerX(), r.top + 60 * dp, 48 * dp, Color.WHITE, true);
                 p.setColor(PCOL[pp.color % PCOL.length]); c.drawCircle(r.centerX(), r.top - 46 * dp, 30 * dp, p);
-                centerText(c, pp.name.substring(0, 1).toUpperCase(Locale.GERMAN), r.centerX(), r.top - 36 * dp, 28 * dp, Color.WHITE, true);
+                centerText(c, initial(pp.name), r.centerX(), r.top - 36 * dp, 28 * dp, Color.WHITE, true);
                 centerText(c, pp.name, r.centerX(), r.top - 90 * dp, 22 * dp, Color.WHITE, true);
                 centerText(c, U.num(pp.score) + " P", r.centerX(), base + 30 * dp, 18 * dp, 0xFFC9CCE0, true);
             }

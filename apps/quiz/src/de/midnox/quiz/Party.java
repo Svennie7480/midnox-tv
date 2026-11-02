@@ -11,8 +11,11 @@ import java.util.*;
  * melden sich mit Namen an und tippen ihre Antworten. Der Fernseher steuert den Ablauf.
  */
 final class Party {
-    static final int LOBBY = 0, QUESTION = 1, REVEAL = 2, SCORES = 3, END = 4;
-    static final long Q_MS = 20000;
+    static final int LOBBY = 0, QUESTION = 1, REVEAL = 2, SCORES = 3, END = 4, ANSWERING = 5;
+    static final long Q_MS = 20000, BUZZ_ANSWER_MS = 8000;
+    static int mode;   // 0 = klassisch, 1 = Buzzer
+    static String buzzer; static long buzzAt, remaining; static final Set<String> locked = new HashSet<>();
+    static int lastWrongQn = -1; static long lastWrongAt;   // fuer Ansage „falsch“ am Fernseher
 
     static final class Player {
         String id, name; int color, score, gained, answer = -1, streak; long answerMs; int answeredQn = -1; long seen;
@@ -64,6 +67,7 @@ final class Party {
             if (p.equals("/api/join")) body = join(new JSONObject(data.isEmpty() ? "{}" : data)).toString();
             else if (p.equals("/api/state")) body = state(query(path, "id")).toString();
             else if (p.equals("/api/answer")) body = answer(new JSONObject(data.isEmpty() ? "{}" : data)).toString();
+            else if (p.equals("/api/buzz")) body = buzz(new JSONObject(data.isEmpty() ? "{}" : data)).toString();
             else { type = "text/html"; body = U.read(ctx.getAssets().open("phone.html")); }
             byte[] out = body.getBytes("UTF-8");
             OutputStream o = s.getOutputStream();
@@ -96,19 +100,25 @@ final class Party {
     }
     static synchronized JSONObject state(String id) throws JSONException {
         Player me = players.get(id);
-        JSONObject o = new JSONObject().put("phase", phase).put("qn", qn).put("total", qs.size()).put("joined", me != null);
+        JSONObject o = new JSONObject().put("phase", phase).put("qn", qn).put("total", qs.size()).put("joined", me != null).put("mode", mode);
         if (me == null) return o;
         me.seen = System.currentTimeMillis();
         o.put("name", me.name).put("color", me.color).put("score", me.score).put("rank", rank(me)).put("players", players.size());
-        if (phase == QUESTION || phase == REVEAL) {
+        if (phase == QUESTION || phase == REVEAL || phase == ANSWERING) {
             Bank.Q q = qs.get(qn);
-            o.put("q", q.text).put("answers", new JSONArray(Arrays.asList(q.answers))).put("left", Math.max(0, Q_MS - (System.currentTimeMillis() - qStart)))
+            o.put("q", q.text).put("answers", new JSONArray(Arrays.asList(q.answers))).put("left", left())
              .put("my", me.answeredQn == qn ? me.answer : -1);
-            if (phase == REVEAL) o.put("correct", q.correct).put("gained", me.answeredQn == qn ? me.gained : 0);
+            if (mode == 1) {
+                o.put("locked", locked.contains(me.id)).put("answering", me.id.equals(buzzer));
+                Player b = buzzer == null ? null : players.get(buzzer);
+                o.put("buzzer", b == null ? "" : b.name).put("aleft", Math.max(0, BUZZ_ANSWER_MS - (System.currentTimeMillis() - buzzAt)));
+            }
+            if (phase == REVEAL) o.put("correct", q.correct).put("gained", me.gained);
         }
         return o;
     }
     static synchronized JSONObject answer(JSONObject in) throws JSONException {
+        if (mode == 1) return buzzAnswer(in);
         Player p = players.get(in.optString("id"));
         if (p == null || phase != QUESTION || in.optInt("qn", -2) != qn || p.answeredQn == qn) return new JSONObject().put("ok", false);
         int a = in.optInt("a", -1); if (a < 0 || a > 3) return new JSONObject().put("ok", false);
@@ -118,13 +128,43 @@ final class Party {
         return new JSONObject().put("ok", true);
     }
 
+    // ------------------------------------------------------------ Buzzer
+    static synchronized JSONObject buzz(JSONObject in) throws JSONException {
+        Player p = players.get(in.optString("id"));
+        if (mode != 1 || p == null || phase != QUESTION || in.optInt("qn", -2) != qn || locked.contains(p.id) || left() <= 0) return new JSONObject().put("ok", false);
+        remaining = left(); buzzer = p.id; buzzAt = System.currentTimeMillis(); phase = ANSWERING;
+        return new JSONObject().put("ok", true);
+    }
+    static synchronized JSONObject buzzAnswer(JSONObject in) throws JSONException {
+        Player p = players.get(in.optString("id"));
+        if (p == null || phase != ANSWERING || !p.id.equals(buzzer) || in.optInt("qn", -2) != qn) return new JSONObject().put("ok", false);
+        int a = in.optInt("a", -1); if (a < 0 || a > 3) return new JSONObject().put("ok", false);
+        p.answer = a; p.answeredQn = qn;
+        resolveBuzz(a == qs.get(qn).correct);
+        return new JSONObject().put("ok", true);
+    }
+    /** Antwort des Buzzernden auswerten: richtig = +1000 und aufloesen, falsch = -500, gesperrt, weiter fuer die anderen. */
+    static synchronized void resolveBuzz(boolean right) {
+        Player p = players.get(buzzer);
+        if (p != null) {
+            if (right) { p.gained = 1000; p.score += 1000; p.streak++; }
+            else { p.gained = -500; p.score -= 500; p.streak = 0; locked.add(p.id); lastWrongQn = qn; lastWrongAt = System.currentTimeMillis(); }
+        }
+        buzzer = null;
+        if (right || locked.size() >= players.size()) { phase = REVEAL; return; }
+        phase = QUESTION; qStart = System.currentTimeMillis() - (Q_MS - remaining);   // Uhr laeuft dort weiter, wo sie stand
+    }
+    static synchronized void buzzTick() { if (phase == ANSWERING && System.currentTimeMillis() - buzzAt > BUZZ_ANSWER_MS) { Player p = players.get(buzzer); if (p != null) { p.answer = -1; p.answeredQn = qn; } resolveBuzz(false); } }
+    static synchronized String buzzerName() { Player p = buzzer == null ? null : players.get(buzzer); return p == null ? "" : p.name; }
+
     // ------------------------------------------------------------ Ablauf (vom Fernseher)
-    static synchronized void reset() { phase = LOBBY; qn = -1; qs.clear(); for (Player p : players.values()) { p.score = 0; p.gained = 0; p.answer = -1; p.answeredQn = -1; p.streak = 0; } }
+    static synchronized void reset() { phase = LOBBY; qn = -1; qs.clear(); buzzer = null; locked.clear(); for (Player p : players.values()) { p.score = 0; p.gained = 0; p.answer = -1; p.answeredQn = -1; p.streak = 0; } }
     static synchronized void kick(String id) { players.remove(id); }
     static synchronized void begin(List<Bank.Q> l) { qs = l; qn = -1; for (Player p : players.values()) { p.score = 0; p.streak = 0; p.answeredQn = -1; } next(); }
     static synchronized void next() {
         if (qn + 1 >= qs.size()) { phase = END; return; }
         qn++; phase = QUESTION; qStart = System.currentTimeMillis();
+        buzzer = null; locked.clear();
         for (Player p : players.values()) { p.gained = 0; p.answer = -1; }
         Bank.markSeen(ctx, qs.get(qn).id);
     }
@@ -136,6 +176,7 @@ final class Party {
     static synchronized int answeredCount() { int n = 0; for (Player p : players.values()) if (p.answeredQn == qn) n++; return n; }
     /** Aufloesen: Punkte verteilen (schneller = mehr), Serien-Bonus ab 3 richtigen in Folge. */
     static synchronized void reveal() {
+        if (mode == 1) { if (phase == QUESTION || phase == ANSWERING) { buzzer = null; phase = REVEAL; } return; }
         if (phase != QUESTION) return;
         Bank.Q q = qs.get(qn);
         for (Player p : players.values()) {
@@ -160,5 +201,5 @@ final class Party {
         return l;
     }
     static synchronized int rank(Player me) { int r = 1; for (Player p : players.values()) if (p.score > me.score) r++; return r; }
-    static synchronized long left() { return Math.max(0, Q_MS - (System.currentTimeMillis() - qStart)); }
+    static synchronized long left() { return phase == ANSWERING ? remaining : Math.max(0, Q_MS - (System.currentTimeMillis() - qStart)); }
 }

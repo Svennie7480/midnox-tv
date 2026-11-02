@@ -59,6 +59,18 @@ final class Scores {
             }
         } catch (Exception ignored) {}
     }
+    // ------------------------------------------------------------ Herausforderung
+    static JSONObject chNew(Context c, String name, List<String> ids, long seed) throws Exception {
+        return new JSONObject(U.http(SERVER + "?a=ch_new", new JSONObject().put("dev", device(c)).put("n", name).put("ids", new JSONArray(ids)).put("seed", seed).toString()));
+    }
+    static JSONObject chGet(Context c, String code) throws Exception { return new JSONObject(U.http(SERVER + "?a=ch&c=" + code + "&dev=" + device(c), null)); }
+    static JSONObject chResult(Context c, String code, String name, int score, long sec, int correct) throws Exception {
+        long ts = System.currentTimeMillis(); String dev = device(c);
+        name = name.replaceAll("[\\x00-\\x1F<>\"\\\\]", "").trim();
+        JSONObject o = new JSONObject().put("code", code).put("n", name).put("s", score).put("t", sec).put("c", correct).put("dev", dev).put("ts", ts)
+            .put("sig", hmac("ch|" + code + "|" + name + "|" + score + "|" + sec + "|" + dev + "|" + ts));
+        return new JSONObject(U.http(SERVER + "?a=ch_result", o.toString()));
+    }
     static JSONObject top(String mode, String period) throws Exception {
         String q = mode.equals("daily") ? "?a=top&m=daily&d=" + today() : "?a=top&m=million&p=" + period;
         return new JSONObject(U.http(SERVER + q, null));

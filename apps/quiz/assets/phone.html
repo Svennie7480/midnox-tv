@@ -21,6 +21,7 @@ input:focus{border-color:#7C3AED}
 .a{border:0;border-radius:18px;color:#fff;font:inherit;font-size:17px;font-weight:600;padding:14px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;transition:transform .08s,opacity .2s}
 .a:active{transform:scale(.96)}.a i{font-style:normal;font-size:26px;opacity:.9}
 .a.off{opacity:.25}.a.pick{outline:4px solid #fff}
+.buzz{flex:1;display:flex;align-items:center;justify-content:center}.buzz button{width:min(78vw,340px);height:min(78vw,340px);border-radius:50%;border:0;font:inherit;font-size:44px;font-weight:800;color:#fff;background:radial-gradient(circle at 35% 30%,#ff6b8a,#E11D48 60%,#9f1239);box-shadow:0 12px 0 #7f1d1d,0 20px 40px rgba(225,29,72,.45);letter-spacing:2px}.buzz button:active{transform:translateY(8px);box-shadow:0 4px 0 #7f1d1d}
 .bar{height:8px;border-radius:4px;background:#23212F;overflow:hidden;margin-bottom:12px}.bar div{height:100%;background:linear-gradient(90deg,#7C3AED,#06B6D4);transition:width .3s linear}
 .ok{color:#22C55E}.bad{color:#EF4444}
 </style></head><body><div class="w" id="app"></div>
@@ -40,17 +41,37 @@ function joinView(msg){
 }
 function render(){
   if(!st.joined){if(lastKey!=='join'){lastKey='join';joinView(id?'Das Spiel wurde neu gestartet – bitte nochmal anmelden.':'')}return}
-  var key=st.phase+'|'+st.qn+'|'+(st.my!=null?st.my:'')+'|'+(st.phase===2?st.correct:'');
+  var key=st.phase+'|'+st.qn+'|'+(st.my!=null?st.my:'')+'|'+(st.phase===2?st.correct:'')+'|'+(st.locked?1:0)+'|'+(st.answering?1:0)+'|'+(st.buzzer||'');
   if(st.phase===1){var b=document.querySelector('.bar div');if(b)b.style.width=(st.left/200)+'%'}
+  if(st.phase===5&&st.answering){var b2=document.querySelector('.bar div');if(b2)b2.style.width=(st.aleft/80)+'%'}
   if(key===lastKey){var s=document.querySelector('.me .s');if(s)s.textContent=num(st.score)+' P';return}
   lastKey=key;var h=head();
   if(st.phase===0){$('app').innerHTML=h+'<div class="mid"><div class="big">Du bist drin! 🎉</div><p class="hint">'+st.players+' Spieler · Gleich geht’s los – schau auf den Fernseher.</p></div>';return}
+  if(st.mode===1&&st.phase===1){
+    if(st.locked){$('app').innerHTML=h+'<div class="mid"><div style="font-size:60px">🔒</div><div class="big">Gesperrt</div><p class="hint">Du hast bei dieser Frage falsch geantwortet.<br>Warte auf die anderen …</p></div>';return}
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+(st.left/200)+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="buzz"><button id="bz">BUZZ!</button></div><p class="hint" style="text-align:center">Wer zuerst drückt, darf antworten. Falsch kostet 500 Punkte.</p>';
+    $('bz').onclick=function(){if(busy)return;busy=true;if(navigator.vibrate)navigator.vibrate(80);api('buzz',{id:id,qn:st.qn}).then(function(){busy=false;lastKey='';poll()}).catch(function(){busy=false})};
+    return;
+  }
+  if(st.phase===5){
+    if(!st.answering){$('app').innerHTML=h+'<div class="mid"><div style="font-size:60px">🔔</div><div class="big">'+esc(st.buzzer)+'</div><p class="hint">antwortet gerade …</p></div>';return}
+    var g2='';for(var k=0;k<4;k++)g2+='<button class="a" style="background:'+AC[k]+'" data-i="'+k+'"><i>'+SH[k]+'</i>'+esc(st.answers[k])+'</button>';
+    $('app').innerHTML=h+'<div class="bar"><div style="width:'+(st.aleft/80)+'%"></div></div><div class="q">Du bist dran! · '+esc(st.q)+'</div><div class="grid">'+g2+'</div>';
+    document.querySelectorAll('.a').forEach(function(b){b.onclick=function(){if(busy)return;busy=true;var a=+b.dataset.i;document.querySelectorAll('.a').forEach(function(x){x.classList.add(x===b?'pick':'off')});api('answer',{id:id,qn:st.qn,a:a}).then(function(){busy=false;poll()}).catch(function(){busy=false})}});
+    return;
+  }
   if(st.phase===1){
     var mine=st.my;
     if(mine>=0){$('app').innerHTML=h+'<div class="mid"><div style="font-size:54px;color:'+AC[mine]+'">'+SH[mine]+'</div><div class="big">Antwort ist raus</div><p class="hint">'+esc(st.answers[mine])+'<br>Warte auf die anderen …</p></div>';return}
     var g='';for(var i=0;i<4;i++)g+='<button class="a" style="background:'+AC[i]+'" data-i="'+i+'"><i>'+SH[i]+'</i>'+esc(st.answers[i])+'</button>';
     $('app').innerHTML=h+'<div class="bar"><div style="width:'+(st.left/200)+'%"></div></div><div class="q">'+(st.qn+1)+'/'+st.total+' · '+esc(st.q)+'</div><div class="grid">'+g+'</div>';
     document.querySelectorAll('.a').forEach(function(b){b.onclick=function(){if(busy)return;busy=true;var a=+b.dataset.i;document.querySelectorAll('.a').forEach(function(x){x.classList.add(x===b?'pick':'off')});api('answer',{id:id,qn:st.qn,a:a}).then(function(){busy=false;poll()}).catch(function(){busy=false})}});
+    return;
+  }
+  if(st.phase===2&&st.mode===1){
+    var g=st.gained||0;
+    if(navigator.vibrate)navigator.vibrate(g>0?[60]:g<0?[120,80,120]:[30]);
+    $('app').innerHTML=h+'<div class="mid"><div style="font-size:64px">'+(g>0?'✅':g<0?'❌':'👀')+'</div><div class="big '+(g>0?'ok':g<0?'bad':'')+'">'+(g>0?'Richtig! +'+num(g):g<0?'Falsch! −500':'Diesmal nicht gebuzzert')+'</div><p class="hint">Richtig war: <b style="color:'+AC[st.correct]+'">'+SH[st.correct]+' '+esc(st.answers[st.correct])+'</b></p><p class="hint">Platz '+st.rank+' von '+st.players+'</p></div>';
     return;
   }
   if(st.phase===2){

@@ -21,22 +21,59 @@ const MAX_SUBMITS = 30;               // Einträge je Stunde und IP
 const KEEP_DAYS = 60;                 // Tages-Duelle so lange aufheben
 const BANK = 'https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/quiz/questions.json';
 const PHRASES = [
+    // Begrüßung
     'welcome_million' => 'Willkommen bei Die Million! Fünfzehn Fragen trennen dich von einer Million Euro. Viel Glück!',
+    'welcome_million2' => 'Herzlich willkommen! Heute geht es um nichts Geringeres als eine Million Euro. Bist du bereit?',
+    'welcome_million3' => 'Schön, dass du da bist! Fünfzehn Fragen, drei Joker – und am Ende vielleicht die Million.',
     'welcome_daily'   => 'Willkommen zum Tages-Duell! Zehn Fragen, zwanzig Sekunden pro Frage. Los geht’s!',
     'welcome_party'   => 'Willkommen zur Quiz-Party! Handys raus – es geht los!',
+    'welcome_party2'  => 'Hallo zusammen! Daumen warm machen, die Party beginnt!',
+    'welcome_party3'  => 'Wer ist heute der Schlauste im Raum? Finden wir es heraus!',
+    'welcome_buzz'    => 'Achtung, Buzzer-Runde! Wer zuerst drückt, darf antworten. Aber Vorsicht: Falsche Antworten kosten Punkte!',
+    'welcome_challenge' => 'Eine Herausforderung! Zehn Fragen – und am Ende zählt nur, wer besser war.',
+    // Richtig
     'right1' => 'Richtig!', 'right2' => 'Das ist richtig!', 'right3' => 'Sehr gut – richtig!',
+    'right4' => 'Volltreffer!', 'right5' => 'Absolut richtig!', 'right6' => 'Genau so ist es!',
+    'right7' => 'Stark! Das war richtig.', 'right8' => 'Bingo!',
+    // Falsch
     'wrong1' => 'Oh nein, das war leider falsch.', 'wrong2' => 'Schade, leider falsch.',
+    'wrong3' => 'Autsch. Das war nicht die richtige Antwort.', 'wrong4' => 'Leider daneben.', 'wrong5' => 'Nein, das war es leider nicht.',
+    // Million
     'safety5'  => 'Glückwunsch! Die erste Sicherheitsstufe ist erreicht: Fünfhundert Euro sind dir sicher.',
+    'safety5_2' => 'Fünfhundert Euro – die nimmt dir keiner mehr! Weiter geht’s.',
     'safety10' => 'Klasse! Sechzehntausend Euro kann dir jetzt niemand mehr nehmen.',
+    'safety10_2' => 'Sechzehntausend Euro sind gesichert! Ab jetzt wird es richtig spannend.',
+    'tense1' => 'Jetzt wird es eng …', 'tense2' => 'Ganz ruhig bleiben. Konzentration!', 'tense3' => 'Es geht um richtig viel Geld!',
     'last'     => 'Jetzt geht es um die Million!',
+    'last2'    => 'Das ist sie: die Millionenfrage!',
     'million'  => 'Unglaublich! Du hast die Million geknackt!',
+    'million2' => 'Wahnsinn! Eine Million Euro! Herzlichen Glückwunsch!',
     'quit'     => 'Du steigst aus. Eine kluge Entscheidung?',
+    'quit2'    => 'Lieber den Spatz in der Hand. Du nimmst das Geld mit!',
     'joker50'  => 'Der Computer streicht zwei falsche Antworten.',
+    'joker50_2' => 'Fünfzig zu fünfzig – zwei Antworten sind weg.',
     'jokeraud' => 'Das Publikum hat abgestimmt.',
+    'jokeraud2' => 'Mal sehen, was das Publikum meint.',
     'jokerphone' => 'Wir rufen jemanden an …',
-    'timeup'   => 'Die Zeit ist um!',
+    'jokerphone2' => 'Telefonjoker! Hoffentlich geht jemand ran.',
+    // Zeit
+    'timeup'   => 'Die Zeit ist um!', 'timeup2' => 'Zu spät!', 'timeup3' => 'Tick, tack – die Zeit ist abgelaufen.',
+    'close1' => 'Puh, das war knapp!', 'close2' => 'In letzter Sekunde!',
+    'fast1' => 'Wow, das ging schnell!', 'fast2' => 'Blitzschnell!',
+    // Enden
     'daily_end' => 'Das war das Tages-Duell. Bis morgen!',
+    'daily_end2' => 'Geschafft! Morgen wartet ein neues Tages-Duell auf dich.',
+    'challenge_end' => 'Geschafft! Jetzt bist du gespannt, wie die anderen abschneiden.',
+    'challenge_win' => 'Du führst die Herausforderung an!',
+    'challenge_lose' => 'Knapp daneben – jemand war besser. Revanche?',
     'party_end' => 'Und jetzt: die Siegerehrung!',
+    'party_end2' => 'Das war’s! Applaus für alle – und hier sind die Sieger!',
+    // Party
+    'buzz1' => 'Da war jemand schnell!', 'buzz2' => 'Gebuzzert! Und jetzt?', 'buzz3' => 'Der Buzzer! Die Antwort, bitte!',
+    'buzz_wrong1' => 'Falsch! Wer traut sich jetzt?', 'buzz_wrong2' => 'Leider nein – der Buzzer ist wieder frei!',
+    'lead1' => 'Wir haben eine neue Spitze!', 'lead2' => 'Es gibt einen neuen Führenden!',
+    'nobody' => 'Das wusste wohl keiner!',
+    'halfway' => 'Halbzeit! Mal sehen, wie es steht.',
 ];
 const MODEL = 'eleven_multilingual_v2';
 
@@ -310,6 +347,51 @@ if ($a === 'group') {
     usort($sl, fn($x, $y) => $y['s'] <=> $x['s']);
     $map = fn($e) => ['n' => $e['n'], 's' => $e['s'], 't' => $e['t'], 'dev' => $hash($e['dev'])];
     out(['ok' => true, 'code' => $c, 'name' => $g['name'], 'members' => count($members), 'daily' => array_map($map, $dl), 'million' => array_map($map, $ml), 'streak' => $sl]);
+}
+// ---------------------------------------------------------------- Herausforderungen (gleiche 10 Fragen für alle mit dem Code)
+function chBoard(array $ch): array {
+    $l = array_values($ch['r'] ?? []);
+    usort($l, fn($x, $y) => better($x, $y) ? -1 : (better($y, $x) ? 1 : 0));
+    return array_map(fn($e) => ['n' => $e['n'], 's' => $e['s'], 't' => $e['t'], 'c' => $e['c'] ?? 0, 'dev' => substr(hash('sha256', $e['dev']), 0, 8)], $l);
+}
+if ($a === 'ch_new') {
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    $dev = devOk((string)($in['dev'] ?? '')); $ids = $in['ids'] ?? [];
+    if (!$dev || !is_array($ids) || count($ids) < 5 || count($ids) > 20) out(['ok' => false, 'msg' => 'Ungültig'], 400);
+    foreach ($ids as $i) if (!is_string($i) || !preg_match('/^[a-f0-9]{8}$/', $i)) out(['ok' => false, 'msg' => 'Ungültig'], 400);
+    $lk = lockAll();
+    $all = load('challenges', []);
+    foreach ($all as $c => $x) if (time() - $x['at'] > 90 * 86400) unset($all[$c]);   // nach 90 Tagen aufräumen
+    $c = newCode($all);
+    $all[$c] = ['ids' => array_values($ids), 'seed' => (int)($in['seed'] ?? 0), 'owner' => $dev, 'on' => cleanName((string)($in['n'] ?? '')), 'at' => time(), 'r' => []];
+    save('challenges', $all);
+    out(['ok' => true, 'code' => $c]);
+}
+if ($a === 'ch') {
+    $c = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)($_GET['c'] ?? '')));
+    $ch = load('challenges', [])[$c] ?? null;
+    if (!$ch) out(['ok' => false, 'msg' => 'Herausforderung nicht gefunden'], 404);
+    $dev = devOk((string)($_GET['dev'] ?? ''));
+    out(['ok' => true, 'code' => $c, 'ids' => $ch['ids'], 'seed' => $ch['seed'], 'from' => $ch['on'], 'played' => $dev && isset($ch['r'][$dev]), 'list' => chBoard($ch)]);
+}
+if ($a === 'ch_result') {
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    $c = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string)($in['code'] ?? '')));
+    $rawN = (string)($in['n'] ?? ''); $n = cleanName($rawN); $sc = (int)($in['s'] ?? -1); $t = (int)($in['t'] ?? 0); $cc = (int)($in['c'] ?? 0);
+    $dev = devOk((string)($in['dev'] ?? '')); $ts = (int)($in['ts'] ?? 0);
+    $sig = hash_hmac('sha256', "ch|$c|$rawN|$sc|$t|$dev|$ts", SECRET);
+    if (!hash_equals($sig, (string)($in['sig'] ?? ''))) out(['ok' => false, 'msg' => 'Signatur ungültig'], 403);
+    if (!$dev || mb_strlen($n) < 2) out(['ok' => false, 'msg' => 'Name fehlt'], 400);
+    $lk = lockAll();
+    $all = load('challenges', []);
+    if (!isset($all[$c])) out(['ok' => false, 'msg' => 'Herausforderung nicht gefunden'], 404);
+    if ($sc < 0 || $sc > 1000 * count($all[$c]['ids']) || $t < 5) out(['ok' => false, 'msg' => 'Ergebnis unplausibel'], 400);
+    if (isset($all[$c]['r'][$dev])) out(['ok' => false, 'msg' => 'Schon gespielt', 'list' => chBoard($all[$c])]);
+    $all[$c]['r'][$dev] = ['n' => $n, 's' => $sc, 't' => $t, 'c' => $cc, 'dev' => $dev, 'at' => time()];
+    save('challenges', $all);
+    $l = chBoard($all[$c]); $hd = substr(hash('sha256', $dev), 0, 8); $rank = 0;
+    foreach ($l as $i => $x) if ($x['dev'] === $hd) { $rank = $i + 1; break; }
+    out(['ok' => true, 'rank' => $rank, 'list' => $l]);
 }
 if ($a === 'streak') {
     $dev = devOk((string)($_GET['dev'] ?? ''));

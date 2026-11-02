@@ -113,6 +113,20 @@ final class Bank {
         return out;
     }
 
+    /** Herausforderung: 3 leicht, 4 mittel, 3 schwer, zufaellig. */
+    static List<String> challengeIds(Context c) {
+        Random rnd = new Random(); List<String> ids = new ArrayList<>(); Set<String> ex = new HashSet<>();
+        int[] per = {0, 3, 4, 3};
+        for (int lv = 1; lv <= 3; lv++) for (Raw r : pick(c, byLevel(lv, null), per[lv], rnd, ex)) { ex.add(r.id); ids.add(r.id); }
+        return ids;
+    }
+    /** Fragen zu IDs, Antworten fuer alle Spieler gleich gemischt. */
+    static List<Q> byIds(List<String> ids, long seed) {
+        Map<String, Raw> m = new HashMap<>(); for (Raw r : all) m.put(r.id, r);
+        List<Q> out = new ArrayList<>();
+        for (String id : ids) { Raw r = m.get(id); if (r != null) out.add(make(r, new Random(seed ^ id.hashCode()))); }
+        return out;
+    }
     /** Party: gemischt nach Kategorie, Schwierigkeit steigt leicht an. */
     static List<Q> party(Context c, String cat, int n) {
         Random rnd = new Random();

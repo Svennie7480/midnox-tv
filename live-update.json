@@ -1,0 +1,6 @@
+{
+ "versionCode": 18,
+ "versionName": "2.8",
+ "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
+ "notes": "Eingebauter Updater: midnox Live meldet neue Versionen selbst und installiert sie – kein Downloader-Code mehr nötig. Außerdem: Umschaltleiste TV/Filme/Serien/Suche."
+}

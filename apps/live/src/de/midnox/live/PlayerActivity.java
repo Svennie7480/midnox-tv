@@ -6,6 +6,7 @@ import android.content.*;
 import android.graphics.*;
 import android.os.*;
 import android.text.InputType;
+import org.json.*;
 import android.view.*;
 import android.widget.*;
 import androidx.media3.common.*;
@@ -36,6 +37,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     long lastBack;
     float videoRatio = 16f / 9f;
     final StringBuilder digits = new StringBuilder();
+    JSONObject pendingUpdate;
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -101,6 +103,10 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (Lib.channels.isEmpty() || Lib.stale()) reloadSources(!Lib.channels.isEmpty());
         else if (Epg.stale()) reloadEpg();
         handleIntent(getIntent(), true);
+        if (Update.due(this)) Update.check(this, new Update.Cb() { public void result(JSONObject u) {
+            if (u == null) return; pendingUpdate = u;
+            showStatus("⬆  Update " + u.optString("versionName") + " verfügbar – Menü-Taste zum Installieren", 8000);
+        } });
         h.postDelayed(tick, 30000);
     }
 
@@ -164,6 +170,26 @@ public class PlayerActivity extends Activity implements Views.ListCb {
                 }
             } catch (Exception ignored) {}
         }}).start();
+    }
+    void doUpdate() {
+        if (pendingUpdate != null) {
+            showStatus("Lade Update " + pendingUpdate.optString("versionName") + " …", 0);
+            Update.install(this, pendingUpdate, new Runnable() { public void run() { showStatus("Update fehlgeschlagen – bitte erneut versuchen", 5000); } });
+            return;
+        }
+        showStatus("Suche nach Update …", 0);
+        Update.check(this, new Update.Cb() { public void result(JSONObject u) {
+            if (u == null) { showStatus("midnox Live ist aktuell", 3500); return; }
+            pendingUpdate = u;
+            new AlertDialog.Builder(PlayerActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+                .setTitle("Update " + u.optString("versionName") + " verfügbar")
+                .setMessage(u.optString("notes", "Neue Version von midnox Live.") + "\n\nJetzt herunterladen und installieren?")
+                .setPositiveButton("Installieren", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                    showStatus("Lade Update …", 0);
+                    Update.install(PlayerActivity.this, pendingUpdate, new Runnable() { public void run() { showStatus("Update fehlgeschlagen – bitte erneut versuchen", 5000); } });
+                } })
+                .setNegativeButton("Später", null).show();
+        } });
     }
     void askCode() {
         final EditText et = new EditText(this);
@@ -857,6 +883,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
                 scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
         }
         l.add("⏳  Zugänge & Ablaufdatum"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showExpiry(); } });
+        l.add(pendingUpdate != null ? "\u2B06  Update auf " + pendingUpdate.optString("versionName") + " installieren" : "\u2B06  Nach Update suchen"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); doUpdate(); } });
         l.add("\uD83D\uDD11  Einrichtungscode eingeben" + (Cloud.linked(this) ? "  (" + Cloud.packageName(this) + ")" : "")); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askCode(); } });
         l.add("⚙  Quellen einrichten (Handy/PC)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showQr(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });

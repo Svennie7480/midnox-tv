@@ -22,6 +22,14 @@ final class Stalker {
     }
     static int activeIndex(Model.Source src) { Integer i = active.get(src.id); int n = macs(src).size(); return i == null || i >= n ? 0 : i; }
 
+    /** Portal-Adresse auf eine Vergleichsform bringen (fuer das Zusammenfuehren gleicher Portale). */
+    static String normPortal(String url) {
+        String u = url == null ? "" : url.trim().toLowerCase(Locale.ROOT);
+        u = u.replaceAll("^https?://", "").replaceAll("/+$", "");
+        u = u.replaceAll("(?i)/c$", "").replaceAll("(?i)/stalker_portal(/server/load\\.php)?$", "").replaceAll("(?i)/(portal\\.php|server/load\\.php)$", "").replaceAll("/+$", "");
+        return u;
+    }
+
     /** Portal-Adresse -> moegliche API-Adressen. */
     static List<String> apis(String url) {
         String u = url.trim();

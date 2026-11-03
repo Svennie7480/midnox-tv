@@ -143,8 +143,20 @@ final class Web {
                 if (s.name.isEmpty()) s.name = s.type.equals("m3u") ? "M3U-Liste" : s.url.replaceAll("^https?://", "").replaceAll("[:/].*", "");
                 if (s.url.isEmpty()) return "{\"ok\":false,\"msg\":\"Bitte eine Adresse eingeben\"}";
                 if (s.type.equals("stalker") && Stalker.macs(s).isEmpty()) return "{\"ok\":false,\"msg\":\"MAC-Adresse im Format 00:1A:79:XX:XX:XX\"}";
-                if (s.type.equals("stalker")) s.mac = android.text.TextUtils.join("\n", Stalker.macs(s));
-                List<Model.Source> l = Lib.sources(c); l.add(s); Lib.saveSources(c, l);
+                List<Model.Source> l = Lib.sources(c);
+                if (s.type.equals("stalker")) {
+                    s.mac = android.text.TextUtils.join("\n", Stalker.macs(s));
+                    String np = Stalker.normPortal(s.url);
+                    for (Model.Source e : l) if (e.type.equals("stalker") && Stalker.normPortal(e.url).equals(np)) {   // gleiches Portal: MACs zusammenfuehren
+                        List<String> have = Stalker.macs(e); int added = 0;
+                        for (String m : Stalker.macs(s)) if (!have.contains(m)) { have.add(m); added++; }
+                        e.mac = android.text.TextUtils.join("\n", have);
+                        if (!s.epg.isEmpty() && e.epg.isEmpty()) e.epg = s.epg;
+                        Lib.saveSources(c, l); reloadAll(c);
+                        return new JSONObject().put("ok", true).put("msg", added == 0 ? "Alle MAC-Adressen waren schon bei „" + e.name + "“ vorhanden" : added + (added == 1 ? " neue MAC-Adresse" : " neue MAC-Adressen") + " zu „" + e.name + "“ hinzugefügt").toString();
+                    }
+                }
+                l.add(s); Lib.saveSources(c, l);
                 reloadAll(c);
                 return "{\"ok\":true,\"msg\":\"Quelle hinzugefügt – Sender werden geladen …\"}";
             }

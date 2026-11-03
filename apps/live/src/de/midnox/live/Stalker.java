@@ -37,6 +37,45 @@ final class Stalker {
         if (m.matches("[0-9A-F]{12}")) m = m.replaceAll("(..)(?!$)", "$1:");
         return m;
     }
+
+    // ------------------------------------------------------------ Aus Textwust filtern (Portal + MACs)
+    static final java.util.regex.Pattern MAC_RE = java.util.regex.Pattern.compile("([0-9A-Fa-f]{2}[:\\-]){5}[0-9A-Fa-f]{2}");
+    static final java.util.regex.Pattern URL_RE = java.util.regex.Pattern.compile("(?i)https?://[\\w.\\-]+(?::\\d{2,5})?(?:/[\\w./\\-]*)?");
+
+    /** Alle gueltigen MAC-Adressen aus beliebigem Text (eindeutig, Reihenfolge erhalten). */
+    static List<String> findMacs(String text) {
+        LinkedHashSet<String> set = new LinkedHashSet<>();
+        java.util.regex.Matcher m = MAC_RE.matcher(text);
+        while (m.find()) { String x = mac(m.group()); if (x.matches("([0-9A-F]{2}:){5}[0-9A-F]{2}")) set.add(x); }
+        return new ArrayList<>(set);
+    }
+    /** Wahrscheinlichste Portal-Adresse aus beliebigem Text: bevorzugt URLs mit Port und Portal-Merkmalen. */
+    static String findPortal(String text) {
+        java.util.regex.Matcher m = URL_RE.matcher(text);
+        String best = ""; int bestScore = -1;
+        java.util.Map<String, Integer> hostCount = new java.util.LinkedHashMap<>();
+        while (m.find()) {
+            String u = m.group().replaceAll("[\\s\"\',);\\]]+$", "");
+            String low = u.toLowerCase(Locale.ROOT);
+            if (low.endsWith(".m3u") || low.endsWith(".m3u8") || low.endsWith(".ts") || low.contains("get.php") || low.contains("player_api")) continue;   // keine Stalker-Portale
+            String host = low.replaceAll("^https?://", "").replaceAll("[/:].*", "");
+            if (host.isEmpty()) continue;
+            hostCount.put(host, hostCount.containsKey(host) ? hostCount.get(host) + 1 : 1);
+            int score = 0;
+            if (low.matches(".*:\\d{2,5}.*")) score += 2;
+            if (low.contains("/c/") || low.matches(".*/c/?$")) score += 3;
+            if (low.contains("portal") || low.contains("stalker")) score += 3;
+            if (low.contains("load.php")) score += 2;
+            if (score > bestScore) { bestScore = score; best = u; }
+        }
+        // Bei mehreren Treffern die URL vom haeufigsten Host bevorzugen
+        if (!hostCount.isEmpty()) {
+            String top = ""; int tc = 0;
+            for (java.util.Map.Entry<String, Integer> e : hostCount.entrySet()) if (e.getValue() > tc) { tc = e.getValue(); top = e.getKey(); }
+            if (bestScore <= 0) { java.util.regex.Matcher m2 = URL_RE.matcher(text); while (m2.find()) { String u = m2.group().replaceAll("[\\s\"\',);\\]]+$", ""); if (u.toLowerCase(Locale.ROOT).contains(top)) { best = u; break; } } }
+        }
+        return best;
+    }
     static Map<String, String> headers(Session s) {
         Map<String, String> h = new HashMap<>();
         h.put("User-Agent", MAG_UA);

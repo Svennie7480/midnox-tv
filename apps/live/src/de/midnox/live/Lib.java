@@ -99,7 +99,7 @@ final class Lib {
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
         List<String> g = new ArrayList<>();
-        g.add(FAV); g.add(ALL); g.add(VOD); g.addAll(gs); g.add(MANAGE); g.add(SETTINGS);
+        g.add(FAV); g.add(ALL); g.addAll(gs); g.add(MANAGE); g.add(SETTINGS);   // Filme & Serien sind jetzt eine eigene Rubrik oben
         groups = g;
     }
     static boolean stale() { return System.currentTimeMillis() - loadedAt > 12 * 3600000L; }
@@ -134,6 +134,16 @@ final class Lib {
     // ------------------------------------------------------------ Auswahl
     /** Treffer der Sendersuche (z. B. aus „Wo läuft das?“ im Launcher) als eigene Gruppe oben in der Liste. */
     static String findGroup; static List<Model.Channel> found = new ArrayList<>();
+    static String searchGroup; static List<Model.Channel> searchResult = new ArrayList<>();
+    /** Live-Sender nach Name durchsuchen (enthaelt, Treffer am Wortanfang zuerst). */
+    static List<Model.Channel> searchChannels(String q) {
+        final String nq = U.norm(q);
+        List<Model.Channel> starts = new ArrayList<>(), contains = new ArrayList<>();
+        if (nq.isEmpty()) return starts;
+        for (Model.Channel ch : channels) { String n = U.norm(ch.name); if (n.startsWith(nq)) starts.add(ch); else if (n.contains(nq)) contains.add(ch); }
+        starts.addAll(contains);
+        return starts;
+    }
     static List<Model.Channel> find(String[] keys) {
         LinkedHashMap<String, Model.Channel> out = new LinkedHashMap<>();
         for (String k : keys) {
@@ -148,6 +158,7 @@ final class Lib {
     }
     static List<Model.Channel> inGroup(Context c, String g) {
         if (g != null && g.equals(findGroup)) return found;
+        if (g != null && g.equals(searchGroup)) return searchResult;
         if (g == null || g.equals(ALL)) return channels;
         List<Model.Channel> l = new ArrayList<>();
         if (g.equals(FAV)) {

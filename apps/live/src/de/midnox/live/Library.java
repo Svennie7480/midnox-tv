@@ -81,6 +81,11 @@ final class Library extends View {
         if (cats.isEmpty()) loadCats();
         setVisibility(VISIBLE); invalidate();
     }
+    /** Direkt auf einem Reiter oeffnen: 0 Filme, 1 Serien, 2 Suche. */
+    void openTab(int t) {
+        tab = t; area = 1; query = ""; found.clear(); items.clear(); gi = 0; rowTop = 0; d = null;
+        setVisibility(VISIBLE); loadCats(); invalidate();
+    }
 
     // ------------------------------------------------------------ Laden
     void loadCats() {

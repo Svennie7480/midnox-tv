@@ -428,6 +428,31 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
     @Override public void settings() { closeList(); openMenu(); }
     @Override public void library() { closeList(); openLibrary(); }
+    @Override public void library(int tab) {
+        closeList();
+        banner.setVisibility(View.GONE); menu.setVisibility(View.GONE); guide.setVisibility(View.GONE);
+        if (player != null) player.stop();
+        hideStatus();
+        library.openTab(tab);
+    }
+    @Override public void searchVod(String q) { closeList(); openLibrary(); library.search(q); }
+    @Override public void search() {
+        final EditText et = new EditText(this);
+        et.setHint("Sender, Film oder Serie …");
+        et.setInputType(InputType.TYPE_CLASS_TEXT);
+        et.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        final AlertDialog d = new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Suche").setMessage("Durchsucht Live-Sender und Filme & Serien.").setView(et)
+            .setPositiveButton("Suchen", new DialogInterface.OnClickListener() { public void onClick(DialogInterface dd, int w) { String q = et.getText().toString().trim(); if (q.length() >= 1) doSearch(q); } })
+            .setNegativeButton("Abbrechen", null).create();
+        et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int a, KeyEvent e) {
+            String q = et.getText().toString().trim(); if (q.length() >= 1) { d.dismiss(); doSearch(q); } return true; } });
+        d.show(); et.requestFocus();
+    }
+    void doSearch(String q) {
+        if (list.getVisibility() != View.VISIBLE) { banner.setVisibility(View.GONE); list.setVisibility(View.VISIBLE); }
+        list.showSearch(q);
+        hideLater(list, 30000);
+    }
     @Override public void toast(String s) { showStatus(s, 3500); }
     @Override public void manageGroups() {
         List<String[]> all = Lib.allGroups(this);

@@ -65,7 +65,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void manageGroups(); void toast(String s); void groupOptions(String g); void channelOptions(Model.Channel ch); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void library(int tab); void search(); void searchVod(String q); void manageGroups(); void toast(String s); void groupOptions(String g); void channelOptions(Model.Channel ch); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -75,11 +75,17 @@ final class Views {
         List<Model.Channel> chans = new ArrayList<>();
         int gi, ci, gTop, cTop, col = 1;
         String playingId;
+        static final String[] TABS = {"\uD83D\uDCFA  Live-TV", "\uD83C\uDFAC  Filme", "\uD83C\uDF9E  Serien", "\uD83D\uDD0D  Suche"};
+        static final String SVOD = "\uD83C\uDFAC Filme & Serien  \u203A";   // Ergebnis-Rubrik in der Suche
+        int tab = 0; boolean onTabs; String query = "";
+        boolean searchMode() { return Lib.searchGroup != null && !groups.isEmpty() && groups.get(0).equals(Lib.searchGroup); }
+        boolean special(String g) { return Lib.special(g) || g.equals(Lib.searchGroup) || g.equals(SVOD); }
 
         ListPanel(Context c, ListCb cb) { super(c); this.cb = cb; }
 
         void open(String group, String playingId) {
             this.playingId = playingId;
+            onTabs = false; tab = 0;
             groups = new ArrayList<>(Lib.groups);
             if (Lib.findGroup != null && !Lib.found.isEmpty()) groups.add(0, Lib.findGroup);
             gi = Math.max(0, groups.indexOf(group));
@@ -98,25 +104,36 @@ final class Views {
         Model.Channel selected() { return chans.isEmpty() ? null : chans.get(Math.min(ci, chans.size() - 1)); }
 
         boolean key(int k, boolean repeat) {
-            int step = repeat ? 1 : 1;
-            if (k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_CHANNEL_UP) { move(-step); return true; }
-            if (k == KeyEvent.KEYCODE_DPAD_DOWN || k == KeyEvent.KEYCODE_CHANNEL_DOWN) { move(step); return true; }
+            boolean ok = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER;
+            // --- Umschaltleiste oben (TV · Filme · Serien · Suche)
+            if (onTabs) {
+                if (k == KeyEvent.KEYCODE_DPAD_LEFT) { tab = Math.max(0, tab - 1); invalidate(); return true; }
+                if (k == KeyEvent.KEYCODE_DPAD_RIGHT) { tab = Math.min(TABS.length - 1, tab + 1); invalidate(); return true; }
+                if (ok) { activateTab(); return true; }
+                if (k == KeyEvent.KEYCODE_DPAD_DOWN) { if (tab == 0 || searchMode()) { onTabs = false; invalidate(); } else activateTab(); return true; }
+                if (k == KeyEvent.KEYCODE_DPAD_UP) return true;
+                return false;   // BACK schließt die Liste
+            }
+            if (k == KeyEvent.KEYCODE_DPAD_UP && (col == 0 ? gi == 0 : ci == 0)) { onTabs = true; invalidate(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_UP || k == KeyEvent.KEYCODE_CHANNEL_UP) { move(-1); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_DOWN || k == KeyEvent.KEYCODE_CHANNEL_DOWN) { move(1); return true; }
             if (k == KeyEvent.KEYCODE_PAGE_UP || k == KeyEvent.KEYCODE_MEDIA_REWIND) { move(-8); return true; }
             if (k == KeyEvent.KEYCODE_PAGE_DOWN || k == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD) { move(8); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_LEFT) { if (col == 1) { col = 0; invalidate(); return true; } return false; }
+            boolean actKey = ok || k == KeyEvent.KEYCODE_DPAD_RIGHT;
+            if (actKey && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
+            if (actKey && col == 0 && group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; }
+            if (actKey && col == 0 && group().equals(SVOD)) { cb.searchVod(query); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.guide(ch); return true;
             }
-            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
-            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.VOD)) { cb.library(); return true; }
-            if ((k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_DPAD_RIGHT) && col == 0 && group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; }
             if (k == KeyEvent.KEYCODE_MENU && col == 0) {
                 String g = group();
-                if (!Lib.special(g)) { Lib.hideGroup(getContext(), g, true); groups = Lib.groups; gi = Math.min(gi, groups.size() - 1); loadGroup(); cb.toast("„" + g + "“ ausgeblendet – zurückholen unter " + Lib.MANAGE); invalidate(); }
+                if (!special(g)) { Lib.hideGroup(getContext(), g, true); groups = Lib.groups; gi = Math.min(gi, groups.size() - 1); loadGroup(); cb.toast("„" + g + "“ ausgeblendet – zurückholen unter " + Lib.MANAGE); invalidate(); }
                 return true;
             }
-            if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) {
+            if (ok) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.play(ch); return true;
             }
@@ -125,17 +142,39 @@ final class Views {
         }
         /** OK lange gedrueckt: Optionen fuer Gruppe bzw. Sender. */
         boolean longOk() {
-            if (col == 0) { String g = group(); if (Lib.special(g)) return false; cb.groupOptions(g); return true; }
+            if (onTabs) { activateTab(); return true; }
+            if (col == 0) { String g = group(); if (special(g)) return false; cb.groupOptions(g); return true; }
             Model.Channel ch = selected(); if (ch == null) return false; cb.channelOptions(ch); return true;
         }
         void afterHide() { groups = Lib.groups; gi = Math.max(0, Math.min(gi, groups.size() - 1)); loadGroup(); invalidate(); }
+        /** Ergebnisliste der Sendersuche + Rubrik „Filme & Serien“. */
+        void showSearch(String q) {
+            query = q; onTabs = false; tab = 3;
+            Lib.searchGroup = "\uD83D\uDD0D  „" + q + "“"; Lib.searchResult = Lib.searchChannels(q);
+            groups = new ArrayList<>(); groups.add(Lib.searchGroup); groups.add(SVOD);
+            gi = 0; gTop = 0; loadGroup();
+            col = Lib.searchResult.isEmpty() ? 0 : 1; ci = 0; cTop = 0;
+            setVisibility(VISIBLE); invalidate();
+        }
+        /** Aktiven Reiter auslösen. */
+        void activateTab() {
+            if (tab == 0) { onTabs = false; if (searchMode()) { groups = new ArrayList<>(Lib.groups); gi = Math.max(0, groups.indexOf(Lib.ALL)); loadGroup(); } col = chans.isEmpty() ? 0 : 1; invalidate(); }
+            else if (tab == 1) cb.library(0);
+            else if (tab == 2) cb.library(1);
+            else cb.search();
+        }
         /** Touch: Gruppe oder Sender antippen. false = ausserhalb der Liste. */
         boolean tap(float x, float y) {
-            float dp = U.dp, w = getWidth(), gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp), top = 58 * dp;
+            float dp = U.dp, w = getWidth(), gw = 250 * dp, cw = Math.min(w - gw - 40 * dp, 620 * dp), top = 108 * dp;
+            if (y < 60 * dp) {   // Umschaltleiste
+                float tx = 20 * dp;
+                for (int i = 0; i < TABS.length; i++) { t.setTypeface(U.BOLD); t.setTextSize(16 * dp); float tw = t.measureText(TABS[i]) + 34 * dp; if (x >= tx && x < tx + tw) { tab = i; onTabs = false; activateTab(); return true; } tx += tw + 12 * dp; }
+                return true;
+            }
             if (y < top) return true;
             if (x < gw) {
                 int i = gTop + (int) ((y - top) / (44 * dp));
-                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } if (group().equals(Lib.VOD)) { cb.library(); return true; } if (group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
+                if (i >= 0 && i < groups.size()) { gi = i; col = 0; if (group().equals(Lib.SETTINGS)) { cb.settings(); return true; } if (group().equals(SVOD)) { cb.searchVod(query); return true; } if (group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; } loadGroup(); if (!chans.isEmpty()) col = 1; invalidate(); }
                 return true;
             }
             if (x < gw + cw + 16 * dp) {
@@ -168,15 +207,29 @@ final class Views {
             c.drawRect(gw + cw + 16 * dp, 0, gw + cw + 60 * dp, h, p); p.setShader(null);
             p.setShader(U.brand(0, gw + cw + 16 * dp)); c.drawRect(0, 0, gw + cw + 16 * dp, 3 * dp, p); p.setShader(null);
             long now = System.currentTimeMillis();
-            // Kopf
+            // Umschaltleiste: Live-TV · Filme · Serien · Suche
+            float btx = 20 * dp, bty = 16 * dp, bth = 42 * dp;
+            for (int i = 0; i < TABS.length; i++) {
+                t.setTypeface(U.BOLD); t.setTextSize(16 * dp);
+                float btw = t.measureText(TABS[i]) + 34 * dp;
+                RectF r = new RectF(btx, bty, btx + btw, bty + bth);
+                boolean sel = (!onTabs && ((i == 0 && !searchMode()) || (i == 3 && searchMode()))) || (onTabs && tab == i);
+                if (onTabs && tab == i) { p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setShader(null); }
+                else if (sel) { p.setColor(0xFF2A2840); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.5f * dp); p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setShader(null); p.setStyle(Paint.Style.FILL); }
+                else { p.setColor(0x16FFFFFF); c.drawRoundRect(r, bth / 2, bth / 2, p); }
+                t.setColor(sel || (onTabs && tab == i) ? Color.WHITE : 0xFFB4B8CC);
+                c.drawText(TABS[i], r.left + 17 * dp, r.centerY() + 6 * dp, t);
+                btx += btw + 12 * dp;
+            }
+            // Kopf (Spaltenüberschriften + Uhr)
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.LEFT); t.setLetterSpacing(0.2f);
-            c.drawText("GRUPPEN", 28 * dp, 40 * dp, t);
-            c.drawText(ell(t, group().toUpperCase(Locale.GERMANY) + "  ·  " + chans.size(), cw - 20 * dp), gw + 24 * dp, 40 * dp, t);
+            c.drawText(searchMode() ? "ERGEBNISSE" : "GRUPPEN", 28 * dp, 90 * dp, t);
+            c.drawText(ell(t, group().toUpperCase(Locale.GERMANY) + "  ·  " + chans.size(), cw - 20 * dp), gw + 24 * dp, 90 * dp, t);
             t.setLetterSpacing(0);
             t.setTextAlign(Paint.Align.RIGHT); t.setTextSize(13 * dp); t.setColor(U.MUTED);
-            c.drawText(hm(now), gw + cw, 40 * dp, t); t.setTextAlign(Paint.Align.LEFT);
+            c.drawText(hm(now), gw + cw, 90 * dp, t); t.setTextAlign(Paint.Align.LEFT);
             // Gruppen
-            float gh = 44 * dp, top = 58 * dp;
+            float gh = 44 * dp, top = 108 * dp;
             int gv = (int) ((h - top - 20 * dp) / gh);
             if (gi < gTop) gTop = gi; if (gi >= gTop + gv) gTop = gi - gv + 1;
             for (int i = gTop; i < groups.size() && i < gTop + gv; i++) {
@@ -196,7 +249,7 @@ final class Views {
             if (ci < cTop) cTop = ci; if (ci >= cTop + cv) cTop = ci - cv + 1;
             if (chans.isEmpty()) {
                 t.setTypeface(U.POP); t.setTextSize(16 * dp); t.setColor(U.MUTED);
-                c.drawText(group().equals(Lib.VOD) ? "OK: Filme und Serien deiner Anbieter mit Postern" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.MANAGE) ? "OK: Gruppen an- und abhaken  ·  OK lang drücken auf einer Gruppe: Optionen" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
+                c.drawText(group().equals(SVOD) ? "OK: „" + query + "“ in Filmen & Serien suchen" : searchMode() ? "Kein Sender passt zu „" + query + "“ – probier’s bei Filme & Serien" : group().equals(Lib.SETTINGS) ? "OK: Quellen einrichten – zweiter Anbieter, MACs, EPG (per Handy oder PC)" : group().equals(Lib.MANAGE) ? "OK: Gruppen an- und abhaken  ·  OK lang drücken auf einer Gruppe: Optionen" : group().equals(Lib.FAV) ? "Noch keine Favoriten – MENU auf einem Sender drückt den Stern." : "Keine Sender in dieser Gruppe", x0 + 16 * dp, top + 40 * dp, t);
             }
             for (int i = cTop; i < chans.size() && i < cTop + cv; i++) {
                 Model.Channel ch = chans.get(i);
@@ -247,7 +300,7 @@ final class Views {
             }
             // Hilfe
             t.setTypeface(U.POP); t.setTextSize(12 * dp); t.setColor(U.MUTED);
-            c.drawText(col == 0 ? "\u2630 Einstellungen   OK / ▶ Sender   ▲▼ Gruppe" : "OK abspielen   ▶ TV-Guide   MENU Favorit   ◀ Gruppen", x0 + 16 * dp, h - 12 * dp, t);
+            c.drawText(onTabs ? "◀▶ Rubrik wählen   OK öffnen   ▼ nach unten" : col == 0 ? "▲ Rubriken (TV · Filme · Serien · Suche)   OK / ▶ Sender   ▲▼ Gruppe" : "OK abspielen   ▶ TV-Guide   MENU Favorit   ◀ Gruppen   ▲ Rubriken", x0 + 16 * dp, h - 12 * dp, t);
         }
     }
 

@@ -116,8 +116,9 @@ if ($api === 'redeem') {
         foreach ($p['codes'] ?? [] as $i => $c) {
             if ($c['code'] !== $code) continue;
             if (time() - $c['created'] > CODE_DAYS * 86400) { unset($p['codes'][$i]); continue; }
-            unset($p['codes'][$i]);                       // nur einmal gültig
-            $p['codes'] = array_values($p['codes']);
+            $max = (int)($c['max'] ?? 1);                 // 0 = unbegrenzt, sonst Anzahl Geraete
+            $p['codes'][$i]['used'] = (int)($c['used'] ?? 0) + 1;
+            if ($max > 0 && $p['codes'][$i]['used'] >= $max) { unset($p['codes'][$i]); $p['codes'] = array_values($p['codes']); }
             $tok = rid(24);
             $p['devices'][] = ['token' => hash('sha256', $tok), 'name' => substr((string)($in['device'] ?? 'Gerät'), 0, 60), 'first' => time(), 'last' => time(), 'ip' => ip(), 'ver' => $p['ver']];
             save('packages', $pk);
@@ -168,7 +169,7 @@ if ($api === 'admin') {
                 $codes = array_values(array_filter($p['codes'] ?? [], function ($x) use ($now) { return $now - $x['created'] <= CODE_DAYS * 86400; }));
                 $devs = array_map(function ($d) { return ['id' => substr($d['token'], 0, 12), 'name' => $d['name'], 'first' => $d['first'], 'last' => $d['last'], 'current' => $d['ver'] ?? 0, 'exp' => $d['exp'] ?? [], 'exp_at' => $d['exp_at'] ?? 0]; }, $p['devices'] ?? []);
                 $l[] = ['id' => $id, 'name' => $p['name'], 'ver' => $p['ver'], 'updated' => $p['updated'], 'data' => dec($p['data']),
-                        'codes' => array_map(function ($x) { return ['code' => $x['code'], 'until' => $x['created'] + CODE_DAYS * 86400]; }, $codes), 'devices' => $devs];
+                        'codes' => array_map(function ($x) { return ['code' => $x['code'], 'until' => $x['created'] + CODE_DAYS * 86400, 'max' => (int)($x['max'] ?? 1), 'used' => (int)($x['used'] ?? 0)]; }, $codes), 'devices' => $devs];
             }
             usort($l, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
             out(['ok' => true, 'packages' => $l]);
@@ -192,7 +193,8 @@ if ($api === 'admin') {
             $used = [];
             foreach ($pk as $p) foreach ($p['codes'] ?? [] as $x) $used[$x['code']] = 1;
             do { $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT); } while (isset($used[$code]));
-            $pk[$id]['codes'][] = ['code' => $code, 'created' => $now];
+            $max = max(0, min(999, (int)($in['max'] ?? 1)));
+            $pk[$id]['codes'][] = ['code' => $code, 'created' => $now, 'max' => $max, 'used' => 0];
             save('packages', $pk);
             out(['ok' => true, 'code' => $code, 'until' => $now + CODE_DAYS * 86400]);
         case 'uncode':
@@ -248,7 +250,7 @@ button{padding:9px 16px;border:0;border-radius:999px;background:var(--g);color:#
  <div class="row" style="margin-bottom:6px"><button onclick="edit(null)">＋ Neues Paket</button><button class="g" onclick="logout()">Abmelden</button>
   <span class="hint grow" style="text-align:right">Downloader-Adressen: midnox Live <b id="dl"></b> · midnox TV <b id="dltv"></b></span></div>
  <div id="list"></div>
- <div class="card hint">So geht's: Paket anlegen → <b>Code erzeugen</b> → dein Kollege installiert midnox Live (Downloader-App, Adresse oben), startet sie und gibt den sechsstelligen Code mit der Fernbedienung ein. Änderungen am Paket kommen automatisch auf seinen Stick. Jeder Code gilt einmal und <?= CODE_DAYS ?> Tage.</div>
+ <div class="card hint">So geht's: Paket anlegen → <b>Code erzeugen</b> → dein Kollege installiert midnox Live (Downloader-App, Adresse oben), startet sie und gibt den sechsstelligen Code mit der Fernbedienung ein. Änderungen am Paket kommen automatisch auf seinen Stick. Beim Erzeugen legst du fest, für wie viele Geräte ein Code gilt (ein Gerät, eine feste Zahl oder unbegrenzt). Codes laufen nach <?= CODE_DAYS ?> Tagen ab und lassen sich jederzeit zurückziehen.</div>
 </div>
 </div>
 
@@ -282,10 +284,10 @@ function render(){
  $('list').innerHTML=P.length?P.map(function(p,i){var s=(p.data.sources||[]);
   return '<div class="card"><div class="row"><div class="grow"><b style="font-size:18px">'+esc(p.name)+'</b><div class="hint">'+s.map(function(x){return '<span class="pill">'+esc(x.name||x.type)+(x.type=='stalker'?' · '+(x.mac||'').split(/[\s,;]+/).filter(Boolean).length+' MAC':'')+'</span>'}).join('')+' Stand '+when(p.updated)+'</div></div>'
   +'<button class="g" onclick="edit('+i+')">Bearbeiten</button><button onclick="code('+i+')">Code erzeugen</button><button class="r" onclick="del('+i+')">Löschen</button></div>'
-  +(p.codes.length?'<div style="margin-top:10px">'+p.codes.map(function(c){return '<div class="row"><span class="code">'+c.code.slice(0,3)+' '+c.code.slice(3)+'</span><span class="hint grow">gültig bis '+new Date(c.until*1000).toLocaleDateString('de-DE')+' · noch nicht eingelöst</span><button class="g" onclick="uncode('+i+',\''+c.code+'\')">Zurückziehen</button></div>'}).join('')+'</div>':'')
+  +(p.codes.length?'<div style="margin-top:10px">'+p.codes.map(function(c){var u=c.max===0?('unbegrenzt · '+(c.used||0)+'× genutzt'):((c.max||1)-(c.used||0))+' von '+(c.max||1)+' frei'+((c.used||0)?' · '+c.used+'× genutzt':''));return '<div class="row"><span class="code">'+c.code.slice(0,3)+' '+c.code.slice(3)+'</span><span class="hint grow">gültig bis '+new Date(c.until*1000).toLocaleDateString('de-DE')+' · '+u+'</span><button class="g" onclick="uncode('+i+',\''+c.code+'\')">Zurückziehen</button></div>'}).join('')+'</div>':'')
   +(p.devices.length?'<div style="margin-top:10px">'+p.devices.map(function(d){return '<div class="dev"><span>📺 '+esc(d.name)+' <span class="hint">· seit '+when(d.first)+' · zuletzt '+when(d.last)+(d.current==p.ver?' · aktuell':' · Update ausstehend')+'</span>'+expHtml(d)+'</span><button class="g" onclick="revoke('+i+',\''+d.id+'\')">Abklemmen</button></div>'}).join('')+'</div>':'<div class="hint" style="margin-top:8px">Noch kein Gerät eingerichtet.</div>')
   +'</div>'}).join(''):'<div class="card hint">Noch keine Pakete – leg oben das erste an.</div>'}
-function code(i){api('admin&do=code',{id:P[i].id}).then(function(j){if(!j.ok)return msg(j.msg);load();msg('Code '+j.code+' – an deinen Kollegen weitergeben')})}
+function code(i){var a=prompt('Für wie viele Geräte soll der Code gelten?\n\n1 = ein Gerät (Standard)\nZahl = so viele Geräte\n0 = unbegrenzt','1');if(a===null)return;var m=parseInt(a,10);if(isNaN(m)||m<0)m=1;api('admin&do=code',{id:P[i].id,max:m}).then(function(j){if(!j.ok)return msg(j.msg);load();msg('Code '+j.code+' – '+(m===0?'unbegrenzt':m+' Gerät(e)')+' – an deine Kollegen weitergeben')})}
 function uncode(i,c){api('admin&do=uncode',{id:P[i].id,code:c}).then(load)}
 function revoke(i,d){if(confirm('Dieses Gerät abklemmen? Die Portale verschwinden dort beim nächsten Abgleich.'))api('admin&do=revoke',{id:P[i].id,device:d}).then(load)}
 function del(i){if(confirm('Paket „'+P[i].name+'“ löschen? Eingerichtete Geräte verlieren die Portale beim nächsten Abgleich.'))api('admin&do=delete',{id:P[i].id}).then(load)}

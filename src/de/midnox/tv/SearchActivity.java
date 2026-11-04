@@ -259,14 +259,32 @@ public class SearchActivity extends Activity {
             }
             public void onLongClick(MediaCard c) { onClick(c); }
         });
-        // YouTube ueber SmartTube
-        TextView cap = Style.text(this, "YOUTUBE", 11, Style.MUTED);
+        // YouTube ueber SmartTube + Absprung in Abo-Dienste (RTL+, MagentaTV), falls installiert
+        TextView cap = Style.text(this, "WEITER SUCHEN IN", 11, Style.MUTED);
         cap.setLetterSpacing(0.3f); cap.setPadding(Style.px(64), Style.px(10), 0, Style.px(8));
         results.addView(cap);
         LinearLayout yr = new LinearLayout(this);
         yr.setPadding(Style.px(60), 0, 0, 0);
-        yr.addView(new Pill(this, "„" + q + "“ auf YouTube suchen  ›", new Runnable() { public void run() { youtube(q); } }));
+        yr.addView(new Pill(this, "„" + q + "“ auf YouTube  ›", new Runnable() { public void run() { youtube(q); } }));
+        final String rtl = firstInstalled("de.rtli.tvnow", "de.cbc.rtlplus", "de.rtlplus.androidtv", "de.rtli.androidtv");
+        if (rtl != null) yr.addView(new Pill(this, "RTL+ öffnen  ›", new Runnable() { public void run() { openApp(rtl, "RTL+", q); } }));
+        final String mag = firstInstalled("de.telekom.magentatv.tv", "de.telekom.magentatv.atv", "de.telekom.magentatv", "de.telekom.magentatv.firetv", "de.telekom.entertaintv.smartphone");
+        if (mag != null) yr.addView(new Pill(this, "MagentaTV öffnen  ›", new Runnable() { public void run() { openApp(mag, "MagentaTV", q); } }));
         results.addView(yr);
+    }
+
+    /** Erstes installiertes Paket aus der Liste (oder null). */
+    String firstInstalled(String... pkgs) {
+        for (String p : pkgs) if (Style.launchIntent(getPackageManager(), p) != null) return p;
+        return null;
+    }
+    /** Dienst-App öffnen; den Suchbegriff gibt der Nutzer dort ein (Deep-Link-Suche ist bei diesen Apps nicht verlässlich). */
+    void openApp(String pkg, String name, String q) {
+        Intent i = Style.launchIntent(getPackageManager(), pkg);
+        if (i == null) { Style.toast(this, name + " ist nicht installiert"); return; }
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(i); Style.toast(this, "In " + name + " nach „" + q + "“ suchen"); }
+        catch (Exception e) { Style.toast(this, name + " lässt sich nicht öffnen"); }
     }
 
     void row(String title, List<Emby.Entry> list, MediaCard.Listener l) {

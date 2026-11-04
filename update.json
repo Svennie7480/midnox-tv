@@ -1,6 +1,6 @@
 {
- "versionCode": 70,
- "versionName": "10.10",
+ "versionCode": 71,
+ "versionName": "10.11",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Globale Suche durchsucht jetzt auch die öffentlichen Mediatheken (ARD, ZDF, ARTE, 3sat, BR, NDR …) – Treffer öffnen direkt im midnox-Player."
+ "notes": "Globale Suche: Absprung-Kacheln für RTL+ und MagentaTV (öffnen die App mit deinem Suchbegriff), sofern installiert – neben YouTube und den öffentlichen Mediatheken."
 }

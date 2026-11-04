@@ -126,6 +126,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             if (hit != null) { if (player != null) player.stop(); banner.setVisibility(View.GONE); library.openHit(hit); return; }
         }
         if (i != null && i.getStringArrayExtra("find") != null) { findAndPlay(i.getStringArrayExtra("find"), i.getStringArrayExtra("teams")); return; }
+        if (i != null && i.getStringExtra("url") != null) { playRaw(i.getStringExtra("url"), i.getStringExtra("title")); return; }
         if (i != null && i.getStringExtra("search") != null) { if (player != null) player.stop(); library.open(); library.search(i.getStringExtra("search")); return; }
         String tvg = i == null ? null : i.getStringExtra("tvg");
         if (tvg != null) ch = Lib.byTvg(tvg);
@@ -262,7 +263,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         boolean empty = Lib.channels.isEmpty();
         setup.setVisibility(empty ? View.VISIBLE : View.GONE);
         if (empty) updateSetup();
-        if (!empty && current == null) handleIntent(null, true);
+        if (!empty && current == null && !vodMode) handleIntent(null, true);
         list.invalidate(); banner.invalidate(); guide.invalidate();
     }
 
@@ -679,6 +680,21 @@ public class PlayerActivity extends Activity implements Views.ListCb {
                 h.post(new Runnable() { public void run() { if (vodMode) showStatus("\u26A0  " + e.getMessage(), 0); } });
             }
         }}).start();
+    }
+    /** Direkter Stream (z. B. Mediathek-Treffer aus der Launcher-Suche): im midnox-Player abspielen. */
+    void playRaw(final String url, final String title) {
+        if (url == null || url.isEmpty() || player == null) return;
+        vodMode = true; vodItem = null; vodEp = null; vodNext = new ArrayList<>();
+        library.setVisibility(View.GONE); banner.setVisibility(View.GONE); if (list != null) closeList();
+        vodOsd.title = title == null || title.isEmpty() ? "Mediathek" : title; vodOsd.sub = "Mediathek";
+        vodOsd.pos = 0; vodOsd.dur = 0; vodOsd.paused = false;
+        showVodOsd(); showStatus("Lädt …", 0);
+        DefaultHttpDataSource.Factory ds = new DefaultHttpDataSource.Factory().setUserAgent(U.UA)
+            .setAllowCrossProtocolRedirects(true).setConnectTimeoutMs(12000).setReadTimeoutMs(20000);
+        MediaItem.Builder mi = new MediaItem.Builder().setUri(url);
+        if (url.toLowerCase(Locale.ROOT).contains(".m3u8")) mi.setMimeType(MimeTypes.APPLICATION_M3U8);
+        player.setMediaSource(new DefaultMediaSourceFactory(ds).createMediaSource(mi.build()));
+        player.prepare(); player.setPlayWhenReady(true);
     }
     final Runnable vodSaver = new Runnable() { public void run() {
         if (!vodMode || player == null) return;

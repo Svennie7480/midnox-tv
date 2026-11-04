@@ -1,6 +1,6 @@
 {
- "versionCode": 20,
- "versionName": "2.10",
+ "versionCode": 21,
+ "versionName": "2.11",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Einstellungs-/Menü-Liste scrollt jetzt mit: Auf kleinen Fernsehern wird nichts mehr unten abgeschnitten – je weiter man nach unten geht, desto weiter rückt die Liste nach, mit Pfeil-Hinweis."
+ "notes": "Spielt jetzt auch direkte Streams aus der Launcher-Suche ab (Mediatheken wie ARD/ZDF) – im gewohnten midnox-Player."
 }

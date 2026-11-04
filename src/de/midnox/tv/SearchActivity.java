@@ -128,6 +128,11 @@ public class SearchActivity extends Activity {
         if (q.length() < 2) { status.setText(""); return; }
         status.setText("Suche „" + q + "“ …");
         liveVod = new ArrayList<>();
+        mediathek = new ArrayList<>();
+        new Thread(new Runnable() { public void run() {   // Öffentliche Mediatheken (ARD, ZDF …) über MediathekViewWeb
+            final List<Mediathek.Hit> m = Mediathek.search(q, 24);
+            h.post(new Runnable() { public void run() { if (my == gen) { mediathek = m; if (lastEmby != null) show(lastQ, lastE, lastEmby, lastTv); } } });
+        }}).start();
         new Thread(new Runnable() { public void run() {
             // midnox Live: Filme und Serien aller IPTV-Quellen (gleiche Titel zusammengefasst)
             final List<Emby.Entry> vod = new ArrayList<>();
@@ -196,11 +201,12 @@ public class SearchActivity extends Activity {
     }
 
     volatile List<Emby.Entry> liveVod = new ArrayList<>();
+    volatile List<Mediathek.Hit> mediathek = new ArrayList<>();
     String lastQ; Emby lastE; List<Emby.Entry> lastEmby, lastTv;
     void show(final String q, final Emby e, List<Emby.Entry> emby, List<Emby.Entry> tv) {
         lastQ = q; lastE = e; lastEmby = emby; lastTv = tv;
         results.removeAllViews();
-        status.setText(emby.size() + " in Emby  ·  " + (liveVod.isEmpty() ? "" : liveVod.size() + " in midnox Live  ·  ") + tv.size() + " im TV");
+        status.setText(emby.size() + " in Emby  ·  " + (liveVod.isEmpty() ? "" : liveVod.size() + " in midnox Live  ·  ") + (mediathek.isEmpty() ? "" : mediathek.size() + " in Mediatheken  ·  ") + tv.size() + " im TV");
         if (!emby.isEmpty()) row("EMBY", emby, new MediaCard.Listener() {
             public void onFocus(MediaCard c) {}
             public void onClick(MediaCard c) {
@@ -223,6 +229,25 @@ public class SearchActivity extends Activity {
             }
             public void onLongClick(MediaCard c) { onClick(c); }
         });
+        if (!mediathek.isEmpty()) {
+            List<Emby.Entry> ents = new ArrayList<>();
+            for (Mediathek.Hit hit : mediathek) {
+                Emby.Entry x = new Emby.Entry();
+                x.id = hit.url; x.linkId = hit.website; x.type = "MEDIATHEK"; x.forceText = true;
+                x.title = hit.title;
+                String dur = Mediathek.durationText(hit.duration);
+                x.sub = hit.channel + (dur.isEmpty() ? "" : "  ·  " + dur);
+                x.kind = "MEDIATHEK  ·  " + hit.channel.toUpperCase(Locale.GERMANY);
+                x.meta = (hit.topic.isEmpty() ? "" : hit.topic + "   ·   ") + "OK spielt im midnox-Player";
+                x.overview = hit.desc;
+                ents.add(x);
+            }
+            row("MEDIATHEKEN  ·  ARD, ZDF, ARTE, 3SAT …", ents, new MediaCard.Listener() {
+                public void onFocus(MediaCard c) {}
+                public void onClick(MediaCard c) { openMediathek(c.e.id, c.e.title, c.e.linkId); }
+                public void onLongClick(MediaCard c) { onClick(c); }
+            });
+        }
         if (!tv.isEmpty()) row("IM TV  ·  NÄCHSTE 30 STUNDEN", tv, new MediaCard.Listener() {
             public void onFocus(MediaCard c) {}
             public void onClick(MediaCard c) {
@@ -260,6 +285,28 @@ public class SearchActivity extends Activity {
             r.addView(new MediaCard(this, e, sv, l), lp);
         }
         results.addView(sv);
+    }
+
+    /** Mediathek-Treffer abspielen: bevorzugt im midnox-Live-Player, sonst über einen beliebigen Video-Player. */
+    void openMediathek(String url, String title, String website) {
+        if (url == null || url.isEmpty()) return;
+        if (TvRows.hasLive(this)) {
+            try {
+                Intent i = new Intent("de.midnox.live.PLAY").setPackage(TvRows.LIVE);
+                i.putExtra("url", url); i.putExtra("title", title);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(i); return;
+            } catch (Exception ignored) {}
+        }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(Uri.parse(url), url.toLowerCase(Locale.ROOT).contains(".m3u8") ? "application/vnd.apple.mpegurl" : "video/*");
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception ex) {
+            if (website != null && !website.isEmpty()) try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(website)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return; } catch (Exception ignored) {}
+            Style.toast(this, "Kein Player für diese Mediathek gefunden");
+        }
     }
 
     void youtube(String q) {

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.tv" android:versionCode="68" android:versionName="10.8">
+    package="de.midnox.tv" android:versionCode="69" android:versionName="10.9">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
+  <permission android:name="de.midnox.tv.permission.KEYS" android:protectionLevel="signature"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -53,5 +54,6 @@
       </intent-filter>
     </service>
     <provider android:name=".ApkProvider" android:authorities="de.midnox.tv.apk" android:exported="false" android:grantUriPermissions="true"/>
+    <provider android:name=".KeyProvider" android:authorities="de.midnox.tv.keys" android:exported="true" android:permission="de.midnox.tv.permission.KEYS"/>
   </application>
 </manifest>

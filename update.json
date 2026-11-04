@@ -1,6 +1,6 @@
 {
- "versionCode": 68,
- "versionName": "10.8",
+ "versionCode": 69,
+ "versionName": "10.9",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-tv.apk",
- "notes": "Sport: Spiele direkt in midnox Live öffnen – der richtige Sender wird automatisch gesucht"
+ "notes": "ADB-Freigabe gilt jetzt für alle midnox-Apps: einmal am Launcher „Zulassen“ bestätigt, nutzen midnox Tools & Co. dieselbe Freigabe – kein zweites Bestätigen mehr."
 }

@@ -63,6 +63,13 @@ public class Adb {
         SharedPreferences pr = U.prefs(c);
         String pub = pr.getString("adb_pub", ""), priv = pr.getString("adb_priv", "");
         KeyFactory kf = KeyFactory.getInstance("RSA");
+        // Falls der midnox-Launcher installiert ist: dessen bereits am Fernseher freigegebenen
+        // Schluessel uebernehmen, damit ADB nicht ein zweites Mal bestaetigt werden muss.
+        String[] shared = launcherKey(c);
+        if (shared != null && !pub.equals(shared[0])) {
+            pub = shared[0]; priv = shared[1];
+            pr.edit().putString("adb_pub", pub).putString("adb_priv", priv).apply();
+        }
         if (!pub.isEmpty() && !priv.isEmpty()) {
             return new KeyPair(kf.generatePublic(new X509EncodedKeySpec(Base64.decode(pub, Base64.NO_WRAP))),
                     kf.generatePrivate(new PKCS8EncodedKeySpec(Base64.decode(priv, Base64.NO_WRAP))));
@@ -73,6 +80,16 @@ public class Adb {
         pr.edit().putString("adb_pub", Base64.encodeToString(k.getPublic().getEncoded(), Base64.NO_WRAP))
                  .putString("adb_priv", Base64.encodeToString(k.getPrivate().getEncoded(), Base64.NO_WRAP)).apply();
         return k;
+    }
+
+    /** Holt den ADB-Schluessel vom midnox-Launcher (gleiche Signatur). null = Launcher fehlt/kein Schluessel. */
+    static String[] launcherKey(Context c) {
+        try {
+            android.os.Bundle b = c.getContentResolver().call(android.net.Uri.parse("content://de.midnox.tv.keys"), "get", null, null);
+            if (b == null) return null;
+            String pub = b.getString("pub", ""), priv = b.getString("priv", "");
+            return pub.isEmpty() || priv.isEmpty() ? null : new String[]{pub, priv};
+        } catch (Exception e) { return null; }
     }
 
     /** Oeffentlicher Schluessel im ADB-Format (android_pubkey_encode) + Name. */

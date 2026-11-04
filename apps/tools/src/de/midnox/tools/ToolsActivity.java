@@ -61,7 +61,9 @@ public class ToolsActivity extends Activity {
                 loadApps();
             } catch (Exception e) {
                 adbOk = false;
-                adbState = Adb.status.contains("bestätigen") ? Adb.status : "nicht verfügbar – ADB-Debugging einschalten";
+                if (Adb.status.contains("bestätigen")) adbState = Adb.status;
+                else if (Adb.lastError != null && Adb.lastError.contains("ConnectException")) adbState = "ADB an? Dann einmal aus- und wieder einschalten";
+                else adbState = "nicht verfügbar – ADB-Debugging einschalten";
                 if (loud) toast("ADB: " + adbState);
             }
         }});
@@ -291,7 +293,7 @@ public class ToolsActivity extends Activity {
                     l.add(btn("⚡  Arbeitsspeicher freigeben", new Runnable() { public void run() { freeRam(); } }));
                     l.add(btn("⟳  Neu starten", new Runnable() { public void run() { reboot(); } }));
                     l.add(btn(adbOk ? "✓  ADB verbunden" : "🔌  ADB verbinden", new Runnable() { public void run() { connectAdb(true); } }));
-                    if (!adbOk) l.add(txt("So geht’s: Einstellungen → Mein Fire TV → Entwickleroptionen → ADB-Debugging „An“. Dann hier „ADB verbinden“ und am Fernseher „Immer von diesem Computer zulassen“ bestätigen."));
+                    if (!adbOk) l.add(txt("So geht’s: Einstellungen → Mein Fire TV → Entwickleroptionen → ADB-Debugging „An“. Dann hier „ADB verbinden“ und am Fernseher „Immer von diesem Computer zulassen“ bestätigen. Hast du den midnox-Launcher installiert und dort ADB schon einmal erlaubt, nutzt midnox Tools dieselbe Freigabe automatisch. Bleibt es trotz „An“ grau, ADB-Debugging einmal aus- und wieder einschalten."));
                     l.add(txt("Version " + version() + "  ·  midnox Tools"));
                     break;
                 }

@@ -563,22 +563,29 @@ final class Views {
         final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         final List<String> items = new ArrayList<>();
         final List<Runnable> acts = new ArrayList<>();
-        String title = ""; int sel;
+        String title = ""; int sel, top;
         /** Schieberegler-Eintraege: Index -> {links, rechts} */
         final Map<Integer, Runnable[]> sliders = new HashMap<>();
         Menu(Context c) { super(c); }
-        void set(String title, List<String> l, List<Runnable> a) { this.title = title; items.clear(); items.addAll(l); acts.clear(); acts.addAll(a); sliders.clear(); sel = 0; invalidate(); }
+        void set(String title, List<String> l, List<Runnable> a) { this.title = title; items.clear(); items.addAll(l); acts.clear(); acts.addAll(a); sliders.clear(); sel = 0; top = 0; invalidate(); }
+        int visibleRows() { int avail = (int) (getHeight() - 76 * U.dp - 22 * U.dp); return Math.max(1, avail / (int) (50 * U.dp)); }
+        /** Haelt den gewaehlten Eintrag im sichtbaren Bereich; verschiebt die Liste nach oben, wenn man tiefer geht. */
+        void ensureVisible() {
+            int vis = visibleRows();
+            if (sel < top) top = sel; else if (sel >= top + vis) top = sel - vis + 1;
+            top = Math.max(0, Math.min(top, Math.max(0, items.size() - vis)));
+        }
         /** Touch: false = neben das Menue getippt (schliessen). */
         boolean tap(float x, float y) {
             float dp = U.dp;
             if (x < getWidth() - 420 * dp) return false;
-            int i = (int) ((y - 76 * dp) / (50 * dp));
-            if (y >= 76 * dp && i >= 0 && i < acts.size()) { sel = i; invalidate(); acts.get(i).run(); }
+            int i = top + (int) ((y - 76 * dp) / (50 * dp));
+            if (y >= 76 * dp && i >= top && i < Math.min(items.size(), top + visibleRows()) && i < acts.size()) { sel = i; invalidate(); acts.get(i).run(); }
             return true;
         }
         boolean key(int k) {
-            if (k == KeyEvent.KEYCODE_DPAD_UP) { sel = Math.max(0, sel - 1); invalidate(); return true; }
-            if (k == KeyEvent.KEYCODE_DPAD_DOWN) { sel = Math.min(items.size() - 1, sel + 1); invalidate(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_UP) { sel = Math.max(0, sel - 1); ensureVisible(); invalidate(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_DOWN) { sel = Math.min(items.size() - 1, sel + 1); ensureVisible(); invalidate(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER) { if (sel < acts.size()) acts.get(sel).run(); return true; }
             if ((k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT) && sliders.containsKey(sel)) { sliders.get(sel)[k == KeyEvent.KEYCODE_DPAD_LEFT ? 0 : 1].run(); invalidate(); return true; }
             return k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_DPAD_RIGHT;
@@ -591,8 +598,11 @@ final class Views {
             t.setTypeface(U.POP); t.setTextSize(13 * dp); t.setColor(U.MUTED); t.setLetterSpacing(0.2f);
             c.drawText(ell(t, title.toUpperCase(Locale.GERMANY), mw - 40 * dp), x + 20 * dp, 54 * dp, t); t.setLetterSpacing(0);
             float rh = 50 * dp, y = 76 * dp;
-            for (int i = 0; i < items.size(); i++) {
-                RectF r = new RectF(x + 10 * dp, y + i * rh + 3 * dp, w - 24 * dp, y + (i + 1) * rh - 3 * dp);
+            ensureVisible();
+            int vis = visibleRows(), end = Math.min(items.size(), top + vis);
+            for (int i = top; i < end; i++) {
+                int row = i - top;
+                RectF r = new RectF(x + 10 * dp, y + row * rh + 3 * dp, w - 24 * dp, y + (row + 1) * rh - 3 * dp);
                 if (i == sel) {
                     p.setColor(0xFF26243A); c.drawRoundRect(r, 10 * dp, 10 * dp, p);
                     p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2 * dp); p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, 10 * dp, 10 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL);
@@ -600,6 +610,11 @@ final class Views {
                 t.setTypeface(i == sel ? U.BOLD : U.POP); t.setTextSize(16 * dp); t.setColor(i == sel ? Color.WHITE : 0xFFC9CCE0);
                 c.drawText(ell(t, items.get(i), r.width() - 30 * dp), r.left + 16 * dp, r.centerY() + 6 * dp, t);
             }
+            // Hinweis-Pfeile, wenn ober- oder unterhalb noch Einträge liegen
+            t.setTypeface(U.BOLD); t.setTextSize(15 * dp); t.setColor(U.MUTED); t.setTextAlign(Paint.Align.CENTER);
+            if (top > 0) c.drawText("▲", x + mw / 2, 72 * dp, t);
+            if (end < items.size()) c.drawText("▼  noch " + (items.size() - end), x + mw / 2, h - 7 * dp, t);
+            t.setTextAlign(Paint.Align.LEFT);
         }
     }
 }

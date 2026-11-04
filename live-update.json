@@ -1,6 +1,6 @@
 {
- "versionCode": 19,
- "versionName": "2.9",
+ "versionCode": 20,
+ "versionName": "2.10",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Neu: Quickübertragen – alle Fire-TV/Android-TV-Geräte im selben Netzwerk mit einem Tastendruck auf denselben Stand bringen (MACs, M3Us, Favoriten, Gruppen) ohne externen Server. Außerdem: deutlich klarere Markierung der aktiven Umschalt-Buttons oben (TV/Filme/Serien/Suche)."
+ "notes": "Einstellungs-/Menü-Liste scrollt jetzt mit: Auf kleinen Fernsehern wird nichts mehr unten abgeschnitten – je weiter man nach unten geht, desto weiter rückt die Liste nach, mit Pfeil-Hinweis."
 }

@@ -1,6 +1,6 @@
 {
- "versionCode": 18,
- "versionName": "2.8",
+ "versionCode": 19,
+ "versionName": "2.9",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Eingebauter Updater: midnox Live meldet neue Versionen selbst und installiert sie – kein Downloader-Code mehr nötig. Außerdem: Umschaltleiste TV/Filme/Serien/Suche."
+ "notes": "Neu: Quickübertragen – alle Fire-TV/Android-TV-Geräte im selben Netzwerk mit einem Tastendruck auf denselben Stand bringen (MACs, M3Us, Favoriten, Gruppen) ohne externen Server. Außerdem: deutlich klarere Markierung der aktiven Umschalt-Buttons oben (TV/Filme/Serien/Suche)."
 }

@@ -211,14 +211,16 @@ final class Views {
             float btx = 20 * dp, bty = 16 * dp, bth = 42 * dp;
             for (int i = 0; i < TABS.length; i++) {
                 t.setTypeface(U.BOLD); t.setTextSize(16 * dp);
-                float btw = t.measureText(TABS[i]) + 34 * dp;
+                float btw = t.measureText(TABS[i]) + 36 * dp;
+                boolean active = (i == 0 && !searchMode()) || (i == 3 && searchMode());   // gerade angezeigte Rubrik
+                boolean focused = onTabs && tab == i;                                      // Fokus beim Umschalten
                 RectF r = new RectF(btx, bty, btx + btw, bty + bth);
-                boolean sel = (!onTabs && ((i == 0 && !searchMode()) || (i == 3 && searchMode()))) || (onTabs && tab == i);
-                if (onTabs && tab == i) { p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setShader(null); }
-                else if (sel) { p.setColor(0xFF2A2840); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.5f * dp); p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setShader(null); p.setStyle(Paint.Style.FILL); }
-                else { p.setColor(0x16FFFFFF); c.drawRoundRect(r, bth / 2, bth / 2, p); }
-                t.setColor(sel || (onTabs && tab == i) ? Color.WHITE : 0xFFB4B8CC);
-                c.drawText(TABS[i], r.left + 17 * dp, r.centerY() + 6 * dp, t);
+                if (active || focused) { p.setShader(U.brand(r.left, r.right)); c.drawRoundRect(r, bth / 2, bth / 2, p); p.setShader(null); }
+                else { p.setColor(0xFF242236); c.drawRoundRect(r, bth / 2, bth / 2, p); }
+                if (focused) {   // heller Rand als Fokus-Markierung
+                    p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); p.setColor(0xFFFFFFFF); c.drawRoundRect(new RectF(r.left - 2 * dp, r.top - 2 * dp, r.right + 2 * dp, r.bottom + 2 * dp), bth / 2 + 2 * dp, bth / 2 + 2 * dp, p); p.setStyle(Paint.Style.FILL); }
+                t.setColor(active || focused ? Color.WHITE : 0xFFC9CCE0);
+                c.drawText(TABS[i], r.left + 18 * dp, r.centerY() + 6 * dp, t);
                 btx += btw + 12 * dp;
             }
             // Kopf (Spaltenüberschriften + Uhr)

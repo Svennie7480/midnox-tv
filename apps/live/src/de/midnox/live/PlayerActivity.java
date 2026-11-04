@@ -83,6 +83,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         U.osdPct = U.prefs(this).getInt("osd", 92);
         group = U.prefs(this).getString("group", Lib.ALL);
         Web.start(this);
+        Sync.startResponder(this);
         Web.onChange = new Runnable() { public void run() { refreshAll(); } };
         Web.onPin = new Web.PinCb() { public void show(String p) {
             if (p == null) { if (pinDlg != null) pinDlg.dismiss(); pinDlg = null; toast("PC ist angemeldet \u2713"); return; }
@@ -521,6 +522,84 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             .setNegativeButton("Abbrechen", null).show();
     }
 
+    // ------------------------------------------------------------ Quickübertragen (LAN-Sync ohne Server)
+    void quickSync() {
+        final String code = U.prefs(this).getString("sync_pin", "");
+        if (code.isEmpty()) { askSyncCode(); return; }
+        options("⚡ Quickübertragen", new String[]{
+            "📤  An andere Geräte senden",
+            "📥  Von einem Gerät holen",
+            "🔑  Netzwerk-Code ändern (" + code + ")" },
+            new Runnable[]{
+                new Runnable() { public void run() { syncDiscover(true); } },
+                new Runnable() { public void run() { syncDiscover(false); } },
+                new Runnable() { public void run() { askSyncCode(); } } });
+    }
+    void askSyncCode() {
+        final EditText et = new EditText(this);
+        et.setHint("z. B. 1234"); et.setInputType(InputType.TYPE_CLASS_NUMBER);
+        et.setText(U.prefs(this).getString("sync_pin", ""));
+        et.setTextSize(28); et.setGravity(Gravity.CENTER);
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Netzwerk-Code")
+            .setMessage("Vergib eine kurze Zahl und trage auf allen deinen Geräten dieselbe ein. Nur Geräte mit gleichem Code finden sich und übertragen zueinander – so landet nichts versehentlich bei fremden Geräten.")
+            .setView(et)
+            .setPositiveButton("Speichern", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                String v = et.getText().toString().trim();
+                U.prefs(PlayerActivity.this).edit().putString("sync_pin", v).apply();
+                toast(v.isEmpty() ? "Quickübertragen ausgeschaltet" : "Netzwerk-Code gespeichert ✓");
+            } })
+            .setNegativeButton("Abbrechen", null).show();
+    }
+    void syncDiscover(final boolean send) {
+        showStatus("Suche Geräte im Netzwerk …", 0);
+        new Thread(new Runnable() { public void run() {
+            final List<Sync.Peer> peers = Sync.discover();
+            h.post(new Runnable() { public void run() {
+                hideStatus();
+                if (peers.isEmpty()) {
+                    new AlertDialog.Builder(PlayerActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("Kein Gerät gefunden")
+                        .setMessage("Es wurde kein weiteres midnox-Live-Gerät gefunden.\n\n• Läuft midnox Live auf dem anderen Fernseher (einmal geöffnet)?\n• Gleicher Netzwerk-Code auf beiden Geräten?\n• Beide im selben WLAN/Netzwerk?")
+                        .setPositiveButton("OK", null).show();
+                    return;
+                }
+                if (send) {
+                    final String[] labels = new String[peers.size() + 1];
+                    final Runnable[] acts = new Runnable[peers.size() + 1];
+                    labels[0] = "➤  An alle " + peers.size() + " Geräte senden";
+                    acts[0] = new Runnable() { public void run() { syncRun(peers, true, -1); } };
+                    for (int i = 0; i < peers.size(); i++) { final int idx = i;
+                        labels[i + 1] = peers.get(i).name + "  (" + peers.get(i).count + " Sender)";
+                        acts[i + 1] = new Runnable() { public void run() { syncRun(peers, true, idx); } }; }
+                    options("📤 An welches Gerät senden?", labels, acts);
+                } else {
+                    final String[] labels = new String[peers.size()];
+                    final Runnable[] acts = new Runnable[peers.size()];
+                    for (int i = 0; i < peers.size(); i++) { final int idx = i;
+                        labels[i] = peers.get(i).name + "  (" + peers.get(i).count + " Sender)";
+                        acts[i] = new Runnable() { public void run() { syncRun(peers, false, idx); } }; }
+                    options("📥 Von welchem Gerät holen?", labels, acts);
+                }
+            } });
+        }}).start();
+    }
+    void syncRun(final List<Sync.Peer> peers, final boolean send, final int idx) {
+        showStatus(send ? "Übertrage …" : "Hole Daten …", 0);
+        new Thread(new Runnable() { public void run() {
+            final List<String> msgs = new ArrayList<>();
+            if (send) {
+                if (idx < 0) for (Sync.Peer p : peers) msgs.add(Sync.push(PlayerActivity.this, p));
+                else msgs.add(Sync.push(PlayerActivity.this, peers.get(idx)));
+            } else msgs.add(Sync.pull(PlayerActivity.this, peers.get(idx)));
+            h.post(new Runnable() { public void run() {
+                hideStatus();
+                new AlertDialog.Builder(PlayerActivity.this, AlertDialog.THEME_DEVICE_DEFAULT_DARK)
+                    .setTitle(send ? "Gesendet" : "Übernommen")
+                    .setMessage(android.text.TextUtils.join("\n", msgs))
+                    .setPositiveButton("OK", null).show();
+            } });
+        }}).start();
+    }
+
     // ------------------------------------------------------------ Mediathek (Filme und Serien)
     Library library;
     Views.VodOsd vodOsd;
@@ -886,6 +965,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         l.add(pendingUpdate != null ? "\u2B06  Update auf " + pendingUpdate.optString("versionName") + " installieren" : "\u2B06  Nach Update suchen"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); doUpdate(); } });
         l.add("\uD83D\uDD11  Einrichtungscode eingeben" + (Cloud.linked(this) ? "  (" + Cloud.packageName(this) + ")" : "")); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askCode(); } });
         l.add("⚙  Quellen einrichten (Handy/PC)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showQr(); } });
+        l.add("⚡  Quickübertragen (anderes Gerät im Netzwerk)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); quickSync(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });
         l.add("➕  M3U-Adresse hier eingeben"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askM3u(); } });
         menu.set(current == null ? "midnox Live" : current.num + "  " + current.name, l, a);

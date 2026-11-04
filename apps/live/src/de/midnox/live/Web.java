@@ -62,7 +62,17 @@ final class Web {
                 o.write(out); o.flush();
                 return;
             }
-            if (path.startsWith("/upload")) {
+            if (path.startsWith("/sync")) {   // Quickuebertragen zwischen Geraeten im Netzwerk
+                String code = U.prefs(c).getString("sync_pin", "");
+                java.util.regex.Matcher pm = java.util.regex.Pattern.compile("[?&]pin=([^&]*)").matcher(path);
+                String given = pm.find() ? pm.group(1) : "";
+                if (code.isEmpty() || !code.equals(given)) body = "{\"ok\":false,\"msg\":\"Netzwerk-Code stimmt nicht\"}";
+                else if (path.contains("import=1")) {
+                    s.setSoTimeout(180000);
+                    try { int nn = merge(c, readJson(in, len)); body = new JSONObject().put("ok", true).put("added", nn).put("name", devName(c)).toString(); }
+                    catch (Exception e) { body = "{\"ok\":false,\"msg\":\"Übertragung fehlgeschlagen\"}"; }
+                } else body = export(c).toString();
+            } else if (path.startsWith("/upload")) {
                 s.setSoTimeout(180000);
                 body = !ok ? "{\"ok\":false,\"msg\":\"QR-Code neu scannen\"}" : path.contains("import=1") ? importFile(c, in, len) : upload(c, path, in, len);
             } else {
@@ -273,19 +283,45 @@ final class Web {
             .put("epg_extra", U.prefs(c).getString("epg_extra", Epg.DEFAULT_EXTRA))
             .put("mapping", new JSONArray(U.prefs(c).getString("mapping", "[]")));
     }
-    /** Sicherung einlesen: vorhandene Quellen bleiben, gleiche werden nicht doppelt angelegt. */
-    static String importFile(Context c, InputStream in, long len) throws Exception {
+    static JSONObject readJson(InputStream in, long len) throws Exception {
         ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] b = new byte[65536]; long n = 0; int r;
         while ((len < 0 || n < len) && (r = in.read(b, 0, (int) (len < 0 ? b.length : Math.min(b.length, len - n)))) > 0) { bo.write(b, 0, r); n += r; }
+        return new JSONObject(bo.toString("UTF-8"));
+    }
+    static String devName(Context c) {
+        String n = U.prefs(c).getString("sync_name", "");
+        return n.isEmpty() ? android.os.Build.MODEL : n;
+    }
+
+    /** Sicherung einlesen: vorhandene Quellen bleiben, gleiche werden nicht doppelt angelegt. */
+    static String importFile(Context c, InputStream in, long len) throws Exception {
         JSONObject o;
-        try { o = new JSONObject(bo.toString("UTF-8")); } catch (Exception e) { return "{\"ok\":false,\"msg\":\"Das ist keine midnox-Live-Sicherung\"}"; }
+        try { o = readJson(in, len); } catch (Exception e) { return "{\"ok\":false,\"msg\":\"Das ist keine midnox-Live-Sicherung\"}"; }
         if (!o.has("midnox_live")) return "{\"ok\":false,\"msg\":\"Das ist keine midnox-Live-Sicherung\"}";
+        int added = merge(c, o);
+        return new JSONObject().put("ok", true).put("msg", added + (added == 1 ? " Quelle" : " Quellen") + " übernommen – Sender werden geladen …").toString();
+    }
+
+    /** Fuehrt eine Sicherung/Uebertragung mit dem lokalen Bestand zusammen. Gibt die Zahl der Aenderungen zurueck. */
+    static int merge(Context c, JSONObject o) throws Exception {
         List<Model.Source> have = Lib.sources(c);
         int added = 0;
         JSONArray a = o.optJSONArray("sources");
         for (int i = 0; a != null && i < a.length(); i++) {
             JSONObject so = a.getJSONObject(i);
             Model.Source s = Model.Source.from(so);
+            if (s.type.equals("stalker")) {   // gleiches Portal: MAC-Adressen zusammenfuehren statt doppelt anlegen
+                String np = Stalker.normPortal(s.url);
+                Model.Source match = null;
+                for (Model.Source h : have) if (h.type.equals("stalker") && Stalker.normPortal(h.url).equals(np)) { match = h; break; }
+                if (match != null) {
+                    List<String> hv = Stalker.macs(match); int add = 0;
+                    for (String m : Stalker.macs(s)) if (!hv.contains(m)) { hv.add(m); add++; }
+                    if (add > 0) { match.mac = android.text.TextUtils.join("\n", hv); added++; }
+                    if (match.epg.isEmpty() && !s.epg.isEmpty()) match.epg = s.epg;
+                    continue;
+                }
+            }
             boolean dup = false;
             for (Model.Source h : have) if (h.id.equals(s.id) || (h.type.equals(s.type) && h.url.equals(s.url) && h.user.equals(s.user) && h.mac.equals(s.mac))) dup = true;
             if (dup) continue;
@@ -301,14 +337,16 @@ final class Web {
         for (int i = 0; hg != null && i < hg.length(); i++) hid.add(hg.getString(i));
         android.content.SharedPreferences.Editor ed = U.prefs(c).edit().putString("favs", new JSONArray(favs).toString()).putStringSet("hidden", hid);
         if (o.has("epg_extra")) ed.putString("epg_extra", o.getString("epg_extra"));
-        if (o.has("mapping")) {   // Zuordnungen anhaengen
+        if (o.has("mapping")) {   // Zuordnungen anhaengen, aber keine Dubletten
             JSONArray cur = new JSONArray(U.prefs(c).getString("mapping", "[]")), add = o.getJSONArray("mapping");
-            for (int i = 0; i < add.length(); i++) cur.put(add.get(i));
+            Set<String> seen = new HashSet<>();
+            for (int i = 0; i < cur.length(); i++) seen.add(cur.getJSONObject(i).toString());
+            for (int i = 0; i < add.length(); i++) if (seen.add(add.getJSONObject(i).toString())) cur.put(add.get(i));
             ed.putString("mapping", cur.toString());
         }
         ed.apply();
         reloadAll(c);
-        return new JSONObject().put("ok", true).put("msg", added + (added == 1 ? " Quelle" : " Quellen") + " übernommen – Sender werden geladen …").toString();
+        return added;
     }
 
     /** M3U-Datei hochladen -> neue Quelle. */

@@ -7,8 +7,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.live",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
-   "version": "2.8",
-   "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Einrichten per Handy, PC oder Einrichtungscode."
+   "version": "2.9",
+   "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Quickübertragen: alle Geräte im Netzwerk mit einem Tastendruck auf denselben Stand bringen – ohne Server. Einrichten per Handy, PC oder Einrichtungscode."
   },
   {
    "id": "midnox-quiz",

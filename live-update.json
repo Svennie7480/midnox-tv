@@ -1,6 +1,6 @@
 {
- "versionCode": 24,
- "versionName": "2.14",
+ "versionCode": 25,
+ "versionName": "2.15",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "In der Einrichtungsseite (Handy/PC) lassen sich jetzt auch Film- und Serien-Kategorien aus-/einblenden, nicht mehr nur TV-Gruppen."
+ "notes": "Doppelte Sender (gleicher Name aus mehreren Servern/MACs) werden in der Liste zu einem Eintrag zusammengefasst. Im Menü an-/abschaltbar. Der Failover über alle MACs und Server bleibt voll erhalten."
 }

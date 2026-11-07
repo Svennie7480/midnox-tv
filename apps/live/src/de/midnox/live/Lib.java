@@ -184,13 +184,13 @@ final class Lib {
     static String findGroup; static List<Model.Channel> found = new ArrayList<>();
     static String searchGroup; static List<Model.Channel> searchResult = new ArrayList<>();
     /** Live-Sender nach Name durchsuchen (enthaelt, Treffer am Wortanfang zuerst). */
-    static List<Model.Channel> searchChannels(String q) {
+    static List<Model.Channel> searchChannels(Context c, String q) {
         final String nq = U.norm(q);
         List<Model.Channel> starts = new ArrayList<>(), contains = new ArrayList<>();
         if (nq.isEmpty()) return starts;
         for (Model.Channel ch : channels) { String n = U.norm(ch.name); if (n.startsWith(nq)) starts.add(ch); else if (n.contains(nq)) contains.add(ch); }
         starts.addAll(contains);
-        return starts;
+        return dedupe(c, starts);
     }
     static List<Model.Channel> find(String[] keys) {
         LinkedHashMap<String, Model.Channel> out = new LinkedHashMap<>();
@@ -207,9 +207,9 @@ final class Lib {
     static List<Model.Channel> inGroup(Context c, String g) {
         if (g != null && g.equals(findGroup)) return found;
         if (g != null && g.equals(searchGroup)) return searchResult;
-        if (g == null || g.equals(ALL)) return channels;
+        if (g == null || g.equals(ALL)) return dedupe(c, channels);
         List<Model.Channel> l = new ArrayList<>();
-        if (g.equals(FAV)) {
+        if (g.equals(FAV)) {   // Favoriten bewusst nicht zusammenfassen – der Nutzer hat sie selbst gewählt
             List<String> f = favs(c);
             Map<String, Model.Channel> by = new HashMap<>();
             for (Model.Channel ch : channels) by.put(ch.id, ch);
@@ -217,7 +217,16 @@ final class Lib {
             return l;
         }
         for (Model.Channel ch : channels) if (g.equals(ch.group)) l.add(ch);
-        return l;
+        return dedupe(c, l);
+    }
+    /** Gleichnamige Sender (aus mehreren Servern/MACs) in der Anzeige auf einen Eintrag zusammenfassen.
+     *  Die Senderliste selbst bleibt vollständig – der Failover (MAC→MAC→anderer Server) nutzt weiter alle. */
+    static boolean mergeDupes(Context c) { return U.prefs(c).getBoolean("merge_dupes", true); }
+    static List<Model.Channel> dedupe(Context c, List<Model.Channel> l) {
+        if (!mergeDupes(c)) return l;
+        List<Model.Channel> out = new ArrayList<>(); Set<String> seen = new HashSet<>();
+        for (Model.Channel ch : l) { String k = U.norm(ch.name); if (k.isEmpty() || seen.add(k)) out.add(ch); }
+        return out;
     }
     static Model.Channel byId(String id) { for (Model.Channel ch : channels) if (ch.id.equals(id)) return ch; return null; }
     static Model.Channel byNum(int n) { for (Model.Channel ch : channels) if (ch.num == n) return ch; return null; }

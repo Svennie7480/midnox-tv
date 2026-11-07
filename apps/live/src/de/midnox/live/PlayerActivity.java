@@ -1002,6 +1002,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         l.add("\uD83D\uDD11  Einrichtungscode eingeben" + (Cloud.linked(this) ? "  (" + Cloud.packageName(this) + ")" : "")); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askCode(); } });
         l.add("⚙  Quellen einrichten (Handy/PC)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); showQr(); } });
         l.add("⚡  Quickübertragen (anderes Gerät im Netzwerk)"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); quickSync(); } });
+        final boolean merged = Lib.mergeDupes(this);
+        l.add("🔗  Doppelte Sender zusammenfassen: " + (merged ? "An" : "Aus")); a.add(new Runnable() { public void run() {
+            U.prefs(PlayerActivity.this).edit().putBoolean("merge_dupes", !merged).apply();
+            toast(!merged ? "Gleichnamige Sender werden zusammengefasst" : "Alle Sender werden einzeln gezeigt");
+            refreshAll(); openMenu(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });
         l.add("➕  M3U-Adresse hier eingeben"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); askM3u(); } });
         menu.set(current == null ? "midnox Live" : current.num + "  " + current.name, l, a);

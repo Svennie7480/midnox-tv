@@ -150,7 +150,7 @@ final class Views {
         /** Ergebnisliste der Sendersuche + Rubrik „Filme & Serien“. */
         void showSearch(String q) {
             query = q; onTabs = false; tab = 3;
-            Lib.searchGroup = "\uD83D\uDD0D  „" + q + "“"; Lib.searchResult = Lib.searchChannels(q);
+            Lib.searchGroup = "\uD83D\uDD0D  „" + q + "“"; Lib.searchResult = Lib.searchChannels(getContext(), q);
             groups = new ArrayList<>(); groups.add(Lib.searchGroup); groups.add(SVOD);
             gi = 0; gTop = 0; loadGroup();
             col = Lib.searchResult.isEmpty() ? 0 : 1; ci = 0; cTop = 0;

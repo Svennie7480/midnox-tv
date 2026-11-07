@@ -1,6 +1,6 @@
 {
- "versionCode": 22,
- "versionName": "2.12",
+ "versionCode": 23,
+ "versionName": "2.13",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Gruppen-Verwaltung über die Website: Sven kann TV-, Film- und Serien-Gruppen zentral sortieren und aus-/einblenden und per Code an alle Geräte verteilen. Lokale Entscheidungen am Fire TV bleiben dabei erhalten."
+ "notes": "Im Infobalken ist jetzt die aktive MAC-Adresse zu sehen. Neuer Menüpunkt „➡ Nächste MAC\" schaltet von Hand auf die nächste MAC um, falls eine klemmt."
 }

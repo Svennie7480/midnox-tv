@@ -382,8 +382,12 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     void addTries(Model.Channel ch) {
         if (!ch.cmd.isEmpty()) {
             Model.Source s = Lib.source(this, ch.src);
-            int n = s == null ? 1 : Math.max(1, Stalker.macs(s).size()), st = s == null ? 0 : Stalker.activeIndex(s);
-            for (int k = 0; k < n; k++) { Try t = new Try(); t.ch = ch; t.mac = (st + k) % n; t.macs = n; t.label = (s == null ? "" : s.name) + (n > 1 ? " · MAC " + (t.mac + 1) + " von " + n : ""); plan.add(t); }
+            final java.util.List<String> ms = s == null ? new java.util.ArrayList<String>() : Stalker.macs(s);
+            int n = Math.max(1, ms.size()), st = s == null ? 0 : Stalker.activeIndex(s);
+            for (int k = 0; k < n; k++) { Try t = new Try(); t.ch = ch; t.mac = (st + k) % n; t.macs = n;
+                String addr = t.mac < ms.size() ? ms.get(t.mac) : "";
+                t.label = (s == null ? "" : s.name) + (n > 1 ? " · MAC " + (t.mac + 1) + "/" + n : "") + (addr.isEmpty() ? "" : "  " + addr);
+                plan.add(t); }
         } else {
             Model.Source s = Lib.source(this, ch.src);
             Try t = new Try(); t.ch = ch; t.label = s == null ? "" : s.name; plan.add(t);
@@ -430,6 +434,17 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (t.mac >= 0) { Stalker.active.put(t.ch.src, t.mac); U.prefs(this).edit().putInt("mac_" + t.ch.src, t.mac).apply(); }
         if (planPos > 0) toast(current.name + " läuft über " + t.label);
         banner.via = t.label; banner.invalidate();
+    }
+
+    /** Von Hand auf die nächste MAC umschalten und den aktuellen Sender neu starten. */
+    void skipMac() {
+        if (current == null) return;
+        Model.Source s = Lib.source(this, current.src);
+        if (s == null || Stalker.macs(s).size() < 2) { toast("Für diese Quelle gibt es nur eine MAC-Adresse"); return; }
+        int i = Stalker.nextMac(s);
+        U.prefs(this).edit().putInt("mac_" + s.id, i).apply();
+        toast("Wechsel auf MAC " + (i + 1) + "/" + Stalker.macs(s).size() + "  ·  " + Stalker.curMac(s));
+        buildPlan(current); runTry();
     }
 
     void prepare(Model.Channel ch, String url, String ua) {
@@ -972,6 +987,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             if (previous != null) { l.add("↺  Letzter Sender: " + previous.name); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); play(previous); } }); }
             final List<String[]> audio = audioTracks();
             if (audio.size() > 1) { l.add("🔊  Tonspur wechseln"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); nextAudio(); } }); }
+            final Model.Source cs = Lib.source(this, current.src);
+            if (cs != null && Stalker.macs(cs).size() > 1) {
+                l.add("➡  Nächste MAC  (jetzt " + (Stalker.activeIndex(cs) + 1) + "/" + Stalker.macs(cs).size() + ")");
+                a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); skipMac(); } });
+            }
             final int osdIdx = l.size();
             l.add(osdLabel()); a.add(new Runnable() { public void run() { setOsd(U.osdPct >= 100 ? 30 : U.osdPct + 10, osdIdx); } });
             l.add("▣  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() {

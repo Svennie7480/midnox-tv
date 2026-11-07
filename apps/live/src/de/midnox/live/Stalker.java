@@ -21,6 +21,16 @@ final class Stalker {
         return l;
     }
     static int activeIndex(Model.Source src) { Integer i = active.get(src.id); int n = macs(src).size(); return i == null || i >= n ? 0 : i; }
+    /** Aktuell genutzte MAC-Adresse (für die OSD-Anzeige). */
+    static String curMac(Model.Source src) { List<String> ms = macs(src); return ms.isEmpty() ? "" : ms.get(activeIndex(src)); }
+    /** Auf die nächste MAC umschalten (für „nächste MAC"-Skip); gibt den neuen Index zurück. */
+    static int nextMac(Model.Source src) {
+        List<String> ms = macs(src);
+        if (ms.size() <= 1) return activeIndex(src);
+        int i = (activeIndex(src) + 1) % ms.size();
+        active.put(src.id, i);
+        return i;
+    }
 
     /** Portal-Adresse auf eine Vergleichsform bringen (fuer das Zusammenfuehren gleicher Portale). */
     static String normPortal(String url) {

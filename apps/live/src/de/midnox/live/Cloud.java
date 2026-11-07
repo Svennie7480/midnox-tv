@@ -50,7 +50,8 @@ final class Cloud {
     static boolean pull(Context c) throws Exception {
         String tok = U.prefs(c).getString("pk_token", "");
         if (tok.isEmpty()) return false;
-        JSONObject r = post(c, "pull", new JSONObject().put("token", tok).put("ver", U.prefs(c).getInt("pk_ver", -1)).put("device", device(c)).put("expiry", Expiry.report(c)));
+        Set<String> pkIds = new HashSet<>(U.prefs(c).getStringSet("pk_ids", new HashSet<String>()));
+        JSONObject r = post(c, "pull", new JSONObject().put("token", tok).put("ver", U.prefs(c).getInt("pk_ver", -1)).put("device", device(c)).put("expiry", Expiry.report(c)).put("groups", Lib.reportGroups(c, pkIds)));
         U.prefs(c).edit().putLong("pk_pulled", System.currentTimeMillis()).apply();
         if (r.optBoolean("revoked") || r.optInt("_http") == 410) { unlink(c); return true; }
         if (!r.optBoolean("ok") || !r.optBoolean("changed")) return false;
@@ -80,18 +81,28 @@ final class Cloud {
         android.content.SharedPreferences.Editor ed = U.prefs(c).edit().putStringSet("pk_ids", ids);
         String epg = p.optString("epg_extra", "");
         if (!epg.isEmpty()) ed.putString("epg_extra", epg);
-        if (first) {   // Favoriten und ausgeblendete Gruppen nur beim Einrichten uebernehmen (danach entscheidet der Nutzer)
+        JSONObject order = p.optJSONObject("order");   // Reihenfolge der Gruppen/Kategorien: immer Server-Vorgabe
+        if (order != null) {
+            if (order.has("tv")) ed.putString("grp_order", order.getJSONArray("tv").toString());
+            if (order.has("mov")) ed.putString("vod_order_" + Vod.MOVIE, order.getJSONArray("mov").toString());
+            if (order.has("ser")) ed.putString("vod_order_" + Vod.SERIES, order.getJSONArray("ser").toString());
+        }
+        List<String> sTv = list(p.optJSONArray("hidden")), sVod = list(p.optJSONArray("hidden_vod"));
+        if (first) {   // beim Einrichten: Favoriten und Sichtbarkeit komplett übernehmen
             List<String> favs = Lib.favs(c);
             JSONArray f = p.optJSONArray("favs");
             for (int i = 0; f != null && i < f.length(); i++) if (!favs.contains(f.getString(i))) favs.add(f.getString(i));
             ed.putString("favs", new JSONArray(favs).toString());
-            Set<String> hid = Lib.hiddenGroups(c);
-            JSONArray hg = p.optJSONArray("hidden");
-            for (int i = 0; hg != null && i < hg.length(); i++) hid.add(hg.getString(i));
-            ed.putStringSet("hidden", hid);
+            ed.putStringSet("hidden", new HashSet<>(sTv)).putStringSet("pk_hidden_tv", new HashSet<>(sTv));
+            ed.putStringSet("vod_hidden", new HashSet<>(sVod)).putStringSet("pk_hidden_vod", new HashSet<>(sVod));
+            ed.apply();
+        } else {        // später: nur Server-Änderungen als Delta – lokale Entscheidungen des Nutzers bleiben bestehen
+            ed.apply();
+            Lib.applyServerHidden(c, "hidden", "pk_hidden_tv", sTv);
+            Lib.applyServerHidden(c, "vod_hidden", "pk_hidden_vod", sVod);
         }
-        ed.apply();
     }
+    static List<String> list(JSONArray a) { List<String> l = new ArrayList<>(); for (int i = 0; a != null && i < a.length(); i++) l.add(a.optString(i)); return l; }
     static void unlink(Context c) {
         Set<String> old = new HashSet<>(U.prefs(c).getStringSet("pk_ids", new HashSet<String>()));
         List<Model.Source> l = new ArrayList<>();

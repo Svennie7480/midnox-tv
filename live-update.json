@@ -1,6 +1,6 @@
 {
- "versionCode": 21,
- "versionName": "2.11",
+ "versionCode": 22,
+ "versionName": "2.12",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Spielt jetzt auch direkte Streams aus der Launcher-Suche ab (Mediatheken wie ARD/ZDF) – im gewohnten midnox-Player."
+ "notes": "Gruppen-Verwaltung über die Website: Sven kann TV-, Film- und Serien-Gruppen zentral sortieren und aus-/einblenden und per Code an alle Geräte verteilen. Lokale Entscheidungen am Fire TV bleiben dabei erhalten."
 }

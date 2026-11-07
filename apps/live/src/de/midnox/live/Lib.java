@@ -99,8 +99,56 @@ final class Lib {
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
         List<String> g = new ArrayList<>();
-        g.add(FAV); g.add(ALL); g.addAll(gs); g.add(MANAGE); g.add(SETTINGS);   // Filme & Serien sind jetzt eine eigene Rubrik oben
+        g.add(FAV); g.add(ALL); g.addAll(ordered(gs, grpOrder(c))); g.add(MANAGE); g.add(SETTINGS);   // Filme & Serien sind jetzt eine eigene Rubrik oben
         groups = g;
+    }
+
+    // ------------------------------------------------------------ Reihenfolge der Gruppen (Server-Vorgabe von der Website)
+    static List<String> jsonList(Context c, String pref) {
+        List<String> l = new ArrayList<>();
+        try { JSONArray a = new JSONArray(U.prefs(c).getString(pref, "[]")); for (int i = 0; i < a.length(); i++) l.add(a.getString(i)); } catch (Exception ignored) {}
+        return l;
+    }
+    static List<String> grpOrder(Context c) { return jsonList(c, "grp_order"); }
+    static List<String> vodOrder(Context c, int kind) { return jsonList(c, "vod_order_" + kind); }
+    /** Elemente nach Vorgabe sortieren: genannte zuerst in dieser Reihenfolge, der Rest hinterher in natürlicher Folge. */
+    static List<String> ordered(Collection<String> items, List<String> order) {
+        List<String> rest = new ArrayList<>(items), out = new ArrayList<>();
+        for (String o : order) if (rest.remove(o)) out.add(o);
+        out.addAll(rest);
+        return out;
+    }
+    /** Server-Vorgabe als Delta anwenden: nur Änderungen seit dem letzten Abgleich auf die lokale Auswahl legen (lokale Entscheidung bleibt sonst). */
+    static void applyServerHidden(Context c, String effPref, String prevPref, Collection<String> server) {
+        Set<String> prev = new HashSet<>(U.prefs(c).getStringSet(prevPref, new HashSet<String>()));
+        Set<String> now = new HashSet<>(server);
+        Set<String> eff = new HashSet<>(U.prefs(c).getStringSet(effPref, new HashSet<String>()));
+        for (String s : now) if (!prev.contains(s)) eff.add(s);      // Server neu ausgeblendet -> ausblenden
+        for (String s : prev) if (!now.contains(s)) eff.remove(s);   // Server neu eingeblendet -> einblenden
+        U.prefs(c).edit().putStringSet(effPref, eff).putStringSet(prevPref, now).apply();
+    }
+
+    /** Gruppen/Kategorien aus den Paket-Quellen für die Website melden (damit Sven sie dort sortieren/ausblenden kann). */
+    static JSONObject reportGroups(Context c, Set<String> pkIds) {
+        JSONObject out = new JSONObject();
+        try {
+            LinkedHashSet<String> tv = new LinkedHashSet<>();
+            JSONArray a = new JSONObject(U.readFile(new File(c.getFilesDir(), "channels.json"))).optJSONArray("list");
+            for (int i = 0; a != null && i < a.length(); i++) {
+                JSONObject ch = a.getJSONObject(i);
+                String grp = ch.optString("g"); if (grp.isEmpty()) continue;
+                if (pkIds.isEmpty() || pkIds.contains(ch.optString("src"))) tv.add(grp);
+            }
+            out.put("tv", new JSONArray(ordered(tv, grpOrder(c))));
+            out.put("mov", catReport(c, Vod.MOVIE, pkIds));
+            out.put("ser", catReport(c, Vod.SERIES, pkIds));
+        } catch (Exception ignored) {}
+        return out;
+    }
+    static JSONArray catReport(Context c, int kind, Set<String> pkIds) {
+        JSONArray arr = new JSONArray();
+        try { for (Vod.Cat k : Vod.categories(c, kind)) if (pkIds.isEmpty() || pkIds.contains(k.src)) arr.put(new JSONObject().put("k", vodKey(k)).put("n", k.name)); } catch (Exception ignored) {}
+        return arr;
     }
     static boolean stale() { return System.currentTimeMillis() - loadedAt > 12 * 3600000L; }
 

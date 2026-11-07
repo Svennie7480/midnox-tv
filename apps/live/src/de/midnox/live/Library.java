@@ -104,6 +104,9 @@ final class Library extends View {
             final List<Vod.Cat> l = Vod.categories(getContext(), tab);
             ui.post(new Runnable() { public void run() {
                 if (g != gen) return;
+                final List<String> ord = Lib.vodOrder(getContext(), tab);   // Reihenfolge von der Website
+                if (!ord.isEmpty()) java.util.Collections.sort(l, new java.util.Comparator<Vod.Cat>() { public int compare(Vod.Cat a, Vod.Cat b) {
+                    int ia = ord.indexOf(Lib.vodKey(a)), ib = ord.indexOf(Lib.vodKey(b)); return (ia < 0 ? 9999 : ia) - (ib < 0 ? 9999 : ib); } });
                 allCats.clear(); allCats.addAll(l);
                 Set<String> hid = Lib.hiddenVod(getContext());
                 for (Vod.Cat k : l) if (!hid.contains(Lib.vodKey(k))) cats.add(k);

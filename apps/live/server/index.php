@@ -145,6 +145,14 @@ if ($api === 'pull') {
             foreach (array_slice($in['expiry'], 0, 30) as $e) if (is_array($e)) $ex[] = ['n' => mb_substr((string)($e['n'] ?? ''), 0, 40), 'l' => mb_substr((string)($e['l'] ?? ''), 0, 12), 'e' => (int)($e['e'] ?? 0), 'ok' => !empty($e['ok']), 's' => mb_substr((string)($e['s'] ?? ''), 0, 60)];
             $p['devices'][$i]['exp'] = $ex; $p['devices'][$i]['exp_at'] = time();
         }
+        if (isset($in['groups']) && is_array($in['groups'])) {   // gemeldete Gruppen/Kategorien des Geräts – fürs Sortieren/Ausblenden auf der Website
+            $g = $in['groups'];
+            $tv = [];
+            foreach (array_slice((array)($g['tv'] ?? []), 0, 400) as $n) $tv[] = mb_substr((string)$n, 0, 120);
+            $mk = function ($arr) { $o = []; foreach (array_slice((array)$arr, 0, 400) as $x) if (is_array($x)) $o[] = ['k' => mb_substr((string)($x['k'] ?? ''), 0, 220), 'n' => mb_substr((string)($x['n'] ?? ''), 0, 120)]; return $o; };
+            $mov = $mk($g['mov'] ?? []); $ser = $mk($g['ser'] ?? []);
+            if ($tv || $mov || $ser) $p['groups'] = ['tv' => $tv, 'mov' => $mov, 'ser' => $ser, 'at' => time()];
+        }
         save('packages', $pk);
         if ((int)($in['ver'] ?? -1) === (int)$p['ver']) out(['ok' => true, 'changed' => false, 'ver' => $p['ver']]);
         out(['ok' => true, 'changed' => true, 'ver' => $p['ver'], 'name' => $p['name'], 'package' => dec($p['data'])]);
@@ -168,7 +176,7 @@ if ($api === 'admin') {
             foreach ($pk as $id => $p) {
                 $codes = array_values(array_filter($p['codes'] ?? [], function ($x) use ($now) { return $now - $x['created'] <= CODE_DAYS * 86400; }));
                 $devs = array_map(function ($d) { return ['id' => substr($d['token'], 0, 12), 'name' => $d['name'], 'first' => $d['first'], 'last' => $d['last'], 'current' => $d['ver'] ?? 0, 'exp' => $d['exp'] ?? [], 'exp_at' => $d['exp_at'] ?? 0]; }, $p['devices'] ?? []);
-                $l[] = ['id' => $id, 'name' => $p['name'], 'ver' => $p['ver'], 'updated' => $p['updated'], 'data' => dec($p['data']),
+                $l[] = ['id' => $id, 'name' => $p['name'], 'ver' => $p['ver'], 'updated' => $p['updated'], 'data' => dec($p['data']), 'groups' => $p['groups'] ?? null,
                         'codes' => array_map(function ($x) { return ['code' => $x['code'], 'until' => $x['created'] + CODE_DAYS * 86400, 'max' => (int)($x['max'] ?? 1), 'used' => (int)($x['used'] ?? 0)]; }, $codes), 'devices' => $devs];
             }
             usort($l, function ($a, $b) { return strcasecmp($a['name'], $b['name']); });
@@ -237,6 +245,9 @@ button{padding:9px 16px;border:0;border-radius:999px;background:var(--g);color:#
 #msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#26243a;padding:12px 18px;border-radius:12px;display:none;z-index:9}
 .modal{position:fixed;inset:0;background:rgba(5,5,10,.85);display:none;overflow:auto;padding:20px 12px}.modal .w{background:#0b0a14;border:1px solid var(--line);border-radius:18px;padding:20px}
 .pill{display:inline-block;font-size:12px;padding:3px 9px;border-radius:999px;background:#26243a;color:#c9cce0;margin-right:4px}
+.grp{display:flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#100f1a}
+.mini{padding:5px 10px;background:#26243a;font-size:13px;line-height:1;border-radius:8px}
+.grp label{display:flex;align-items:center;cursor:pointer;margin:0}
 @media(max-width:600px){.grid{grid-template-columns:1fr}}
 </style></head><body><div class="w">
 <h1><b>midnox</b> Live<i>LIVE</i></h1><p class="sub">Pakete für Freunde und Kollegen – Portale anlegen, Code weitergeben, fertig.</p>
@@ -260,13 +271,17 @@ button{padding:9px 16px;border:0;border-radius:999px;background:var(--g);color:#
  <div id="e_src"></div>
  <div class="row" style="margin-bottom:14px"><button class="g" onclick="addSrc('stalker')">＋ Stalker-Portal</button><button class="g" onclick="addSrc('xtream')">＋ Xtream Codes</button><button class="g" onclick="addSrc('m3u')">＋ M3U-Adresse</button>
   <label class="hint" style="cursor:pointer">oder <u>Sicherung von einem Stick übernehmen</u><input type="file" id="e_imp" accept=".json" style="display:none" onchange="impFile(this)"></label></div>
+ <h3 style="margin:18px 0 6px">GRUPPEN & KATEGORIEN</h3>
+ <p class="hint" style="margin:0 0 8px">Reihenfolge mit ▲▼, Haken = sichtbar. Diese Vorgabe bekommen alle Geräte mit diesem Code – getrennt für TV, Filme und Serien. Blendet jemand bei sich am Fernseher selbst etwas ein oder aus, bleibt dessen Wahl bestehen.</p>
+ <div id="e_grp"></div>
+ <h3 style="margin:18px 0 6px">EPG</h3>
  <input id="e_epg" placeholder="Zusätzliche EPG-Adressen (optional, mit Komma)">
  <div class="row"><button onclick="saveEd()">Speichern</button><button class="g" onclick="closeEd()">Abbrechen</button></div>
 </div></div>
 <div id="msg"></div>
 
 <script>
-var PW=sessionStorage.getItem('mlpw')||'',P=[],E=null;
+var PW=sessionStorage.getItem('mlpw')||'',P=[],E=null,GT=0;
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return'&#'+c.charCodeAt(0)+';'})}
 function msg(t){var m=$('msg');m.textContent=t;m.style.display='block';clearTimeout(m.t);m.t=setTimeout(function(){m.style.display='none'},3500)}
@@ -293,8 +308,24 @@ function revoke(i,d){if(confirm('Dieses Gerät abklemmen? Die Portale verschwind
 function del(i){if(confirm('Paket „'+P[i].name+'“ löschen? Eingerichtete Geräte verlieren die Portale beim nächsten Abgleich.'))api('admin&do=delete',{id:P[i].id}).then(load)}
 // ---------- Editor
 function rid(){return 'pk'+Math.random().toString(36).slice(2,10)}
-function edit(i){E=i==null?{id:'',name:'',data:{sources:[],favs:[],hidden:[],epg_extra:''}}:JSON.parse(JSON.stringify(P[i]));
- $('edt').textContent=i==null?'NEUES PAKET':'PAKET BEARBEITEN';$('e_name').value=E.name;$('e_epg').value=E.data.epg_extra||'';drawSrc();$('ed').style.display='block'}
+function edit(i){E=i==null?{id:'',name:'',groups:{},data:{sources:[],favs:[],hidden:[],hidden_vod:[],epg_extra:'',order:{}}}:JSON.parse(JSON.stringify(P[i]));
+ E.groups=E.groups||{};E.data.hidden=E.data.hidden||[];E.data.hidden_vod=E.data.hidden_vod||[];E.data.order=E.data.order||{};
+ $('edt').textContent=i==null?'NEUES PAKET':'PAKET BEARBEITEN';$('e_name').value=E.name;$('e_epg').value=E.data.epg_extra||'';GT=0;drawSrc();drawGroups();$('ed').style.display='block'}
+// ---------- Gruppen & Kategorien (vom Gerät gemeldet, hier sortieren/ausblenden)
+var GKEY=['tv','mov','ser'];
+function gRaw(tab){var g=E.groups||{};return tab==0?(g.tv||[]).map(function(n){return{k:n,n:n}}):(tab==1?(g.mov||[]):(g.ser||[]))}
+function gList(tab){var raw=gRaw(tab),ord=(E.data.order||{})[GKEY[tab]]||[],by={},out=[];raw.forEach(function(x){by[x.k]=x});
+ ord.forEach(function(k){if(by[k]){out.push(by[k]);delete by[k]}});raw.forEach(function(x){if(by[x.k])out.push(x)});return out}
+function gHidden(tab){return tab==0?E.data.hidden:E.data.hidden_vod}
+function gToggle(tab,idx){var k=gList(tab)[idx].k,h=gHidden(tab),i=h.indexOf(k);if(i<0)h.push(k);else h.splice(i,1);drawGroups()}
+function gMove(tab,idx,dir){var cur=gList(tab).map(function(x){return x.k}),j=idx+dir;if(j<0||j>=cur.length)return;cur.splice(j,0,cur.splice(idx,1)[0]);E.data.order=E.data.order||{};E.data.order[GKEY[tab]]=cur;drawGroups()}
+function gAll(tab,show){var h=gHidden(tab);if(show){gList(tab).forEach(function(x){var i=h.indexOf(x.k);if(i>=0)h.splice(i,1)})}else{gList(tab).forEach(function(x){if(h.indexOf(x.k)<0)h.push(x.k)})}drawGroups()}
+function drawGroups(){var tabs=['📺 TV','🎬 Filme','🎞 Serien'],list=gList(GT),hid=gHidden(GT);
+ var h='<div class="row" style="margin-bottom:10px">'+tabs.map(function(t,i){var n=gRaw(i).length;return '<button class="'+(GT==i?'':'g')+'" onclick="GT='+i+';drawGroups()">'+t+(n?' <span class="hint">'+n+'</span>':'')+'</button>'}).join('')+'</div>';
+ if(!list.length){h+='<div class="hint">Hier erscheinen die Gruppen automatisch, sobald ein Gerät mit diesem Paket (Code eingelöst) sich das erste Mal abgeglichen hat.</div>'}
+ else{h+='<div class="row" style="margin-bottom:8px"><button class="g" onclick="gAll('+GT+',true)">Alle an</button><button class="g" onclick="gAll('+GT+',false)">Alle aus</button><span class="hint grow" style="text-align:right">'+(list.length-list.filter(function(x){return hid.indexOf(x.k)<0}).length)+' von '+list.length+' aus</span></div>';
+  h+=list.map(function(x,i){var on=hid.indexOf(x.k)<0;return '<div class="grp"><button class="mini" onclick="gMove('+GT+','+i+',-1)"'+(i==0?' disabled style="opacity:.3"':'')+'>▲</button><button class="mini" onclick="gMove('+GT+','+i+',1)"'+(i==list.length-1?' disabled style="opacity:.3"':'')+'>▼</button><label class="grow"><input type=checkbox '+(on?'checked':'')+' onchange="gToggle('+GT+','+i+')" style="width:auto;margin-right:9px">'+esc(x.n)+'</label></div>'}).join('')}
+ $('e_grp').innerHTML=h}
 function closeEd(){$('ed').style.display='none'}
 function addSrc(t){sync();E.data.sources.push({id:rid(),type:t,name:'',url:'',user:'',pass:'',mac:'',epg:'',on:true});drawSrc()}
 function rmSrc(i){sync();E.data.sources.splice(i,1);drawSrc()}

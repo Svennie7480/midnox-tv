@@ -1,6 +1,6 @@
 {
- "versionCode": 23,
- "versionName": "2.13",
+ "versionCode": 24,
+ "versionName": "2.14",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Im Infobalken ist jetzt die aktive MAC-Adresse zu sehen. Neuer Menüpunkt „➡ Nächste MAC\" schaltet von Hand auf die nächste MAC um, falls eine klemmt."
+ "notes": "In der Einrichtungsseite (Handy/PC) lassen sich jetzt auch Film- und Serien-Kategorien aus-/einblenden, nicht mehr nur TV-Gruppen."
 }

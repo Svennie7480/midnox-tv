@@ -261,6 +261,20 @@ final class Web {
                 Lib.setHidden(c, s); changed();
                 return "{\"ok\":true}";
             }
+            case "vodcats": {   // Film-/Serien-Kategorien (kann kurz dauern, da von den Portalen geladen)
+                Set<String> hid = Lib.hiddenVod(c);
+                JSONArray a = new JSONArray();
+                for (int kind : new int[]{Vod.MOVIE, Vod.SERIES})
+                    try { for (Vod.Cat k : Vod.categories(c, kind)) a.put(new JSONObject().put("key", Lib.vodKey(k)).put("name", k.name).put("kind", kind).put("hidden", hid.contains(Lib.vodKey(k)))); } catch (Exception ignored) {}
+                return new JSONObject().put("cats", a).toString();
+            }
+            case "vodhide": {
+                Set<String> s = new HashSet<>();
+                JSONArray a = in.optJSONArray("hidden");
+                for (int i = 0; a != null && i < a.length(); i++) s.add(a.getString(i));
+                Lib.setHiddenVod(c, s); changed();
+                return "{\"ok\":true}";
+            }
         }
         return "{\"ok\":false}";
     }
@@ -384,7 +398,8 @@ final class Web {
             + "<div id=f_xtream style=display:none><input id=x_url placeholder='Server, z. B. http://anbieter.tv:8080'><input id=x_user placeholder='Benutzername'><input id=x_pass placeholder='Passwort' type=password><input id=x_name placeholder='Name (optional)'><button onclick=add('xtream')>Hinzufügen</button></div>"
             + "<div id=f_stalker style=display:none><details style='margin-bottom:10px'><summary style='cursor:pointer;color:#9EC5FF'>Aus Textdatei / Zwischenablage filtern</summary><textarea id=s_paste rows=5 placeholder='Hier den kompletten Text einfügen – auch mit Ablaufdatum, Hinweisen usw. midnox Live sucht Portal-Adresse und MAC-Adressen selbst heraus.'></textarea><button class=g onclick=sparse()>Filtern</button> <span class=hint id=s_pres></span></details><input id=s_url placeholder='Portal-Adresse, z. B. http://portal.tv:8080/c/'><textarea id=s_mac rows=3 placeholder='MAC-Adresse(n), eine pro Zeile:&#10;00:1A:79:XX:XX:XX&#10;00:1A:79:YY:YY:YY'></textarea><input id=s_name placeholder='Name (optional)'><input id=s_epg placeholder='Zusätzliche EPG-Adresse (optional)'><button onclick=add('stalker')>Hinzufügen</button><p class=hint>midnox Live meldet sich beim Portal wie eine MAG-Box an. Die MAC-Adressen müssen bei deinem Anbieter freigeschaltet sein. Mehrere MACs werden gestapelt: Geht ein Sender über eine MAC nicht, versucht midnox Live automatisch die nächste – und merkt sich die, die funktioniert.</p></div></div>"
             + "<h3>PROGRAMMFÜHRER (EPG)</h3><div class=card><p class=hint style=margin-top:0>Zusätzliche XMLTV-Adressen (auch .gz), mehrere mit Komma. Die Sender werden über tvg-id oder den Namen zugeordnet. Voreingestellt ist ein freies deutsches EPG.</p><input id=epg><button onclick=epg()>Speichern und neu laden</button> <span class=hint id=epgst></span></div>"
-            + "<h3>GRUPPEN</h3><div class=card><p class=hint style=margin-top:0>Angetippte Gruppen werden am Fernseher ausgeblendet (praktisch bei großen Listen mit vielen Ländern).</p><div class=grp id=grp></div></div>"
+            + "<h3>GRUPPEN (TV)</h3><div class=card><p class=hint style=margin-top:0>Angetippte Gruppen werden am Fernseher ausgeblendet (praktisch bei großen Listen mit vielen Ländern).</p><div class=grp id=grp></div></div>"
+            + "<h3>FILME &amp; SERIEN</h3><div class=card><p class=hint style=margin-top:0>Angetippte Kategorien werden in „Filme &amp; Serien\" ausgeblendet.</p><div id=vgrp><span class=hint>Lade …</span></div></div>"
             + "<h3>SENDER ZUORDNEN</h3><div class=card><p class=hint style=margin-top:0>Gleiche Sender, die bei deinen Anbietern unterschiedlich heißen (z. B. „ARD“ und „Das Erste HD“), zu einer Gruppe zusammenfassen. Geht ein Sender nicht, probiert midnox Live erst alle MACs und dann die anderen Sender der Gruppe – von oben nach unten.</p>\n<div id=maps></div>\n<div style='margin-top:12px'><input id=mq placeholder='Sender suchen und zu einer Gruppe hinzufügen …' oninput=ms()><div class=row style='display:flex;gap:10px;align-items:center'><span class=hint id=mtarget style='flex:1'>Treffer landen in einer neuen Gruppe.</span><button class=g onclick=mnew()>Neue Gruppe beginnen</button></div><div id=mres></div></div>\n<h3 style='margin-top:18px'>VORSCHLÄGE</h3><div id=msug class=hint>Lade …</div></div>"
             + "<h3>SICHERN UND AUF ANDEREN STICK ÜBERTRAGEN</h3><div class=card><p class=hint style=margin-top:0>Die Sicherung enthält alle Quellen mit Zugangsdaten und MACs, Favoriten, ausgeblendete Gruppen und EPG-Adressen. Gut aufbewahren – sie enthält deine Passwörter.</p>"
             + "<p><a href='/export?k=" + k + "'><button>⬇ Sicherung herunterladen</button></a></p><p class=hint>Auf dem anderen Stick midnox Live öffnen, dessen QR-Code scannen und hier die Datei einspielen:</p><input type=file id=imp accept='.json,application/json'><button onclick=imp()>⬆ Sicherung einspielen</button></div>"
@@ -406,6 +421,7 @@ final class Web {
             + "if(s.busy)setTimeout(load,2500)});"
             + "api('groups').then(function(g){$('grp').innerHTML=g.groups.map(function(x,i){return '<label class=\"'+(x.hidden?'':'on')+'\"><input type=checkbox '+(x.hidden?'':'checked')+' data-n=\"'+esc(x.name)+'\">'+esc(x.name||'(ohne Gruppe)')+' · '+x.count+'</label>'}).join('')||'<span class=hint>Gruppen erscheinen, sobald Sender geladen sind.</span>';"
             + "document.querySelectorAll('#grp input').forEach(function(c){c.onchange=function(){c.parentNode.classList.toggle('on',c.checked);var h=[];document.querySelectorAll('#grp input').forEach(function(x){if(!x.checked)h.push(x.dataset.n)});api('hide',{hidden:h}).then(function(){msg({msg:'Gespeichert'})})}})})}"
+            + "\nfunction vload(){api('vodcats').then(function(g){var cats=g.cats||[];if(!cats.length){$('vgrp').innerHTML='<span class=hint>Keine Film-/Serien-Kategorien gefunden – entweder bieten deine Quellen keine an oder sie sind noch nicht geladen. Dann kurz „Filme & Serien“ am Fernseher öffnen und hier neu laden.</span>';return}var mv=cats.filter(function(x){return x.kind===0}),se=cats.filter(function(x){return x.kind===1});function sec(t,arr){return arr.length?'<div class=hint style=\"margin:6px 0 4px\">'+t+'</div><div class=grp>'+arr.map(function(x){return '<label class=\"'+(x.hidden?'':'on')+'\"><input type=checkbox '+(x.hidden?'':'checked')+' data-k=\"'+esc(x.key)+'\">'+esc(x.name)+'</label>'}).join('')+'</div>':''}$('vgrp').innerHTML=sec('🎬 Filme',mv)+sec('🎞 Serien',se);document.querySelectorAll('#vgrp input').forEach(function(c){c.onchange=function(){c.parentNode.classList.toggle('on',c.checked);var h=[];document.querySelectorAll('#vgrp input').forEach(function(x){if(!x.checked)h.push(x.dataset.k)});api('vodhide',{hidden:h}).then(function(){msg({msg:'Gespeichert'})})}})})}\nvload();\n"
             + "load();</script></body></html>";
     }
 }

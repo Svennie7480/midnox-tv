@@ -1005,6 +1005,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         final boolean merged = Lib.mergeDupes(this);
         l.add("🔗  Doppelte Sender zusammenfassen: " + (merged ? "An" : "Aus")); a.add(new Runnable() { public void run() {
             U.prefs(PlayerActivity.this).edit().putBoolean("merge_dupes", !merged).apply();
+            Lib.clearDedup();
             toast(!merged ? "Gleichnamige Sender werden zusammengefasst" : "Alle Sender werden einzeln gezeigt");
             refreshAll(); openMenu(); } });
         l.add("↻  Sender und Programm neu laden"); a.add(new Runnable() { public void run() { menu.setVisibility(View.GONE); reloadSources(false); } });

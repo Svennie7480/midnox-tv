@@ -98,6 +98,7 @@ final class Lib {
         for (Model.Channel ch : vis) if (ch.num > 0) { numbered = true; break; }
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
+        clearDedup();   // Cache für zusammengefasste Sender verwerfen, Liste hat sich geändert
         List<String> g = new ArrayList<>();
         g.add(FAV); g.add(ALL); g.addAll(ordered(gs, grpOrder(c))); g.add(MANAGE); g.add(SETTINGS);   // Filme & Serien sind jetzt eine eigene Rubrik oben
         groups = g;
@@ -207,7 +208,7 @@ final class Lib {
     static List<Model.Channel> inGroup(Context c, String g) {
         if (g != null && g.equals(findGroup)) return found;
         if (g != null && g.equals(searchGroup)) return searchResult;
-        if (g == null || g.equals(ALL)) return dedupe(c, channels);
+        if (g == null || g.equals(ALL)) return dedupeCached(c, "\u0000ALL", channels);
         List<Model.Channel> l = new ArrayList<>();
         if (g.equals(FAV)) {   // Favoriten bewusst nicht zusammenfassen – der Nutzer hat sie selbst gewählt
             List<String> f = favs(c);
@@ -217,11 +218,22 @@ final class Lib {
             return l;
         }
         for (Model.Channel ch : channels) if (g.equals(ch.group)) l.add(ch);
-        return dedupe(c, l);
+        return dedupeCached(c, g, l);
     }
     /** Gleichnamige Sender (aus mehreren Servern/MACs) in der Anzeige auf einen Eintrag zusammenfassen.
      *  Die Senderliste selbst bleibt vollständig – der Failover (MAC→MAC→anderer Server) nutzt weiter alle. */
     static boolean mergeDupes(Context c) { return U.prefs(c).getBoolean("merge_dupes", true); }
+    static final Map<String, List<Model.Channel>> dedupCache = new HashMap<>();
+    static void clearDedup() { dedupCache.clear(); }
+    /** Zusammengefasste Gruppenliste gecached – wird pro Gruppe nur einmal berechnet, nicht bei jedem Zappen. */
+    static List<Model.Channel> dedupeCached(Context c, String key, List<Model.Channel> l) {
+        if (!mergeDupes(c)) return l;
+        List<Model.Channel> hit = dedupCache.get(key);
+        if (hit != null) return hit;
+        List<Model.Channel> out = dedupe(c, l);
+        dedupCache.put(key, out);
+        return out;
+    }
     static List<Model.Channel> dedupe(Context c, List<Model.Channel> l) {
         if (!mergeDupes(c)) return l;
         List<Model.Channel> out = new ArrayList<>(); Set<String> seen = new HashSet<>();

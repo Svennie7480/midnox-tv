@@ -498,17 +498,39 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
     @Override public void toast(String s) { showStatus(s, 3500); }
     @Override public void manageGroups() {
-        List<String[]> all = Lib.allGroups(this);
+        final java.util.LinkedHashMap<String, List<String>> byProv = Lib.groupsBySource(this);
         final Set<String> hid = Lib.hiddenGroups(this);
-        final String[] names = new String[all.size()]; final boolean[] on = new boolean[all.size()];
-        String[] labels = new String[all.size()];
-        for (int i = 0; i < all.size(); i++) { names[i] = all.get(i)[0]; on[i] = !hid.contains(names[i]); labels[i] = (names[i].isEmpty() ? "(ohne Gruppe)" : names[i]) + "   · " + all.get(i)[1]; }
-        pickVisible("Welche Sender-Gruppen anzeigen?", labels, on, new Runnable() { public void run() {
-            Set<String> h = new HashSet<>();
-            for (int i = 0; i < names.length; i++) if (!on[i]) h.add(names[i]);
+        final List<String> l = new ArrayList<>(); final List<Runnable> a = new ArrayList<>();
+        for (Map.Entry<String, List<String>> e : byProv.entrySet()) {
+            final List<String> gl = e.getValue();
+            Model.Source s = Lib.source(this, e.getKey());
+            final String pname = s != null ? s.name : "Unbekannt";
+            int vis = 0; for (String gn : gl) if (!hid.contains(gn)) vis++;
+            l.add("📡  " + pname + "   (" + vis + "/" + gl.size() + " sichtbar)");
+            a.add(new Runnable() { public void run() { manageProvider(pname, gl); } });
+        }
+        if (l.isEmpty()) { showStatus("Noch keine Gruppen geladen", 3000); return; }
+        options("Anbieter – Gruppen verwalten", l.toArray(new String[0]), a.toArray(new Runnable[0]));
+    }
+    /** Gruppen eines Anbieters einzeln haken, plus „Alle aus" / „Alle an". */
+    void manageProvider(String pname, final List<String> gl) {
+        final String[] names = gl.toArray(new String[0]);
+        final Set<String> hid = Lib.hiddenGroups(this);
+        final boolean[] on = new boolean[names.length];
+        final String[] labels = new String[names.length];
+        for (int i = 0; i < names.length; i++) { on[i] = !hid.contains(names[i]); labels[i] = names[i].isEmpty() ? "(ohne Gruppe)" : names[i]; }
+        final Runnable save = new Runnable() { public void run() {
+            Set<String> h = Lib.hiddenGroups(PlayerActivity.this);
+            for (int i = 0; i < names.length; i++) { if (on[i]) h.remove(names[i]); else h.add(names[i]); }
             Lib.setHidden(PlayerActivity.this, h);
             list.open(Lib.MANAGE, current == null ? null : current.id);
-        } });
+        } };
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(pname + "  ·  " + names.length + " Gruppen")
+            .setMultiChoiceItems(labels, on, new android.content.DialogInterface.OnMultiChoiceClickListener() { public void onClick(android.content.DialogInterface d, int w, boolean v) { on[w] = v; } })
+            .setPositiveButton("Speichern", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { save.run(); } })
+            .setNeutralButton("Alle aus", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { java.util.Arrays.fill(on, false); save.run(); } })
+            .setNegativeButton("Alle an", new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { java.util.Arrays.fill(on, true); save.run(); } })
+            .show();
     }
     void options(String title, final String[] labels, final Runnable[] acts) {
         new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle(title)

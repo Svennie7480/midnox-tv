@@ -164,6 +164,20 @@ final class Lib {
         for (Map.Entry<String, Integer> e : count.entrySet()) l.add(new String[]{e.getKey(), String.valueOf(e.getValue())});
         return l;
     }
+    /** Alle Gruppen (inkl. ausgeblendeter) nach Anbieter/Quelle gebündelt – aus channels.json. */
+    static LinkedHashMap<String, List<String>> groupsBySource(Context c) {
+        LinkedHashMap<String, String> firstSrc = new LinkedHashMap<>();   // Gruppe -> erste gesehene Quelle
+        try {
+            JSONArray a = new JSONObject(U.readFile(new File(c.getFilesDir(), "channels.json"))).getJSONArray("list");
+            for (int i = 0; i < a.length(); i++) { JSONObject o = a.getJSONObject(i); String g = o.optString("g"); if (!firstSrc.containsKey(g)) firstSrc.put(g, o.optString("src")); }
+        } catch (Exception ignored) {}
+        LinkedHashMap<String, List<String>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, String> e : firstSrc.entrySet()) {
+            if (!out.containsKey(e.getValue())) out.put(e.getValue(), new ArrayList<String>());
+            out.get(e.getValue()).add(e.getKey());
+        }
+        return out;
+    }
     static boolean special(String g) { return g.equals(FAV) || g.equals(ALL) || g.equals(VOD) || g.equals(SETTINGS) || g.equals(MANAGE); }
     static void hideGroup(Context c, String g, boolean hide) {
         Set<String> s = hiddenGroups(c);

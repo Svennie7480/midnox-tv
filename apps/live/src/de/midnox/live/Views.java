@@ -119,7 +119,7 @@ final class Views {
             if (k == KeyEvent.KEYCODE_DPAD_DOWN || k == KeyEvent.KEYCODE_CHANNEL_DOWN) { move(1); return true; }
             if (k == KeyEvent.KEYCODE_PAGE_UP || k == KeyEvent.KEYCODE_MEDIA_REWIND) { move(-8); return true; }
             if (k == KeyEvent.KEYCODE_PAGE_DOWN || k == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD) { move(8); return true; }
-            if (k == KeyEvent.KEYCODE_DPAD_LEFT) { if (col == 1) { col = 0; invalidate(); return true; } return false; }
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT) { if (col == 1) col = 0; else onTabs = true; invalidate(); return true; }   // Sender -> Gruppen -> Umschaltleiste oben
             boolean actKey = ok || k == KeyEvent.KEYCODE_DPAD_RIGHT;
             if (actKey && col == 0 && group().equals(Lib.SETTINGS)) { cb.settings(); return true; }
             if (actKey && col == 0 && group().equals(Lib.MANAGE)) { cb.manageGroups(); return true; }

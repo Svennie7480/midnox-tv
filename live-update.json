@@ -1,6 +1,6 @@
 {
- "versionCode": 26,
- "versionName": "2.16",
+ "versionCode": 27,
+ "versionName": "2.17",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Deutlich flotter: Das Zusammenfassen doppelter Sender wird jetzt zwischengespeichert statt bei jedem Umschalten neu berechnet. Umschalten und Menü-Navigation sind wieder schnell."
+ "notes": "Neue Navigation: OK zeigt nur das OSD. Links öffnet die Senderliste der Gruppe, nochmal links die Gruppen, nochmal links die Leiste oben (Live-TV/Filme/Serien/Suche). Hoch/runter wechselt wie gehabt den Sender. OSD-Anzeigedauer im Menü einstellbar (4–30 s)."
 }

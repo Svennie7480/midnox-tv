@@ -874,7 +874,8 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         switch (k) {
             case KeyEvent.KEYCODE_DPAD_UP: case KeyEvent.KEYCODE_CHANNEL_UP: zap(1); return true;
             case KeyEvent.KEYCODE_DPAD_DOWN: case KeyEvent.KEYCODE_CHANNEL_DOWN: zap(-1); return true;
-            case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_DPAD_LEFT: openList(); return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: if (current != null) showBanner(current); return true;   // OK = nur OSD einblenden
+            case KeyEvent.KEYCODE_DPAD_LEFT: openList(); return true;                                                               // links = Senderliste der aktuellen Gruppe
             case KeyEvent.KEYCODE_DPAD_RIGHT: case KeyEvent.KEYCODE_INFO: if (current != null) showBanner(current); return true;
             case KeyEvent.KEYCODE_MENU: openMenu(); return true;
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE: case KeyEvent.KEYCODE_MEDIA_PLAY: case KeyEvent.KEYCODE_MEDIA_PAUSE:
@@ -943,8 +944,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (banner.ch == null || !banner.ch.id.equals(ch.id)) banner.via = Lib.srcNames.containsKey(ch.src) ? Lib.srcNames.get(ch.src) : "";
         banner.ch = ch; banner.msg = "";
         banner.setVisibility(View.VISIBLE); banner.invalidate();
-        hideLater(banner, 6000);
+        hideLater(banner, osdMs());
     }
+    /** Einstellbare OSD-Anzeigedauer (Standard 6 s). */
+    static final int[] OSD_SECS = {4, 6, 10, 15, 30};
+    int osdMs() { return U.prefs(this).getInt("osd_secs", 6) * 1000; }
     final Map<View, Runnable> hiders = new HashMap<>();
     void hideLater(final View v, long ms) {
         Runnable old = hiders.get(v);
@@ -994,6 +998,12 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             }
             final int osdIdx = l.size();
             l.add(osdLabel()); a.add(new Runnable() { public void run() { setOsd(U.osdPct >= 100 ? 30 : U.osdPct + 10, osdIdx); } });
+            final int cur = U.prefs(this).getInt("osd_secs", 6);
+            l.add("🕒  OSD-Anzeigedauer: " + cur + " s"); a.add(new Runnable() { public void run() {
+                int i = 0; for (int k = 0; k < OSD_SECS.length; k++) if (OSD_SECS[k] == cur) i = k;
+                int next = OSD_SECS[(i + 1) % OSD_SECS.length];
+                U.prefs(PlayerActivity.this).edit().putInt("osd_secs", next).apply();
+                if (current != null) showBanner(current); openMenu(); } });
             l.add("▣  Bildformat: " + new String[]{"Anpassen", "Füllen", "Zoom"}[scale]); a.add(new Runnable() { public void run() {
                 scale = (scale + 1) % 3; U.prefs(PlayerActivity.this).edit().putInt("scale", scale).apply(); layoutVideo(); openMenu(); } });
         }

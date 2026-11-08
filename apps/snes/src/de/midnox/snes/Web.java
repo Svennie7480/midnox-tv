@@ -53,6 +53,16 @@ final class Web {
                 act.onUpload(name == null ? "upload.sfc" : name, body);
                 send(s, 200, "application/json", "{\"ok\":true}".getBytes()); return;
             }
+            if (path.startsWith("/lib/")) { asset(s, "lib/" + path.substring(5).replaceAll("[?#].*$", "")); return; }
+            if (path.startsWith("/states")) { send(s, 200, "application/json", act.listStates(U.q(path, "key")).getBytes("UTF-8")); return; }
+            if (path.startsWith("/state")) {   // Savestate speichern (POST) / laden (GET)
+                String key = U.q(path, "key"), slot = U.q(path, "slot");
+                if (key == null) key = "default"; if (slot == null) slot = "auto";
+                if (method.equals("POST")) { act.saveState(key, slot, readN(in, clen)); send(s, 200, "text/plain", "ok".getBytes()); }
+                else { byte[] d = act.loadStateBytes(key, slot); if (d == null) send(s, 404, "text/plain", "no".getBytes()); else send(s, 200, "application/octet-stream", d); }
+                return;
+            }
+            if (path.startsWith("/cmd")) { act.cmd(U.q(path, "c")); send(s, 200, "text/plain", "ok".getBytes()); return; }
             if (path.startsWith("/info")) {
                 String j = "{\"ip\":\"" + U.ownIp() + "\",\"port\":" + port + ",\"rom\":" + (act.romBytes() != null) + "}";
                 send(s, 200, "application/json", j.getBytes("UTF-8")); return;

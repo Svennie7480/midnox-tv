@@ -37,6 +37,7 @@
   <span>midnox <b>SNES</b></span>
   <button class="pbtn on" id="p1">Spieler&nbsp;1</button>
   <button class="pbtn" id="p2">Spieler&nbsp;2</button>
+  <button class="pbtn" id="menu" title="Menü am TV öffnen">☰</button>
   <label class="up">⬆ Spiel laden<input type="file" id="file" accept=".sfc,.smc,.fig,.swc,.zip"></label>
 </div>
 <div class="lr">
@@ -96,6 +97,7 @@ dpad.addEventListener('pointerup',dend); dpad.addEventListener('pointercancel',d
 // Spielerwahl
 document.getElementById('p1').onclick=function(){ player=0; this.classList.add('on'); document.getElementById('p2').classList.remove('on'); };
 document.getElementById('p2').onclick=function(){ player=1; this.classList.add('on'); document.getElementById('p1').classList.remove('on'); };
+document.getElementById('menu').onclick=function(){ fetch('/cmd?c=menu',{cache:'no-store'}).catch(function(){}); };
 
 // ROM-Upload
 document.getElementById('file').onchange=function(){

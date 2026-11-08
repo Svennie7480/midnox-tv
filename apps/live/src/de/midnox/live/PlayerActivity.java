@@ -515,18 +515,68 @@ public class PlayerActivity extends Activity implements Views.ListCb {
             .setItems(labels, new android.content.DialogInterface.OnClickListener() { public void onClick(android.content.DialogInterface d, int w) { acts[w].run(); } })
             .setNegativeButton("Abbrechen", null).show();
     }
+    /** Quelle (Anbieter) einer Gruppe – der erste Sender der Gruppe bestimmt sie. */
+    Model.Source srcOfGroup(String g) {
+        for (Model.Channel ch : Lib.inGroup(this, g)) { Model.Source s = Lib.source(this, ch.src); if (s != null) return s; }
+        return null;
+    }
     @Override public void groupOptions(final String g) {
-        options(g.isEmpty() ? "(ohne Gruppe)" : g, new String[]{"\uD83D\uDEAB  Gruppe ausblenden", "\uD83D\uDC41  Alle Gruppen verwalten …"}, new Runnable[]{
-            new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, g, true); list.afterHide(); toast("„" + g + "“ ausgeblendet"); } },
-            new Runnable() { public void run() { manageGroups(); } } });
+        final Model.Source src = srcOfGroup(g);
+        final List<String> l = new ArrayList<>(); final List<Runnable> a = new ArrayList<>();
+        if (src != null) { l.add("📡  EPG-Adresse für „" + src.name + "“ …"); a.add(new Runnable() { public void run() { askSourceEpg(src); } }); }
+        l.add("🚫  Gruppe „" + g + "“ ausblenden"); a.add(new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, g, true); list.afterHide(); toast("„" + g + "“ ausgeblendet"); } });
+        l.add("👁  Alle Gruppen verwalten …"); a.add(new Runnable() { public void run() { manageGroups(); } });
+        options("Anbieter" + (src != null ? ": " + src.name : "") + "  ·  " + g, l.toArray(new String[0]), a.toArray(new Runnable[0]));
     }
     @Override public void channelOptions(final Model.Channel ch) {
         final boolean f = Lib.isFav(this, ch.id);
-        options(ch.name, new String[]{"▶  Abspielen", f ? "☆  Aus Favoriten entfernen" : "★  Zu Favoriten", "\uD83D\uDCC5  Programm (TV-Guide)", "\uD83D\uDEAB  Gruppe „" + ch.group + "“ ausblenden"}, new Runnable[]{
-            new Runnable() { public void run() { play(ch); } },
-            new Runnable() { public void run() { fav(ch); if (list.group().equals(Lib.FAV)) list.loadGroup(); list.invalidate(); } },
-            new Runnable() { public void run() { guide(ch); } },
-            new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, ch.group, true); list.afterHide(); toast("„" + ch.group + "“ ausgeblendet"); } } });
+        final List<String> l = new ArrayList<>(); final List<Runnable> a = new ArrayList<>();
+        l.add("▶  Abspielen"); a.add(new Runnable() { public void run() { play(ch); } });
+        l.add(f ? "☆  Aus Favoriten entfernen" : "★  Zu Favoriten"); a.add(new Runnable() { public void run() { fav(ch); if (list.group().equals(Lib.FAV)) list.loadGroup(); list.invalidate(); } });
+        l.add("📅  Programm (TV-Guide)"); a.add(new Runnable() { public void run() { guide(ch); } });
+        l.add("📡  EPG-Sender zuordnen …"); a.add(new Runnable() { public void run() { epgAssign(ch); } });
+        if (!vodMode && current != null && current.id.equals(ch.id) && audioTracks().size() > 1) { l.add("🔊  Tonspur wechseln"); a.add(new Runnable() { public void run() { nextAudio(); } }); }
+        l.add("🚫  Gruppe „" + ch.group + "“ ausblenden"); a.add(new Runnable() { public void run() { Lib.hideGroup(PlayerActivity.this, ch.group, true); list.afterHide(); toast("„" + ch.group + "“ ausgeblendet"); } });
+        options(ch.name, l.toArray(new String[0]), a.toArray(new Runnable[0]));
+    }
+    /** EPG-Adresse (XMLTV) für einen ganzen Anbieter setzen. */
+    void askSourceEpg(final Model.Source src) {
+        final EditText et = new EditText(this);
+        et.setText(src.epg); et.setHint("https://… .xml / .xml.gz");
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("EPG für „" + src.name + "“")
+            .setMessage("Eigene EPG-Adresse (XMLTV) für alle Sender dieses Anbieters. Leer lassen = Standard (epgshare).")
+            .setView(et)
+            .setPositiveButton("Speichern", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                List<Model.Source> ss = Lib.sources(PlayerActivity.this);
+                for (Model.Source s : ss) if (s.id.equals(src.id)) s.epg = et.getText().toString().trim();
+                Lib.saveSources(PlayerActivity.this, ss);
+                toast("EPG gespeichert – wird neu geladen …"); reloadEpg();
+            } })
+            .setNegativeButton("Abbrechen", null).show();
+    }
+    /** Einem Sender die passende EPG-Kennung zuweisen (Vorschläge + manuell). */
+    void epgAssign(final Model.Channel ch) {
+        final List<String> ids = Epg.candidates(ch, 12);
+        final String cur = Epg.key(ch);
+        final List<String> l = new ArrayList<>(); final List<Runnable> a = new ArrayList<>();
+        for (final String id : ids) {
+            l.add((id.equals(cur) ? "✓  " : "      ") + id);
+            a.add(new Runnable() { public void run() { Epg.setOverride(PlayerActivity.this, ch.id, id); toast("EPG „" + id + "“ zugewiesen"); refreshAll(); } });
+        }
+        l.add("✎  Andere Kennung eingeben …"); a.add(new Runnable() { public void run() { askEpgId(ch, cur); } });
+        l.add("↺  Automatisch (Standard)"); a.add(new Runnable() { public void run() { Epg.setOverride(PlayerActivity.this, ch.id, ""); toast("EPG wieder automatisch"); refreshAll(); } });
+        options("EPG für „" + ch.name + "“" + (cur != null ? "  (jetzt: " + cur + ")" : "  (keins gefunden)"), l.toArray(new String[0]), a.toArray(new Runnable[0]));
+    }
+    void askEpgId(final Model.Channel ch, String cur) {
+        final EditText et = new EditText(this);
+        et.setText(cur == null ? "" : cur); et.setHint("z. B. Das Erste.de");
+        new AlertDialog.Builder(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK).setTitle("EPG-Kennung für „" + ch.name + "“")
+            .setMessage("Die tvg-id aus der EPG-Quelle (epgshare). Leer = automatisch zuordnen.")
+            .setView(et)
+            .setPositiveButton("Speichern", new DialogInterface.OnClickListener() { public void onClick(DialogInterface d, int w) {
+                Epg.setOverride(PlayerActivity.this, ch.id, et.getText().toString()); toast("Gespeichert"); refreshAll();
+            } })
+            .setNegativeButton("Abbrechen", null).show();
     }
     /** Auswahlliste mit Haken (Fernbedienung: hoch/runter, OK hakt an/ab). */
     void pickVisible(String title, String[] labels, final boolean[] on, final Runnable save) {

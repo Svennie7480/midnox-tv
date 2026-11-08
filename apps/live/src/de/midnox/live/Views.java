@@ -130,14 +130,14 @@ final class Views {
             }
             if (k == KeyEvent.KEYCODE_MENU && col == 0) {
                 String g = group();
-                if (!special(g)) { Lib.hideGroup(getContext(), g, true); groups = Lib.groups; gi = Math.min(gi, groups.size() - 1); loadGroup(); cb.toast("„" + g + "“ ausgeblendet – zurückholen unter " + Lib.MANAGE); invalidate(); }
+                if (!special(g)) cb.groupOptions(g);   // Anbieter-Einstellungen (EPG, ausblenden, verwalten)
                 return true;
             }
             if (ok) {
                 if (col == 0) { if (!chans.isEmpty()) col = 1; invalidate(); return true; }
                 Model.Channel ch = selected(); if (ch != null) cb.play(ch); return true;
             }
-            if (k == KeyEvent.KEYCODE_MENU) { Model.Channel ch = selected(); if (ch != null && col == 1) { cb.fav(ch); if (group().equals(Lib.FAV)) { loadGroup(); } invalidate(); } return true; }
+            if (k == KeyEvent.KEYCODE_MENU) { Model.Channel ch = selected(); if (ch != null && col == 1) cb.channelOptions(ch); return true; }   // Sender-Einstellungen (EPG, Ton, Favorit …)
             return false;
         }
         /** OK lange gedrueckt: Optionen fuer Gruppe bzw. Sender. */

@@ -1,6 +1,6 @@
 {
- "versionCode": 27,
- "versionName": "2.17",
+ "versionCode": 28,
+ "versionName": "2.18",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Neue Navigation: OK zeigt nur das OSD. Links öffnet die Senderliste der Gruppe, nochmal links die Gruppen, nochmal links die Leiste oben (Live-TV/Filme/Serien/Suche). Hoch/runter wechselt wie gehabt den Sender. OSD-Anzeigedauer im Menü einstellbar (4–30 s)."
+ "notes": "MENU-Taste blendet Gruppen nicht mehr aus, sondern öffnet ein Einstellungsmenü: auf einer Gruppe für den Anbieter (eigene EPG-Adresse zuweisen), auf einem Sender für den Sender selbst (EPG-Kennung zuordnen mit Vorschlägen, Tonspur, Favorit, ausblenden). Behebt fehlendes EPG bei Sendern, die epgshare nicht automatisch übernehmen."
 }

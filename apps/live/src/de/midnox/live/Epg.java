@@ -17,6 +17,7 @@ final class Epg {
     static volatile Map<String, String> names = new HashMap<>();             // normierter Name -> EPG-Kanal-ID
     static volatile Map<String, String> icons = new HashMap<>();             // EPG-Kanal-ID -> Logo
     static final Map<String, String> resolved = Collections.synchronizedMap(new HashMap<String, String>());   // Sender-ID -> EPG-ID
+    static final Map<String, String> override = Collections.synchronizedMap(new HashMap<String, String>());   // Sender-ID -> manuell zugewiesene EPG-ID
     static final Map<String, List<Model.Prog>> shortCache = Collections.synchronizedMap(new HashMap<String, List<Model.Prog>>());
     static volatile long loadedAt;
     static Map<String, String> curIcons;
@@ -25,6 +26,8 @@ final class Epg {
 
     // ------------------------------------------------------------ Abfrage
     static String key(Model.Channel c) {
+        String ov = override.get(c.id);   // manuelle Zuordnung hat Vorrang
+        if (ov != null) return ov.isEmpty() ? null : ov;
         String k = resolved.get(c.id);
         if (k != null) return k.isEmpty() ? null : k;
         Map<String, List<Model.Prog>> p = progs;
@@ -54,7 +57,32 @@ final class Epg {
     }
 
     // ------------------------------------------------------------ Laden
+    /** Manuelle Sender-EPG-Zuordnungen aus den Einstellungen laden. */
+    static void loadOverrides(Context c) {
+        override.clear();
+        try { for (Map.Entry<String, ?> e : U.prefs(c).getAll().entrySet()) if (e.getKey().startsWith("epg_map_") && e.getValue() instanceof String) override.put(e.getKey().substring(8), (String) e.getValue()); } catch (Exception ignored) {}
+    }
+    /** Einem Sender manuell eine EPG-Kennung zuweisen (leer = automatisch). */
+    static void setOverride(Context c, String chId, String epgId) {
+        android.content.SharedPreferences.Editor ed = U.prefs(c).edit();
+        if (epgId == null || epgId.trim().isEmpty()) { ed.remove("epg_map_" + chId); override.remove(chId); }
+        else { ed.putString("epg_map_" + chId, epgId.trim()); override.put(chId, epgId.trim()); }
+        ed.apply(); resolved.remove(chId); shortCache.remove(chId);
+    }
+    /** Passende EPG-Kennungen für einen Sender vorschlagen (nach Name). */
+    static List<String> candidates(Model.Channel c, int max) {
+        String n = U.norm(c.name);
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        if (!n.isEmpty()) {
+            for (String id : progs.keySet()) { String ni = U.norm(id); if (ni.equals(n) || ni.startsWith(n) || n.startsWith(ni)) out.add(id); }
+            if (n.length() >= 3) for (String id : progs.keySet()) { if (out.size() >= max) break; if (U.norm(id).contains(n)) out.add(id); }
+        }
+        List<String> l = new ArrayList<>(out);
+        return l.size() > max ? l.subList(0, max) : l;
+    }
+
     static void loadCache(Context c) {
+        loadOverrides(c);
         try {
             JSONObject o = new JSONObject(U.readFile(new File(c.getFilesDir(), "epg.json")));
             Map<String, List<Model.Prog>> m = new HashMap<>();

@@ -1,12 +1,14 @@
 package de.midnox.snes;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.*;
 import android.view.*;
 import android.webkit.*;
 import android.widget.FrameLayout;
 import org.json.*;
 import java.io.*;
+import java.net.*;
 import java.security.MessageDigest;
 import java.util.*;
 
@@ -20,7 +22,10 @@ public class SnesActivity extends Activity {
     volatile byte[] rom;
     volatile String romKey = "default";
     volatile boolean menuOpen;
+    volatile int lastVendor;
+    volatile String curPath = "", curName = "";
     final int[] pad = {0, 0};
+    static final int VENDOR_NINTENDO = 0x057E;
 
     static final int B=1, Y=2, SELECT=4, START=8, UP=16, DOWN=32, LEFT=64, RIGHT=128, A=256, X=512, L=1024, R=2048;
 
@@ -62,7 +67,7 @@ public class SnesActivity extends Activity {
     byte[] romBytes() { return rom; }
     void onUpload(String name, byte[] bytes) {
         if (bytes == null || bytes.length < 512) return;
-        rom = bytes; romKey = md5(bytes);
+        rom = bytes; romKey = md5(bytes); curPath = ""; curName = name;
         push("MX.boot()");
     }
     void onPad(int p, int mask) { if (p < 0 || p > 1) return; pad[p] = mask; push("MX.in(" + p + "," + mask + ")"); }
@@ -79,6 +84,37 @@ public class SnesActivity extends Activity {
         JSONArray a = new JSONArray();
         try { for (String slot : new String[]{"auto", "1", "2", "3", "4"}) { File f = stateFile(key, slot); if (f.exists()) a.put(new JSONObject().put("slot", slot).put("time", f.lastModified()).put("size", f.length())); } } catch (Exception ignored) {}
         return a.toString();
+    }
+
+    // -------- Cover-Bilder (libretro-Boxarts, lokal gecacht; vom Web-Server über /cover) --------
+    File coversDir() { File d = new File(getFilesDir(), "covers"); d.mkdirs(); return d; }
+    static String fileSan(String s) { String x = s.replaceAll("[^a-zA-Z0-9_.-]", "_"); return x.length() > 80 ? x.substring(0, 80) : x; }
+    byte[] coverBytes(String name) {
+        if (name == null || name.isEmpty()) return null;
+        String base = name; int dot = base.lastIndexOf('.'); if (dot > 0) base = base.substring(0, dot);
+        File f = new File(coversDir(), fileSan(base) + ".png");
+        File miss = new File(coversDir(), fileSan(base) + ".miss");
+        try { if (f.exists() && f.length() > 0) { FileInputStream in = new FileInputStream(f); try { return U.readStream(in); } finally { in.close(); } } } catch (Exception ignored) {}
+        if (miss.exists() && System.currentTimeMillis() - miss.lastModified() < 86400000L) return null;   // Negativ-Cache 1 Tag
+        byte[] img = fetchCover(base);
+        try {
+            if (img != null) { FileOutputStream o = new FileOutputStream(f); o.write(img); o.close(); return img; }
+            new FileOutputStream(miss).close();
+        } catch (Exception ignored) {}
+        return null;
+    }
+    static byte[] fetchCover(String base) {
+        String libre = base.replaceAll("[&*/:`<>?\\\\|\"]", "_");
+        String url = "https://raw.githubusercontent.com/libretro-thumbnails/Super_Nintendo_Entertainment_System/master/Named_Boxarts/" + Uri.encode(libre) + ".png";
+        HttpURLConnection c = null;
+        try {
+            c = (HttpURLConnection) new URL(url).openConnection();
+            c.setConnectTimeout(5000); c.setReadTimeout(6000); c.setInstanceFollowRedirects(true);
+            if (c.getResponseCode() != 200) return null;
+            InputStream in = c.getInputStream();
+            try { byte[] b = U.readStream(in); return b.length > 200 ? b : null; } finally { in.close(); }
+        } catch (Exception e) { return null; }
+        finally { if (c != null) c.disconnect(); }
     }
 
     static String md5(byte[] b) {
@@ -105,6 +141,11 @@ public class SnesActivity extends Activity {
         @JavascriptInterface public void log(String m) { android.util.Log.d("midnoxSNES", "JS: " + m); }
         @JavascriptInterface public void menuState(boolean open) { menuOpen = open; }
         @JavascriptInterface public void exitGame() { rom = null; romKey = "default"; menuOpen = false; push("location.reload()"); }
+        @JavascriptInterface public boolean swapEffective() { return swapFace(); }
+        @JavascriptInterface public String swapMode() { return U.prefs(SnesActivity.this).getString("btnswap", "auto"); }
+        @JavascriptInterface public void setSwap(String m) { U.prefs(SnesActivity.this).edit().putString("btnswap", m == null ? "auto" : m).apply(); }
+        @JavascriptInterface public String curPath() { return curPath; }
+        @JavascriptInterface public String curName() { return curName; }
 
         @JavascriptInterface public String recent() { return U.prefs(SnesActivity.this).getString("recent", "[]"); }
         @JavascriptInterface public String favorites() { return U.prefs(SnesActivity.this).getString("favorites", "[]"); }
@@ -160,7 +201,7 @@ public class SnesActivity extends Activity {
                 if (!f.canRead() || f.length() < 512 || f.length() > 96 * 1024 * 1024) return false;
                 FileInputStream in = new FileInputStream(f);
                 try { rom = U.readStream(in); } finally { in.close(); }
-                romKey = md5(rom);
+                romKey = md5(rom); curPath = path; curName = f.getName();
                 addRecent(path, f.getName(), romKey);
                 File par = f.getParentFile();
                 if (par != null) U.prefs(SnesActivity.this).edit().putString("lastdir", par.getAbsolutePath()).apply();
@@ -187,8 +228,17 @@ public class SnesActivity extends Activity {
             default: return 0;
         }
     }
+    // Nintendo-Pads (Switch Pro) beschriften A/B und X/Y spiegelverkehrt zu Xbox.
+    static int swapBit(int b) { switch (b) { case A: return B; case B: return A; case X: return Y; case Y: return X; default: return b; } }
+    boolean swapFace() {
+        String m = U.prefs(this).getString("btnswap", "auto");
+        if ("on".equals(m)) return true;
+        if ("off".equals(m)) return false;
+        return lastVendor == VENDOR_NINTENDO;   // auto
+    }
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
         int kc = e.getKeyCode();
+        try { InputDevice dev = e.getDevice(); if (dev != null && (dev.getSources() & InputDevice.SOURCE_GAMEPAD) != 0) lastVendor = dev.getVendorId(); } catch (Exception ignored) {}
         if (kc == KeyEvent.KEYCODE_BACK) {
             if (e.getAction() == KeyEvent.ACTION_UP) {
                 if (rom == null) finish();
@@ -203,6 +253,7 @@ public class SnesActivity extends Activity {
         }
         if (menuOpen) return super.dispatchKeyEvent(e);   // Menü: WebView navigiert per Fokus
         int bit = bit(kc);
+        if (bit != 0 && swapFace()) bit = swapBit(bit);
         if (bit != 0 && rom != null) {
             if (e.getAction() == KeyEvent.ACTION_DOWN) pad[0] |= bit;
             else if (e.getAction() == KeyEvent.ACTION_UP) pad[0] &= ~bit;

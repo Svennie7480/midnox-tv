@@ -63,6 +63,7 @@ final class Web {
                 return;
             }
             if (path.startsWith("/cmd")) { act.cmd(U.q(path, "c")); send(s, 200, "text/plain", "ok".getBytes()); return; }
+            if (path.startsWith("/cover")) { byte[] c = act.coverBytes(U.q(path, "name")); if (c == null || c.length == 0) send(s, 404, "text/plain", "no".getBytes()); else send(s, 200, "image/png", c); return; }
             if (path.startsWith("/info")) {
                 String j = "{\"ip\":\"" + U.ownIp() + "\",\"port\":" + port + ",\"rom\":" + (act.romBytes() != null) + "}";
                 send(s, 200, "application/json", j.getBytes("UTF-8")); return;

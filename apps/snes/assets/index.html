@@ -25,6 +25,11 @@
   button.item{display:block;width:100%;text-align:left;background:transparent;color:#fff;border:0;border-radius:10px;padding:12px 14px;font-size:17px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   button.item:focus{outline:none;background:#26243a;box-shadow:inset 0 0 0 2px var(--blue)}
   button.item .s{color:var(--mut);font-size:13px;float:right}
+  button.game{display:flex;align-items:center;gap:12px;padding:8px 12px;white-space:normal}
+  button.game .cov{flex:none;width:46px;height:46px;border-radius:8px;background:#0d0c18 center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:20px}
+  button.game .cov:not(.has)::before{content:"🎮"}
+  button.game .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  button.game .nm .s{float:none;margin-left:10px}
   .dir::before{content:"📁  "} .rom::before{content:"🎮  "} .up::before{content:"⬅  "}
   .recent::before{content:"▶  "} .fav::before{content:"★  "}
   .empty{color:var(--mut);padding:14px}
@@ -131,6 +136,13 @@ function renderMenu(){
   };
   slotRow('💾  Speichern in Slot', (sl)=>{ saveSlot(sl); msg('In Slot '+sl+' gespeichert'); closeMenu(); });
   slotRow('📂  Laden aus Slot', (sl)=>{ loadSlot(sl); });
+  // Favorit (nur bei Spielen aus dem Dateisystem)
+  let cp=''; try{ cp=Android.curPath()||''; }catch(e){}
+  if(cp){ let fav=false; try{ fav=Android.isFav(cp); }catch(e){}
+    add((fav?'★':'☆')+'  '+(fav?'Favorit entfernen':'Als Favorit merken'), ()=>{ try{ Android.toggleFav(cp,Android.curName()); }catch(e){} msg(fav?'Aus Favoriten entfernt':'Zu Favoriten hinzugefügt'); closeMenu(); }); }
+  // Controller-Belegung (Xbox vs. Nintendo/Switch)
+  let eff=false; try{ eff=Android.swapEffective(); }catch(e){}
+  add('🎮  Controller-Tasten: '+(eff?'Nintendo (A↔B, X↔Y)':'Standard (Xbox)'), ()=>{ try{ Android.setSwap(eff?'off':'on'); }catch(e){} msg(eff?'Standard-Belegung (Xbox)':'Nintendo-Belegung – A/B und X/Y getauscht'); renderMenu(); });
   add('↺  Neustart', ()=>{ try{engine.reset();}catch(e){} closeMenu(); });
   add('⏏  Beenden (Stand wird gesichert)', exitGame);
   const first=box.querySelector('button'); if(first) first.focus();
@@ -148,15 +160,23 @@ async function exitGame(){ await saveSlot('auto',true); try{ Android.exitGame();
 
 // ---------------- Bibliothek / Launcher ----------------
 function focusFirst(cont){ const b=cont.querySelector('button.item'); if(b) b.focus(); }
-function filterList(){ const q=($('search').value||'').toLowerCase(); $('#list'); renderList(curList.filter(x=>!q||x.name.toLowerCase().includes(q))); }
+function filterList(){ const q=($('search').value||'').toLowerCase(); renderList(curList.filter(x=>!q||(x.name||'').toLowerCase().includes(q))); }
+// Cover werden erst geladen, wenn die Zeile sichtbar wird (schont GitHub & TV).
+const covObs=new IntersectionObserver((ents)=>{ ents.forEach(e=>{ if(!e.isIntersecting) return; const el=e.target; covObs.unobserve(el); const nm=el.dataset.name; const u='/cover?name='+encodeURIComponent(nm); const img=new Image(); img.onload=()=>{ el.style.backgroundImage='url('+u+')'; el.classList.add('has'); }; img.src=u; }); },{root:$('rightcol'),rootMargin:'250px'});
 function renderList(items){
   const list=$('list'); list.innerHTML='';
   if(!items.length){ list.innerHTML='<div class="empty">Nichts hier.</div>'; return; }
   items.forEach(x=>{
-    const b=document.createElement('button'); b.className='item '+(x.kind||'rom');
-    if(x.kind==='dir'){ b.textContent=x.name; b.onclick=()=>openDir(x.path); }
-    else if(x.kind==='up'){ b.textContent='Zurück'; b.onclick=()=>openDir(x.path); }
-    else { b.innerHTML=(x.size?'<span class="s">'+Math.round(x.size/1024)+' KB</span>':'')+x.name; b.onclick=()=>launch(x.path); }
+    const b=document.createElement('button');
+    if(x.kind==='dir'){ b.className='item dir'; b.textContent=x.name; b.onclick=()=>openDir(x.path); }
+    else if(x.kind==='up'){ b.className='item up'; b.textContent='Zurück'; b.onclick=()=>openDir(x.path); }
+    else {
+      b.className='item game';
+      const cov=document.createElement('span'); cov.className='cov'; cov.dataset.name=x.name;
+      const nm=document.createElement('span'); nm.className='nm'; nm.textContent=x.name;
+      if(x.size){ const sz=document.createElement('span'); sz.className='s'; sz.textContent=Math.round(x.size/1024)+' KB'; nm.appendChild(sz); }
+      b.appendChild(cov); b.appendChild(nm); b.onclick=()=>launch(x.path); covObs.observe(cov);
+    }
     list.appendChild(b);
   });
   focusFirst(list);

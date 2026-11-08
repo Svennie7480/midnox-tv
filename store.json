@@ -258,6 +258,15 @@
    "desc": "PC-Spiele vom eigenen Rechner auf den Fernseher streamen (NVIDIA GameStream / Sunshine).",
    "github": "moonlight-stream/moonlight-android",
    "match": "nonRoot"
+  },
+  {
+   "id": "midnox-snes",
+   "name": "midnox SNES",
+   "cat": "midnox",
+   "pkg": "de.midnox.snes",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-snes.apk",
+   "version": "1.0",
+   "desc": "SNES-Emulator (Snes9x) für Fire TV und Android TV. Steuerung per Handy (im WLAN die Gamepad-Seite öffnen), 2 Spieler mit zwei Handys, oder Xbox-/Bluetooth-Controller. Spiele vom Gerätespeicher/USB laden oder vom Handy hochladen. Enhancement-Chips (Super FX, SA-1, DSP) werden unterstützt. Ohne Werbung – Spiele bringst du selbst mit."
   }
  ]
 }

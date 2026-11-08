@@ -1,0 +1,109 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox SNES</title>
+<style>
+  :root{--bg:#0B0A14;--card:#15141F;--line:#262436;--mut:#9aa0c0;--gold:#FACC15}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:sans-serif;overflow:hidden}
+  #screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000}
+  #cv{image-rendering:pixelated;background:#000;height:100vh;width:auto;max-width:100vw}
+  #launcher{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg);padding:4vh 6vw}
+  h1{margin:0 0 2px;font-size:30px}
+  h1 b{background:linear-gradient(90deg,#7C3AED,#3B5BF0,#06B6D4);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mut);margin:0 0 14px}
+  .padbox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:14px}
+  .padbox b{color:var(--gold)}
+  .cols{display:flex;gap:18px;min-height:0;flex:1}
+  .col{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:auto}
+  .col h2{font-size:13px;letter-spacing:.08em;color:var(--mut);margin:4px 8px 10px}
+  button.item{display:block;width:100%;text-align:left;background:transparent;color:#fff;border:0;border-radius:10px;padding:12px 14px;font-size:17px;cursor:pointer}
+  button.item:focus{outline:none;background:#26243a;box-shadow:inset 0 0 0 2px #3B5BF0}
+  button.item .s{color:var(--mut);font-size:13px;float:right}
+  .dir::before{content:"📁  "}
+  .rom::before{content:"🎮  "}
+  .up::before{content:"⬅  "}
+  .empty{color:var(--mut);padding:14px}
+  #msg{position:fixed;left:0;right:0;bottom:16px;text-align:center;color:var(--gold);font-size:16px;opacity:0;transition:opacity .2s}
+</style></head>
+<body>
+  <div id="screen"><canvas id="cv" width="256" height="224"></canvas></div>
+  <div id="launcher">
+    <h1><b>midnox</b> SNES</h1>
+    <p class="sub">Spiel wählen – oder am Handy öffnen und ein Spiel hochladen.</p>
+    <div class="padbox">📱 Handy-Gamepad &amp; Upload: <b id="padurl">…</b> &nbsp; (im selben WLAN im Browser öffnen)</div>
+    <div class="cols">
+      <div class="col" id="rootcol"><h2>SPEICHER</h2><div id="roots"></div></div>
+      <div class="col" id="filecol"><h2 id="dirttl">ORDNER</h2><div id="list"><div class="empty">Links einen Speicher wählen.</div></div></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+<script type="module">
+import { load } from '/core/snes9x.sdk.js';
+const $=(id)=>document.getElementById(id);
+let engine=null, pend=[0,0], booting=false;
+function show(w){ $('screen').style.display = w==='screen'?'flex':'none'; $('launcher').style.display = w==='launcher'?'flex':'none'; }
+function msg(t){ const m=$('msg'); m.textContent=t; m.style.opacity=1; clearTimeout(m._t); m._t=setTimeout(()=>m.style.opacity=0,2200); }
+
+// Der Core hat keine Laufzeit-Eingabe-API, sondern hört auf window-Tastatur (Default-Keymap).
+// Wir setzen die SNES-Bitmaske in synthetische keydown/keyup-Events um – pro Spieler eigene Tasten.
+var CODES=[
+  {1:'KeyX',2:'KeyZ',4:'ShiftRight',8:'Enter',16:'ArrowUp',32:'ArrowDown',64:'ArrowLeft',128:'ArrowRight',256:'KeyS',512:'KeyA',1024:'KeyQ',2048:'KeyW'},
+  {1:'KeyN',2:'KeyB',4:'Digit1',8:'Digit2',16:'KeyI',32:'KeyK',64:'KeyJ',128:'KeyL',256:'KeyH',512:'KeyG',1024:'KeyT',2048:'KeyY'}
+];
+var lastMask=[0,0];
+function key(type,code){ try{ window.dispatchEvent(new KeyboardEvent(type,{code:code,bubbles:true})); }catch(e){} }
+window.MX = {
+  in(p,m){ pend[p]=m; var cm=CODES[p]; if(!cm) return; var prev=lastMask[p]|0; for(var bit in cm){ var bv=+bit, was=prev&bv, now=m&bv; if(was&&!now) key('keyup',cm[bit]); else if(!was&&now) key('keydown',cm[bit]); } lastMask[p]=m; },
+  boot(){ boot(); },
+  pause(){ try{ engine&&engine.pause(); }catch(e){} },
+  resume(){ try{ engine&&engine.resume(); }catch(e){} },
+  reset(){ try{ engine&&engine.reset(); }catch(e){} },
+};
+
+async function boot(){
+  if(engine||booting) return; booting=true;
+  try{
+    const r = await fetch('/rom'); if(!r.ok) throw new Error('kein ROM');
+    const rom = new Uint8Array(await r.arrayBuffer());
+    show('screen');
+    engine = await load({ canvasEl:$('cv'), assets:{rom}, options:{region:'auto',aspect:'4:3'}, persist:null, onEvent:(e)=>{ try{Android.log('ev '+(e&&e.type||JSON.stringify(e)));}catch(x){} } });
+    engine.start();
+    if(pend[0]) MX.in(0,pend[0]); if(pend[1]) MX.in(1,pend[1]);
+  }catch(e){ try{Android.log('boot-fail '+e.message);}catch(x){} msg('Konnte Spiel nicht starten: '+e.message); show('launcher'); engine=null; }
+  booting=false;
+}
+
+// ---------------- Launcher / Datei-Browser (mit Fernbedienung bedienbar) ----------------
+function focusFirst(cont){ const b=cont.querySelector('button.item'); if(b) b.focus(); }
+function initLauncher(){
+  show('launcher');
+  try{ $('padurl').textContent = Android.padUrl(); }catch(e){ $('padurl').textContent='—'; }
+  let roots=[]; try{ roots=JSON.parse(Android.roots()); }catch(e){}
+  const rc=$('roots'); rc.innerHTML='';
+  if(!roots.length){ rc.innerHTML='<div class="empty">Kein Speicher lesbar. Erlaube den Speicherzugriff, oder lade ein Spiel vom Handy hoch.</div>'; }
+  roots.forEach(r=>{
+    const b=document.createElement('button'); b.className='item dir'; b.textContent=r.name;
+    b.onclick=()=>openDir(r.path); rc.appendChild(b);
+  });
+  focusFirst(rc);
+}
+function openDir(path){
+  let d={}; try{ d=JSON.parse(Android.list(path)); }catch(e){ msg('Ordner nicht lesbar'); return; }
+  $('dirttl').textContent = d.path || 'ORDNER';
+  const list=$('list'); list.innerHTML='';
+  if(d.parent){ const u=document.createElement('button'); u.className='item up'; u.textContent='Zurück'; u.onclick=()=>openDir(d.parent); list.appendChild(u); }
+  (d.dirs||[]).forEach(f=>{ const b=document.createElement('button'); b.className='item dir'; b.textContent=f.name; b.onclick=()=>openDir(f.path); list.appendChild(b); });
+  (d.files||[]).forEach(f=>{ const b=document.createElement('button'); b.className='item rom'; b.innerHTML='<span class="s">'+(Math.round((f.size||0)/1024))+' KB</span>'+f.name; b.onclick=()=>launch(f.path); list.appendChild(b); });
+  if(!(d.dirs||[]).length && !(d.files||[]).length && !d.parent) list.innerHTML='<div class="empty">Leer.</div>';
+  focusFirst(list);
+}
+function launch(path){
+  msg('Lade Spiel …');
+  let ok=false; try{ ok=Android.pick(path); }catch(e){}
+  if(ok) boot(); else msg('Diese Datei ließ sich nicht laden.');
+}
+
+// Start: Spiel schon da (z. B. vom Handy) -> direkt booten, sonst Launcher
+try{ if(Android.hasRom()) boot(); else initLauncher(); }catch(e){ initLauncher(); }
+</script>
+</body></html>

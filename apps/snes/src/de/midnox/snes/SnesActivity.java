@@ -110,10 +110,18 @@ public class SnesActivity extends Activity {
         File miss = new File(coversDir(), fileSan(base) + ".miss");
         byte[] b = readFile(box); if (b != null) return b;
         if (!(miss.exists() && System.currentTimeMillis() - miss.lastModified() < 86400000L)) {   // Negativ-Cache 1 Tag
-            byte[] img = fetchCover(base);
+            byte[] img = fetchCover(base, coverRepo(name));
             try { if (img != null) { FileOutputStream o = new FileOutputStream(box); o.write(img); o.close(); return img; } new FileOutputStream(miss).close(); } catch (Exception ignored) {}
         }
         return readFile(shot);   // kein Boxart -> Screenshot als Cover, sonst null
+    }
+    // libretro-Boxart-Repo passend zum System (aus der Dateiendung)
+    static String coverRepo(String name) {
+        String n = name.toLowerCase(Locale.ROOT);
+        if (n.endsWith(".gb")) return "Nintendo_-_Game_Boy";
+        if (n.endsWith(".gbc")) return "Nintendo_-_Game_Boy_Color";
+        if (n.endsWith(".gba")) return "Nintendo_-_Game_Boy_Advance";
+        return "Super_Nintendo_Entertainment_System";   // SNES, SGB, ZIP/unbekannt
     }
     // Screenshot speichern (vom Web-Server über /shot): in die Galerie und als Cover-Fallback.
     void saveShot(String name, byte[] png) {
@@ -122,9 +130,9 @@ public class SnesActivity extends Activity {
         try { FileOutputStream o = new FileOutputStream(new File(shotsDir(), base + "-" + System.currentTimeMillis() + ".png")); o.write(png); o.close(); } catch (Exception ignored) {}
         try { FileOutputStream o = new FileOutputStream(new File(coversDir(), base + ".shot.png")); o.write(png); o.close(); } catch (Exception ignored) {}
     }
-    static byte[] fetchCover(String base) {
+    static byte[] fetchCover(String base, String repo) {
         String libre = base.replaceAll("[&*/:`<>?\\\\|\"]", "_");
-        String url = "https://raw.githubusercontent.com/libretro-thumbnails/Super_Nintendo_Entertainment_System/master/Named_Boxarts/" + Uri.encode(libre) + ".png";
+        String url = "https://raw.githubusercontent.com/libretro-thumbnails/" + repo + "/master/Named_Boxarts/" + Uri.encode(libre) + ".png";
         HttpURLConnection c = null;
         try {
             c = (HttpURLConnection) new URL(url).openConnection();
@@ -135,6 +143,9 @@ public class SnesActivity extends Activity {
         } catch (Exception e) { return null; }
         finally { if (c != null) c.disconnect(); }
     }
+
+    static final String[] ROM_EXT = {".sfc", ".smc", ".fig", ".swc", ".gb", ".gbc", ".gba", ".sgb", ".zip"};
+    static boolean isRom(String name) { String n = name.toLowerCase(Locale.ROOT); for (String e : ROM_EXT) if (n.endsWith(e)) return true; return false; }
 
     static String md5(byte[] b) {
         try { MessageDigest d = MessageDigest.getInstance("MD5"); byte[] h = d.digest(b); StringBuilder sb = new StringBuilder(); for (int i = 0; i < 8; i++) sb.append(String.format("%02x", h[i])); return sb.toString(); }
@@ -207,7 +218,7 @@ public class SnesActivity extends Activity {
                     for (File f : fs) {
                         if (f.getName().startsWith(".")) continue;
                         if (f.isDirectory()) { if (f.canRead()) dirs.put(new JSONObject().put("name", f.getName()).put("path", f.getAbsolutePath())); }
-                        else { String n = f.getName().toLowerCase(Locale.ROOT); if (n.endsWith(".sfc") || n.endsWith(".smc") || n.endsWith(".fig") || n.endsWith(".swc") || n.endsWith(".zip")) files.put(new JSONObject().put("name", f.getName()).put("path", f.getAbsolutePath()).put("size", f.length())); }
+                        else { if (isRom(f.getName())) files.put(new JSONObject().put("name", f.getName()).put("path", f.getAbsolutePath()).put("size", f.length())); }
                     }
                 }
                 out.put("dirs", dirs); out.put("files", files);

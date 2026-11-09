@@ -1,6 +1,6 @@
 <!doctype html><html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>midnox SNES</title>
+<title>midnox Retro</title>
 <style>
   :root{--bg:#0B0A14;--card:#15141F;--line:#262436;--mut:#9aa0c0;--gold:#FACC15;--blue:#3B5BF0}
   *{box-sizing:border-box}
@@ -50,7 +50,7 @@
   <div id="screen"><canvas id="cv" width="256" height="224"></canvas><div id="scan"></div></div>
   <div id="launcher">
     <div class="top">
-      <div><h1><b>midnox</b> SNES</h1><p class="sub">Spiel wählen – oder am Handy öffnen und hochladen.</p></div>
+      <div><h1><b>midnox</b> Retro</h1><p class="sub">SNES &amp; Game Boy / Color / Advance · Spiel wählen oder am Handy hochladen.</p></div>
       <div class="qr"><div id="qr"></div><div class="t">📱 Handy-Gamepad:<br>QR scannen oder <b id="padurl">…</b> öffnen</div></div>
     </div>
     <div id="resumewrap"></div>
@@ -64,9 +64,18 @@
 <script src="/lib/qrcode.js"></script>
 <script src="/lib/fflate.js"></script>
 <script type="module">
-import { load } from '/core/snes9x.sdk.js';
 const $=(id)=>document.getElementById(id);
-let engine=null, pend=[0,0], booting=false, romKey='default', curList=[];
+let engine=null, pend=[0,0], booting=false, romKey='default', curList=[], sys='snes';
+// Core-Steckbriefe je System: SDK-Modul, load-Optionen, und Tastenbelegung (Bit -> Keycode des Cores)
+const SYS={
+  snes:{ sdk:'/core/snes9x.sdk.js', opt:{region:'auto',aspect:'4:3'}, codes:[
+    {1:'KeyX',2:'KeyZ',4:'ShiftRight',8:'Enter',16:'ArrowUp',32:'ArrowDown',64:'ArrowLeft',128:'ArrowRight',256:'KeyS',512:'KeyA',1024:'KeyQ',2048:'KeyW'},
+    {1:'KeyN',2:'KeyB',4:'Digit1',8:'Digit2',16:'KeyI',32:'KeyK',64:'KeyJ',128:'KeyL',256:'KeyH',512:'KeyG',1024:'KeyT',2048:'KeyY'} ]},
+  // mGBA: A=KeyX, B=KeyZ, L=KeyA, R=KeyS, Start=Enter, Select=ShiftRight; Y/X gibt es nicht; nur 1 Spieler
+  gba:{ sdk:'/core-gba/mgba.sdk.js', opt:{system:'auto',aspect:'native'}, codes:[
+    {1:'KeyZ',4:'ShiftRight',8:'Enter',16:'ArrowUp',32:'ArrowDown',64:'ArrowLeft',128:'ArrowRight',256:'KeyX',1024:'KeyA',2048:'KeyS'} ]},
+};
+function sysFromName(name){ const n=(name||'').toLowerCase(); if(n.endsWith('.gb')||n.endsWith('.gbc')||n.endsWith('.gba')||n.endsWith('.sgb')) return 'gba'; return 'snes'; }
 function show(w){ $('screen').style.display=w==='screen'?'flex':'none'; $('launcher').style.display=w==='launcher'?'flex':'none'; }
 function msg(t){ const m=$('msg'); m.textContent=t; m.style.opacity=1; clearTimeout(m._t); m._t=setTimeout(()=>m.style.opacity=0,2200); }
 function alog(m){ try{Android.log(m);}catch(e){} }
@@ -78,7 +87,7 @@ var CODES=[
 let lastMask=[0,0];
 function key(type,code){ try{ window.dispatchEvent(new KeyboardEvent(type,{code:code,bubbles:true})); }catch(e){} }
 window.MX = {
-  in(p,m){ pend[p]=m; var cm=CODES[p]; if(!cm) return; var prev=lastMask[p]|0; for(var bit in cm){ var bv=+bit, was=prev&bv, now=m&bv; if(was&&!now) key('keyup',cm[bit]); else if(!was&&now) key('keydown',cm[bit]); } lastMask[p]=m; },
+  in(p,m){ pend[p]=m; var cm=(SYS[sys].codes||[])[p]; if(!cm) return; var prev=lastMask[p]|0; for(var bit in cm){ var bv=+bit, was=prev&bv, now=m&bv; if(was&&!now) key('keyup',cm[bit]); else if(!was&&now) key('keydown',cm[bit]); } lastMask[p]=m; },
   boot(){ boot(); },
   pause(){ try{ engine&&engine.pause(); }catch(e){} },
   resume(){ try{ if(engine && !menuShown()) engine.resume(); }catch(e){} },
@@ -93,26 +102,31 @@ window.MX = {
   async saveAuto(){ await saveSlot('auto',true); },
 };
 
-function unzipRom(bytes){
+const ROM_EXT=['.sfc','.smc','.fig','.swc','.gb','.gbc','.gba','.sgb'];
+function unzipRom(bytes, outerName){
   if(bytes[0]===0x50 && bytes[1]===0x4B){ // PK -> ZIP
-    try{ const files=window.fflate.unzipSync(bytes); for(const n in files){ const l=n.toLowerCase(); if(l.endsWith('.sfc')||l.endsWith('.smc')||l.endsWith('.fig')||l.endsWith('.swc')) return files[n]; } }catch(e){ alog('unzip fail '+e.message); }
+    try{ const files=window.fflate.unzipSync(bytes); for(const n in files){ const l=n.toLowerCase(); if(ROM_EXT.some(e=>l.endsWith(e))) return {bytes:files[n], name:n}; } }catch(e){ alog('unzip fail '+e.message); }
   }
-  return bytes;
+  return {bytes, name:outerName};
 }
 async function boot(){
   if(engine||booting) return; booting=true;
   try{
     try{ romKey=Android.romKey()||'default'; }catch(e){ romKey='default'; }
+    let name='game'; try{ name=Android.curName()||'game'; }catch(e){}
     const r=await fetch('/rom'); if(!r.ok) throw new Error('kein ROM');
-    const rom=unzipRom(new Uint8Array(await r.arrayBuffer()));
+    const u=unzipRom(new Uint8Array(await r.arrayBuffer()), name);
+    const rom=u.bytes; sys=sysFromName(u.name); lastMask=[0,0];
     show('screen');
-    const base={ canvasEl:$('cv'), assets:{rom}, options:{region:'auto',aspect:'4:3'}, onEvent:(e)=>{} };
+    const spec=SYS[sys];
+    const mod=await import(spec.sdk);   // Core passend zum System laden
+    const base={ canvasEl:$('cv'), assets:{rom}, options:spec.opt, onEvent:(e)=>{} };
     // Erst mit OPFS (für spieleigene Batterie-Speicher); schlägt das im WebView fehl, ohne – Savestates laufen eh über Java.
-    try{ engine=await load(Object.assign({persist:'opfs',storageNamespace:romKey}, base)); }
-    catch(e){ alog('opfs-fail '+e.message); engine=await load(Object.assign({persist:null}, base)); }
+    try{ engine=await mod.load(Object.assign({persist:'opfs',storageNamespace:romKey}, base)); }
+    catch(e){ alog('opfs-fail '+e.message); engine=await mod.load(Object.assign({persist:null}, base)); }
     engine.start();
     applyDisplay();   // Scanlines / Glättung aus den Einstellungen
-    if(pend[0]) MX.in(0,pend[0]); if(pend[1]) MX.in(1,pend[1]);
+    if(pend[0]) MX.in(0,pend[0]); if(sys==='snes' && pend[1]) MX.in(1,pend[1]);
     // Auto-Resume: beim letzten Beenden gesicherten Stand laden
     try{ const a=await fetch('/state?key='+encodeURIComponent(romKey)+'&slot=auto'); if(a.ok){ const d=new Uint8Array(await a.arrayBuffer()); if(d.length>16){ await engine.loadState(d); msg('Spielstand fortgesetzt'); } } }catch(e){}
     startRewindCapture();

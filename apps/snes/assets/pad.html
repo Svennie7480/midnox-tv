@@ -6,7 +6,8 @@
   :root{--bg:#0B0A14;--card:#1a1930;--mut:#9aa0c0}
   *{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
   html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:sans-serif;overflow:hidden}
-  #bar{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px;color:var(--mut)}
+  #bar{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:14px;color:var(--mut);flex-wrap:nowrap;overflow-x:auto}
+  #bar>*{flex:none}
   #bar b{color:#fff}
   .pbtn{background:var(--card);border:1px solid #2a2840;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
   .pbtn.on{background:linear-gradient(90deg,#7C3AED,#3B5BF0);border-color:transparent}
@@ -35,10 +36,13 @@
 <body>
 <div id="bar">
   <span>midnox <b>SNES</b></span>
-  <button class="pbtn on" id="p1">Spieler&nbsp;1</button>
-  <button class="pbtn" id="p2">Spieler&nbsp;2</button>
-  <button class="pbtn" id="menu" title="Menü am TV öffnen">☰</button>
-  <label class="up">⬆ Spiel laden<input type="file" id="file" accept=".sfc,.smc,.fig,.swc,.zip"></label>
+  <button class="pbtn on" id="p1">P1</button>
+  <button class="pbtn" id="p2">P2</button>
+  <button class="pbtn" id="ff" title="Schnellvorlauf (halten)">⏩</button>
+  <button class="pbtn" id="menu" title="Menü am TV">☰</button>
+  <button class="pbtn" id="turbo" title="Dauerfeuer A/B">⚡</button>
+  <button class="pbtn on" id="vib" title="Vibration">📳</button>
+  <label class="up">⬆<input type="file" id="file" accept=".sfc,.smc,.fig,.swc,.zip"></label>
 </div>
 <div class="lr">
   <div class="b" data-b="1024">L</div>
@@ -69,11 +73,18 @@ function send(){ if(sending){dirty=true;return;} sending=true; dirty=false;
 }
 function setBit(b,on){ var m = on ? (mask|b) : (mask & ~b); if(m!==mask){ mask=m; send(); } }
 
+// Vibration + Dauerfeuer
+var vibOn=true, turboOn=false, afTimers={};
+try{ vibOn=localStorage.getItem('vib')!=='0'; }catch(e){}
+function vib(ms){ if(vibOn&&navigator.vibrate){ try{navigator.vibrate(ms);}catch(e){} } }
+function startAf(b){ if(afTimers[b])return; var on=true; setBit(b,true); afTimers[b]=setInterval(function(){ on=!on; setBit(b,on); },70); }
+function stopAf(b){ if(afTimers[b]){ clearInterval(afTimers[b]); delete afTimers[b]; setBit(b,false); } }
+
 // Face- und Schulter-/Start-Tasten
 document.querySelectorAll('.b[data-b]').forEach(function(el){
   var b=parseInt(el.dataset.b);
-  el.addEventListener('pointerdown',function(e){ e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('hit'); setBit(b,true); });
-  function up(e){ el.classList.remove('hit'); setBit(b,false); }
+  el.addEventListener('pointerdown',function(e){ e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('hit'); vib(8); if(turboOn&&(b===1||b===256)) startAf(b); else setBit(b,true); });
+  function up(e){ el.classList.remove('hit'); if(afTimers[b]) stopAf(b); else setBit(b,false); }
   el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up); el.addEventListener('lostpointercapture',up);
 });
 
@@ -98,6 +109,15 @@ dpad.addEventListener('pointerup',dend); dpad.addEventListener('pointercancel',d
 document.getElementById('p1').onclick=function(){ player=0; this.classList.add('on'); document.getElementById('p2').classList.remove('on'); };
 document.getElementById('p2').onclick=function(){ player=1; this.classList.add('on'); document.getElementById('p1').classList.remove('on'); };
 document.getElementById('menu').onclick=function(){ fetch('/cmd?c=menu',{cache:'no-store'}).catch(function(){}); };
+// Schnellvorlauf (halten)
+var ff=document.getElementById('ff');
+ff.addEventListener('pointerdown',function(e){ e.preventDefault(); ff.classList.add('on'); fetch('/cmd?c=ff1',{cache:'no-store'}).catch(function(){}); });
+function ffUp(){ ff.classList.remove('on'); fetch('/cmd?c=ff0',{cache:'no-store'}).catch(function(){}); }
+ff.addEventListener('pointerup',ffUp); ff.addEventListener('pointercancel',ffUp); ff.addEventListener('lostpointercapture',ffUp);
+// Dauerfeuer-Umschalter
+document.getElementById('turbo').onclick=function(){ turboOn=!turboOn; this.classList.toggle('on',turboOn); };
+// Vibrations-Umschalter
+document.getElementById('vib').onclick=function(){ vibOn=!vibOn; this.classList.toggle('on',vibOn); try{localStorage.setItem('vib',vibOn?'1':'0');}catch(e){} if(vibOn) vib(12); };
 
 // ROM-Upload
 document.getElementById('file').onchange=function(){

@@ -461,6 +461,8 @@ export async function load(config) {
     // back to wall-clock pacing so video still runs.
     const TARGET_BUFFER = Math.round(sampleRate * 0.09);
     const MAX_FRAMES_PER_TICK = 5;
+    const FF_MAX = 9;          // Schnellvorlauf: bis zu so viele Frames pro Tick
+    let turbo = false;
     let rafId = 0;
     let running = false;
     let paused = false;
@@ -496,7 +498,7 @@ export async function load(config) {
             // Only the last frame of a catch-up burst reaches the canvas.
             mod._s9xwasm_skip_render(i < count - 1 ? 1 : 0);
             const samps = mod._s9xwasm_exec();
-            if (samps > 0) {
+            if (samps > 0 && !turbo) {   // im Schnellvorlauf keinen Ton einreihen (kein Stau)
                 const ptr = mod._s9xwasm_audio_ptr();
                 const chunk = mod.HEAP16.slice(ptr >> 1, (ptr >> 1) + samps);
                 sink.port.postMessage(chunk, [chunk.buffer]);
@@ -511,7 +513,11 @@ export async function load(config) {
         rafId = requestAnimationFrame(tick);
         pollGamepads();
         let frames = 0;
-        if (audioCtx.state === 'running' && audioClockAdvancing(now)) {
+        if (turbo) {
+            frames = FF_MAX;
+            wallClockStart = 0;
+        }
+        else if (audioCtx.state === 'running' && audioClockAdvancing(now)) {
             const buffered = enqueuedFrames - consumedFrames;
             const deficit = TARGET_BUFFER - buffered;
             if (deficit > 0)
@@ -529,7 +535,7 @@ export async function load(config) {
             frames = due - wallClockFrames;
             wallClockFrames = due;
         }
-        frames = Math.max(0, Math.min(MAX_FRAMES_PER_TICK, frames));
+        frames = Math.max(0, Math.min(turbo ? FF_MAX : MAX_FRAMES_PER_TICK, frames));
         if (frames > 0) {
             runFrames(frames);
             renderFrame();
@@ -674,6 +680,9 @@ export async function load(config) {
             else
                 mod._s9xwasm_reset();
         },
+        setTurbo(on) { turbo = !!on; try { mod._s9xwasm_set_mute(turbo ? 1 : 0); } catch (e) {} },
+        setMute(on) { gain.gain.value = on ? 0 : Math.max(0, Math.min(1, opts.volume)); },
+        setSmoothing(on) { canvas.style.imageRendering = on ? 'auto' : 'pixelated'; },
         setInput,
         async saveState() {
             const size = mod._s9xwasm_state_size();

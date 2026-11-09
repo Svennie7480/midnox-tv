@@ -71,7 +71,17 @@ public class SnesActivity extends Activity {
         push("MX.boot()");
     }
     void onPad(int p, int mask) { if (p < 0 || p > 1) return; pad[p] = mask; push("MX.in(" + p + "," + mask + ")"); }
-    void cmd(String c) { if ("menu".equals(c)) push("MX.menu()"); else if ("resume".equals(c)) push("MX.resume()"); }
+    void cmd(String c) {
+        if (c == null) return;
+        switch (c) {
+            case "menu": push("MX.menu()"); break;
+            case "resume": push("MX.resume()"); break;
+            case "ff1": push("MX.turbo(true)"); break;
+            case "ff0": push("MX.turbo(false)"); break;
+            case "rew": push("MX.rewind()"); break;
+            case "shot": push("MX.shot()"); break;
+        }
+    }
     void push(final String js) { runOnUiThread(new Runnable() { public void run() { if (web != null) web.evaluateJavascript(js, null); } }); }
 
     // -------- Savestates (vom Web-Server über /state) --------
@@ -88,20 +98,29 @@ public class SnesActivity extends Activity {
 
     // -------- Cover-Bilder (libretro-Boxarts, lokal gecacht; vom Web-Server über /cover) --------
     File coversDir() { File d = new File(getFilesDir(), "covers"); d.mkdirs(); return d; }
+    File shotsDir() { File d = new File(getFilesDir(), "shots"); d.mkdirs(); return d; }
     static String fileSan(String s) { String x = s.replaceAll("[^a-zA-Z0-9_.-]", "_"); return x.length() > 80 ? x.substring(0, 80) : x; }
+    static String baseName(String name) { int dot = name.lastIndexOf('.'); return dot > 0 ? name.substring(0, dot) : name; }
+    static byte[] readFile(File f) { try { if (!f.exists() || f.length() == 0) return null; FileInputStream in = new FileInputStream(f); try { return U.readStream(in); } finally { in.close(); } } catch (Exception e) { return null; } }
     byte[] coverBytes(String name) {
         if (name == null || name.isEmpty()) return null;
-        String base = name; int dot = base.lastIndexOf('.'); if (dot > 0) base = base.substring(0, dot);
-        File f = new File(coversDir(), fileSan(base) + ".png");
+        String base = baseName(name);
+        File box = new File(coversDir(), fileSan(base) + ".png");          // echte Boxart
+        File shot = new File(coversDir(), fileSan(base) + ".shot.png");    // Screenshot-Fallback
         File miss = new File(coversDir(), fileSan(base) + ".miss");
-        try { if (f.exists() && f.length() > 0) { FileInputStream in = new FileInputStream(f); try { return U.readStream(in); } finally { in.close(); } } } catch (Exception ignored) {}
-        if (miss.exists() && System.currentTimeMillis() - miss.lastModified() < 86400000L) return null;   // Negativ-Cache 1 Tag
-        byte[] img = fetchCover(base);
-        try {
-            if (img != null) { FileOutputStream o = new FileOutputStream(f); o.write(img); o.close(); return img; }
-            new FileOutputStream(miss).close();
-        } catch (Exception ignored) {}
-        return null;
+        byte[] b = readFile(box); if (b != null) return b;
+        if (!(miss.exists() && System.currentTimeMillis() - miss.lastModified() < 86400000L)) {   // Negativ-Cache 1 Tag
+            byte[] img = fetchCover(base);
+            try { if (img != null) { FileOutputStream o = new FileOutputStream(box); o.write(img); o.close(); return img; } new FileOutputStream(miss).close(); } catch (Exception ignored) {}
+        }
+        return readFile(shot);   // kein Boxart -> Screenshot als Cover, sonst null
+    }
+    // Screenshot speichern (vom Web-Server über /shot): in die Galerie und als Cover-Fallback.
+    void saveShot(String name, byte[] png) {
+        if (png == null || png.length < 100 || name == null) return;
+        String base = fileSan(baseName(name));
+        try { FileOutputStream o = new FileOutputStream(new File(shotsDir(), base + "-" + System.currentTimeMillis() + ".png")); o.write(png); o.close(); } catch (Exception ignored) {}
+        try { FileOutputStream o = new FileOutputStream(new File(coversDir(), base + ".shot.png")); o.write(png); o.close(); } catch (Exception ignored) {}
     }
     static byte[] fetchCover(String base) {
         String libre = base.replaceAll("[&*/:`<>?\\\\|\"]", "_");
@@ -251,7 +270,23 @@ public class SnesActivity extends Activity {
             if (e.getAction() == KeyEvent.ACTION_UP && rom != null) push(menuOpen ? "MX.closeMenu()" : "MX.menu()");
             return true;
         }
-        if (menuOpen) return super.dispatchKeyEvent(e);   // Menü: WebView navigiert per Fokus
+        // Pause-Menü: Navigation komplett hier steuern (WebView-Fokus ist auf dem TV-Remote unzuverlässig).
+        if (menuOpen) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                switch (kc) {
+                    case KeyEvent.KEYCODE_DPAD_UP: push("MX.menuMove(-1)"); return true;
+                    case KeyEvent.KEYCODE_DPAD_DOWN: push("MX.menuMove(1)"); return true;
+                    case KeyEvent.KEYCODE_DPAD_LEFT: push("MX.menuAdjust(-1)"); return true;
+                    case KeyEvent.KEYCODE_DPAD_RIGHT: push("MX.menuAdjust(1)"); return true;
+                    case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER:
+                    case KeyEvent.KEYCODE_BUTTON_A: case KeyEvent.KEYCODE_BUTTON_B: push("MX.menuSelect()"); return true;
+                }
+            }
+            return true;   // alles andere schlucken, solange das Menü offen ist
+        }
+        // Schnellvorlauf / Rewind über Medientasten der Fernbedienung
+        if (kc == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD && rom != null) { push("MX.turbo(" + (e.getAction() == KeyEvent.ACTION_DOWN) + ")"); return true; }
+        if (kc == KeyEvent.KEYCODE_MEDIA_REWIND && rom != null) { if (e.getAction() == KeyEvent.ACTION_DOWN) push("MX.rewind()"); return true; }
         int bit = bit(kc);
         if (bit != 0 && swapFace()) bit = swapBit(bit);
         if (bit != 0 && rom != null) {

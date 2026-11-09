@@ -265,8 +265,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.snes",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-snes.apk",
-   "version": "1.2",
-   "desc": "SNES-Emulator (Snes9x) für Fire TV und Android TV. Steuerung per Handy (im WLAN die Gamepad-Seite öffnen, QR-Code auf dem Start­bildschirm), 2 Spieler mit zwei Handys, oder Xbox-/Bluetooth-/Switch-Controller (Nintendo-Belegung umschaltbar). Bibliothek mit Cover-Bildern, zuletzt gespielten Titeln und Favoriten, Datei-Browser mit Suche für Gerätespeicher/USB, oder Spiele vom Handy hochladen (auch als ZIP). Pause-Menü mit 4 Speicherplätzen zum Sichern und Laden, automatischer Spielstand beim Beenden. Enhancement-Chips (Super FX, SA-1, DSP) werden unterstützt. Ohne Werbung – Spiele bringst du selbst mit."
+   "version": "1.3",
+   "desc": "SNES-Emulator (Snes9x) für Fire TV und Android TV. Steuerung per Handy (im WLAN die Gamepad-Seite öffnen, QR-Code auf dem Start­bildschirm), 2 Spieler mit zwei Handys, oder Xbox-/Bluetooth-/Switch-Controller (Nintendo-Belegung umschaltbar). Bibliothek mit Cover-Bildern, „Fortsetzen"-Knopf, zuletzt gespielten Titeln und Favoriten, Datei-Browser mit Suche für Gerätespeicher/USB, oder Spiele vom Handy hochladen (auch als ZIP). Pause-Menü (per Fernbedienung bedienbar) mit 4 Speicherplätzen, Zurückspulen, Screenshots, Scanline-Look und Schnellvorlauf. Automatischer Spielstand beim Beenden. Dauerfeuer und Vibration am Handy. Enhancement-Chips (Super FX, SA-1, DSP) werden unterstützt. Ohne Werbung – Spiele bringst du selbst mit."
   }
  ]
 }

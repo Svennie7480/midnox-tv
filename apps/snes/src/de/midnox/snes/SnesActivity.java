@@ -121,6 +121,7 @@ public class SnesActivity extends Activity {
         if (n.endsWith(".gb")) return "Nintendo_-_Game_Boy";
         if (n.endsWith(".gbc")) return "Nintendo_-_Game_Boy_Color";
         if (n.endsWith(".gba")) return "Nintendo_-_Game_Boy_Advance";
+        if (n.endsWith(".nes")) return "Nintendo_-_Nintendo_Entertainment_System";
         return "Super_Nintendo_Entertainment_System";   // SNES, SGB, ZIP/unbekannt
     }
     // Screenshot speichern (vom Web-Server über /shot): in die Galerie und als Cover-Fallback.
@@ -144,7 +145,7 @@ public class SnesActivity extends Activity {
         finally { if (c != null) c.disconnect(); }
     }
 
-    static final String[] ROM_EXT = {".sfc", ".smc", ".fig", ".swc", ".gb", ".gbc", ".gba", ".sgb", ".zip"};
+    static final String[] ROM_EXT = {".sfc", ".smc", ".fig", ".swc", ".gb", ".gbc", ".gba", ".sgb", ".nes", ".zip"};
     static boolean isRom(String name) { String n = name.toLowerCase(Locale.ROOT); for (String e : ROM_EXT) if (n.endsWith(e)) return true; return false; }
 
     static String md5(byte[] b) {

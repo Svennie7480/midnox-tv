@@ -265,8 +265,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.snes",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-snes.apk",
-   "version": "1.4",
-   "desc": "Retro-Emulator für Fire TV und Android TV: SNES (Snes9x) und Game Boy, Game Boy Color und Game Boy Advance (mGBA) – der passende Emulator wird automatisch nach Dateiendung gewählt. Steuerung per Handy (im WLAN die Gamepad-Seite öffnen, QR-Code auf dem Start­bildschirm), bei SNES 2 Spieler mit zwei Handys, oder Xbox-/Bluetooth-/Switch-Controller (Nintendo-Belegung umschaltbar). Bibliothek mit Cover-Bildern, „Fortsetzen\"-Knopf, zuletzt gespielten Titeln und Favoriten, Datei-Browser mit Suche für Gerätespeicher/USB, oder Spiele vom Handy hochladen (auch als ZIP). Pause-Menü (per Fernbedienung bedienbar) mit 4 Speicherplätzen, Zurückspulen, Screenshots, Scanline-Look und Schnellvorlauf. Automatischer Spielstand beim Beenden. Dauerfeuer und Vibration am Handy. Ohne Werbung – Spiele bringst du selbst mit."
+   "version": "1.5",
+   "desc": "Retro-Emulator für Fire TV und Android TV: NES (jsnes), SNES (Snes9x) und Game Boy, Game Boy Color und Game Boy Advance (mGBA) – der passende Emulator wird automatisch nach Dateiendung gewählt. Steuerung per Handy (im WLAN die Gamepad-Seite öffnen, QR-Code auf dem Start­bildschirm), bei SNES und NES 2 Spieler mit zwei Handys, oder Xbox-/Bluetooth-/Switch-Controller (Nintendo-Belegung umschaltbar). Bibliothek mit Cover-Bildern, „Fortsetzen\"-Knopf, zuletzt gespielten Titeln und Favoriten, Datei-Browser mit Suche für Gerätespeicher/USB, oder Spiele vom Handy hochladen (auch als ZIP). Pause-Menü (per Fernbedienung bedienbar) mit 4 Speicherplätzen, Zurückspulen, Screenshots, Scanline-Look und Schnellvorlauf. Automatischer Spielstand beim Beenden. Dauerfeuer und Vibration am Handy. Ohne Werbung – Spiele bringst du selbst mit."
   }
  ]
 }

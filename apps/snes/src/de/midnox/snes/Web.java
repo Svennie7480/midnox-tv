@@ -41,6 +41,7 @@ final class Web {
             if (path.equals("/") || path.startsWith("/index")) { asset(s, "index.html"); return; }
             if (path.equals("/pad") || path.startsWith("/pad?")) { asset(s, "pad.html"); return; }
             if (path.startsWith("/core-gba/")) { asset(s, "core-gba/" + path.substring(10).replaceAll("[?#].*$", "")); return; }
+            if (path.startsWith("/core-nes/")) { asset(s, "core-nes/" + path.substring(10).replaceAll("[?#].*$", "")); return; }
             if (path.startsWith("/core/")) { asset(s, "core/" + path.substring(6).replaceAll("[?#].*$", "")); return; }
             if (path.startsWith("/rom")) { byte[] r = act.romBytes(); if (r == null) send(s, 404, "text/plain", "no rom".getBytes()); else send(s, 200, "application/octet-stream", r); return; }
             if (path.startsWith("/in")) {   // Handy-Tasten: p=Spieler, b=Bitmaske

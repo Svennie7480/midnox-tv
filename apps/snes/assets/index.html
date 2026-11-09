@@ -50,7 +50,7 @@
   <div id="screen"><canvas id="cv" width="256" height="224"></canvas><div id="scan"></div></div>
   <div id="launcher">
     <div class="top">
-      <div><h1><b>midnox</b> Retro</h1><p class="sub">SNES &amp; Game Boy / Color / Advance · Spiel wählen oder am Handy hochladen.</p></div>
+      <div><h1><b>midnox</b> Retro</h1><p class="sub">NES · SNES · Game Boy / Color / Advance · Spiel wählen oder am Handy hochladen.</p></div>
       <div class="qr"><div id="qr"></div><div class="t">📱 Handy-Gamepad:<br>QR scannen oder <b id="padurl">…</b> öffnen</div></div>
     </div>
     <div id="resumewrap"></div>
@@ -74,8 +74,14 @@ const SYS={
   // mGBA: A=KeyX, B=KeyZ, L=KeyA, R=KeyS, Start=Enter, Select=ShiftRight; Y/X gibt es nicht; nur 1 Spieler
   gba:{ sdk:'/core-gba/mgba.sdk.js', opt:{system:'auto',aspect:'native'}, codes:[
     {1:'KeyZ',4:'ShiftRight',8:'Enter',16:'ArrowUp',32:'ArrowDown',64:'ArrowLeft',128:'ArrowRight',256:'KeyX',1024:'KeyA',2048:'KeyS'} ]},
+  // NES (jsnes): Eingaben direkt über engine.input(); eigene Belegung nicht nötig. 2 Spieler.
+  nes:{ sdk:'/core-nes/nes.sdk.js', opt:{aspect:'4:3'}, codes:[] },
 };
-function sysFromName(name){ const n=(name||'').toLowerCase(); if(n.endsWith('.gb')||n.endsWith('.gbc')||n.endsWith('.gba')||n.endsWith('.sgb')) return 'gba'; return 'snes'; }
+function sysFromName(name){ const n=(name||'').toLowerCase();
+  if(n.endsWith('.nes')) return 'nes';
+  if(n.endsWith('.gb')||n.endsWith('.gbc')||n.endsWith('.gba')||n.endsWith('.sgb')) return 'gba';
+  return 'snes';
+}
 function show(w){ $('screen').style.display=w==='screen'?'flex':'none'; $('launcher').style.display=w==='launcher'?'flex':'none'; }
 function msg(t){ const m=$('msg'); m.textContent=t; m.style.opacity=1; clearTimeout(m._t); m._t=setTimeout(()=>m.style.opacity=0,2200); }
 function alog(m){ try{Android.log(m);}catch(e){} }
@@ -87,7 +93,7 @@ var CODES=[
 let lastMask=[0,0];
 function key(type,code){ try{ window.dispatchEvent(new KeyboardEvent(type,{code:code,bubbles:true})); }catch(e){} }
 window.MX = {
-  in(p,m){ pend[p]=m; var cm=(SYS[sys].codes||[])[p]; if(!cm) return; var prev=lastMask[p]|0; for(var bit in cm){ var bv=+bit, was=prev&bv, now=m&bv; if(was&&!now) key('keyup',cm[bit]); else if(!was&&now) key('keydown',cm[bit]); } lastMask[p]=m; },
+  in(p,m){ pend[p]=m; if(engine && engine.input){ try{ engine.input(p,m); }catch(e){} return; } var cm=(SYS[sys].codes||[])[p]; if(!cm) return; var prev=lastMask[p]|0; for(var bit in cm){ var bv=+bit, was=prev&bv, now=m&bv; if(was&&!now) key('keyup',cm[bit]); else if(!was&&now) key('keydown',cm[bit]); } lastMask[p]=m; },
   boot(){ boot(); },
   pause(){ try{ engine&&engine.pause(); }catch(e){} },
   resume(){ try{ if(engine && !menuShown()) engine.resume(); }catch(e){} },
@@ -102,7 +108,7 @@ window.MX = {
   async saveAuto(){ await saveSlot('auto',true); },
 };
 
-const ROM_EXT=['.sfc','.smc','.fig','.swc','.gb','.gbc','.gba','.sgb'];
+const ROM_EXT=['.sfc','.smc','.fig','.swc','.gb','.gbc','.gba','.sgb','.nes'];
 function unzipRom(bytes, outerName){
   if(bytes[0]===0x50 && bytes[1]===0x4B){ // PK -> ZIP
     try{ const files=window.fflate.unzipSync(bytes); for(const n in files){ const l=n.toLowerCase(); if(ROM_EXT.some(e=>l.endsWith(e))) return {bytes:files[n], name:n}; } }catch(e){ alog('unzip fail '+e.message); }
@@ -126,7 +132,7 @@ async function boot(){
     catch(e){ alog('opfs-fail '+e.message); engine=await mod.load(Object.assign({persist:null}, base)); }
     engine.start();
     applyDisplay();   // Scanlines / Glättung aus den Einstellungen
-    if(pend[0]) MX.in(0,pend[0]); if(sys==='snes' && pend[1]) MX.in(1,pend[1]);
+    if(pend[0]) MX.in(0,pend[0]); if(pend[1]) MX.in(1,pend[1]);
     // Auto-Resume: beim letzten Beenden gesicherten Stand laden
     try{ const a=await fetch('/state?key='+encodeURIComponent(romKey)+'&slot=auto'); if(a.ok){ const d=new Uint8Array(await a.arrayBuffer()); if(d.length>16){ await engine.loadState(d); msg('Spielstand fortgesetzt'); } } }catch(e){}
     startRewindCapture();

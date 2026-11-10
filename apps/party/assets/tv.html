@@ -1,0 +1,270 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox Party</title>
+<style>
+  :root{--bg:#0B0A14;--card:#15142250;--line:#2a2840;--mut:#9aa0c0;--gold:#FACC15}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:radial-gradient(1200px 700px at 50% -10%,#1b1740,#0B0A14 60%);color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
+  #stage{position:fixed;inset:0;display:flex;flex-direction:column;padding:4vh 5vw}
+  h1{margin:0;font-size:5vh}
+  h1 b{background:linear-gradient(90deg,#a78bfa,#60a5fa,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brandsub{color:var(--mut);font-size:2.2vh;margin:.4vh 0 0}
+  /* Lobby */
+  .lobby{display:flex;gap:4vw;flex:1;min-height:0}
+  .join{flex:none;width:34vw;background:var(--card);border:1px solid var(--line);border-radius:3vh;padding:3vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh;backdrop-filter:blur(8px)}
+  .join .qr{background:#fff;padding:2vh;border-radius:2vh}
+  .join .qr svg{width:26vh;height:26vh;display:block}
+  .join .url{font-size:3.4vh;font-weight:800;color:var(--gold)}
+  .join .hint{color:var(--mut);font-size:2.1vh;text-align:center}
+  .right{flex:1;display:flex;flex-direction:column;min-height:0}
+  .players{display:flex;flex-wrap:wrap;gap:1.6vh;align-content:flex-start;flex:1;overflow:hidden}
+  .pl{display:flex;align-items:center;gap:1.2vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1.6vh 2.4vh;font-size:3vh;font-weight:700;animation:pop .3s}
+  .pl .em{font-size:3.6vh}
+  .pl .dot{width:1.6vh;height:1.6vh;border-radius:50%}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .cta{margin-top:2vh;color:var(--mut);font-size:2.4vh}
+  .cta b{color:#fff}
+  .empty{color:var(--mut);font-size:2.6vh;align-self:center;margin:auto}
+  /* Menü */
+  .menu{display:flex;gap:3vw;flex:1;align-items:center;justify-content:center}
+  .gcard{width:22vw;height:52vh;border-radius:3vh;background:var(--card);border:2px solid var(--line);padding:3vh;display:flex;flex-direction:column;gap:1.4vh;transition:transform .15s,border-color .15s;opacity:.6}
+  .gcard.sel{opacity:1;transform:scale(1.06);border-color:#a78bfa;box-shadow:0 2vh 6vh #0006}
+  .gcard .ic{font-size:9vh}
+  .gcard h2{margin:0;font-size:3.4vh}
+  .gcard p{margin:0;color:var(--mut);font-size:2.2vh;line-height:1.35}
+  .gcard .min{margin-top:auto;color:var(--mut);font-size:1.9vh}
+  /* Generisch */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2vh}
+  .big{font-size:9vh;font-weight:900}
+  .huge{font-size:16vh;font-weight:900;line-height:1}
+  .q{font-size:5vh;font-weight:800;text-align:center;margin:2vh 6vw}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:2vh;margin:0 6vw}
+  .ans{background:var(--card);border:2px solid var(--line);border-radius:2vh;padding:2.4vh;font-size:3.4vh;display:flex;gap:2vh;align-items:center}
+  .ans .k{width:5vh;height:5vh;border-radius:1vh;background:#2a2840;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none}
+  .ans.ok{border-color:#10b981;background:#10b98122} .ans.no{opacity:.4}
+  .timer{height:1.2vh;background:#2a2840;border-radius:1vh;overflow:hidden;margin:2vh 6vw 0}
+  .timer>div{height:100%;background:linear-gradient(90deg,#a78bfa,#22d3ee);width:100%;transition:width .2s linear}
+  .go{color:#22ff88;animation:flash .4s infinite alternate}
+  @keyframes flash{to{opacity:.5}}
+  .toast{position:fixed;left:50%;bottom:4vh;transform:translateX(-50%);background:#000a;border:1px solid var(--line);border-radius:2vh;padding:1.4vh 3vh;font-size:2.6vh;opacity:0;transition:opacity .2s}
+  /* Zeichnen */
+  .drawwrap{display:flex;gap:3vw;flex:1;min-height:0}
+  #dcv{flex:1;background:#fff;border-radius:2vh;min-height:0}
+  .guessers{width:22vw;display:flex;flex-direction:column;gap:1.2vh;overflow:hidden}
+  .gl{background:var(--card);border:1px solid var(--line);border-radius:1.4vh;padding:1.2vh 1.8vh;font-size:2.4vh;display:flex;gap:1vh;align-items:center}
+  .gl.ok{border-color:#10b981;color:#10b981}
+  /* Scoreboard */
+  .board{flex:1;display:flex;flex-direction:column;gap:1.4vh;margin-top:2vh;overflow:hidden}
+  .score{display:flex;align-items:center;gap:2vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:2vh 3vh;font-size:3.4vh;animation:slide .4s}
+  .score .rank{font-size:4vh;width:6vh;text-align:center}
+  .score .nm{font-weight:800;flex:1}
+  .score .pts{font-weight:900;color:var(--gold)}
+  .score.lead{border-color:var(--gold);box-shadow:0 0 4vh #facc1533}
+  @keyframes slide{from{transform:translateX(-3vw);opacity:0}to{transform:none;opacity:1}}
+  .reveal{margin:1vh 6vw;display:flex;flex-direction:column;gap:1.2vh}
+  .fb{background:var(--card);border:1px solid var(--line);border-radius:1.6vh;padding:1.6vh 2.4vh;font-size:2.8vh;display:flex;gap:1.6vh;align-items:center}
+  .fb.truth{border-color:#10b981;background:#10b98118}
+  .fb .by{color:var(--mut);font-size:2.2vh;margin-left:auto}
+</style></head>
+<body>
+<div id="stage"></div>
+<div class="toast" id="toast"></div>
+<script src="/lib/qrcode.js"></script>
+<script src="/content.js"></script>
+<script>
+const stage=document.getElementById('stage');
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const shuffle=(a)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const esc=(s)=>(s+'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const norm=(s)=>(s+'').toLowerCase().trim().replace(/[^a-zäöüß0-9]/g,'');
+function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;const d=[...Array(m+1)].map((_,i)=>[i,...Array(n).fill(0)]);for(let j=0;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n];}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,1800);}
+
+// ---------- Netz ----------
+const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'];
+let players=[], seq=0, scene='lobby', curGame=null, ipUrl='';
+const byId=(pid)=>players.find(p=>p.pid===pid);
+function push(pid,view){ fetch('/push?to='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(view)}).catch(()=>{}); }
+function broadcast(view){ players.forEach(p=>push(p.pid,view)); }
+function pushEach(fn){ players.forEach(p=>push(p.pid,fn(p))); }
+async function tvLoop(){ while(true){ try{ const r=await fetch('/tvpoll?since='+seq); const j=await r.json(); seq=j.seq; for(const e of j.evs) onEvent(e); }catch(e){ await sleep(400); } } }
+function onEvent(e){
+  if(e.t==='join'){ if(byId(e.pid))return; const d=e.d||{}; const p={pid:e.pid,name:(d.name||'Gast').slice(0,12),emoji:d.emoji||'🙂',color:d.color||PAL[players.length%PAL.length],score:0}; players.push(p);
+    if(scene==='lobby'){ renderLobby(); push(p.pid,{t:'wait',emoji:p.emoji,title:'Drin, '+p.name+'!',sub:'Gleich geht’s los…'}); }
+    else { push(p.pid,{t:'wait',emoji:'🎮',title:'Willkommen!',sub:'Du bist beim nächsten Spiel dabei.'}); }
+  } else if(e.t==='ev'){ const p=byId(e.pid); if(!p)return; if(curGame&&curGame.onEvent) curGame.onEvent(p,e.d||{}); }
+}
+
+// ---------- Fernbedienung ----------
+window.TV={ key(k){
+  if(scene==='lobby'){ if(k==='ok'){ if(players.length>=1) gotoMenu(); } }
+  else if(scene==='menu'){ if(k==='left') menuMove(-1); else if(k==='right') menuMove(1); else if(k==='ok') startGame(); else if(k==='back') gotoLobby(); }
+  else if(scene==='game'){ if(k==='back'){ curGame=null; gotoMenu(); } }
+  else if(scene==='score'){ if(k==='ok'||k==='back') gotoMenu(); }
+}};
+
+// ---------- Lobby ----------
+async function initInfo(){ try{ ipUrl='http://'+Android.ip()+':'+Android.port()+'/p'; }catch(e){ try{ const j=await (await fetch('/info')).json(); ipUrl='http://'+j.ip+':'+j.port+'/p'; }catch(_){ ipUrl=location.origin+'/p'; } } }
+function qrSvg(url){ try{ const q=qrcode(0,'M'); q.addData(url); q.make(); return q.createSvgTag({cellSize:4,margin:1,scalable:true}); }catch(e){ return ''; } }
+function gotoLobby(){ scene='lobby'; curGame=null; renderLobby(); broadcast({t:'wait',emoji:'🎉',title:'Lobby',sub:'Gleich geht’s weiter…'}); }
+function renderLobby(){
+  const url=ipUrl||'…'; const shortUrl=url.replace('http://','');
+  stage.innerHTML=
+   '<div><h1><b>midnox</b> Party</h1><p class="brandsub">Handy ist dein Controller – einfach beitreten.</p></div>'
+   +'<div class="lobby">'
+   +' <div class="join"><div class="qr">'+qrSvg(url)+'</div><div class="url">'+esc(shortUrl)+'</div><div class="hint">Mit dem Handy im selben WLAN<br>den Code scannen oder die Adresse öffnen.</div></div>'
+   +' <div class="right"><div class="players" id="plist"></div>'
+   +'  <div class="cta">'+(players.length?('<b>'+players.length+'</b> dabei · <b>OK</b> drücken zum Spielen'):'Warte auf Spieler…')+'</div></div>'
+   +'</div>';
+  const pl=document.getElementById('plist');
+  players.forEach(p=>{ const d=document.createElement('div'); d.className='pl'; d.innerHTML='<span class="em">'+p.emoji+'</span><span class="dot" style="background:'+p.color+'"></span>'+esc(p.name); pl.appendChild(d); });
+  if(!players.length){ pl.innerHTML='<div class="empty">Noch niemand da. Scanne den Code mit dem Handy. 📱</div>'; }
+}
+
+// ---------- Menü ----------
+let menuIdx=0;
+const GAMES=[
+  {id:'reaktor',ic:'⚡',name:'Reaktor',desc:'Wer bei „LOS!" zuerst drückt. Reaktionsduell.',min:1,make:()=>GameReaktor()},
+  {id:'trivia',ic:'🧠',name:'Buzzer-Battle',desc:'Quiz – richtig und schnell antworten gibt die meisten Punkte.',min:1,make:()=>GameTrivia()},
+  {id:'flunkerei',ic:'🤥',name:'Flunkerei',desc:'Erfinde eine Fake-Antwort und finde die echte unter allen.',min:3,make:()=>GameFib()},
+  {id:'kritzel',ic:'✏️',name:'Kritzel-Klau',desc:'Einer malt am Handy, der Rest rät.',min:2,make:()=>GameDraw()}
+];
+function gotoMenu(){ scene='menu'; curGame=null; renderMenu(); broadcast({t:'wait',emoji:'🎮',title:'Spielauswahl',sub:'Der Fernseher wählt das Spiel…'}); }
+function renderMenu(){
+  stage.innerHTML='<div><h1>Spiel wählen</h1><p class="brandsub">◂ ▸ wählen · OK starten · Zurück zur Lobby · '+players.length+' Spieler</p></div><div class="menu" id="gm"></div>';
+  const gm=document.getElementById('gm');
+  GAMES.forEach((g,i)=>{ const ok=players.length>=g.min; const c=document.createElement('div'); c.className='gcard'+(i===menuIdx?' sel':''); c.innerHTML='<div class="ic">'+g.ic+'</div><h2>'+g.name+'</h2><p>'+g.desc+'</p><div class="min">'+(ok?'bereit':('ab '+g.min+' Spielern')) +'</div>'; if(!ok)c.style.filter='grayscale(.7)'; gm.appendChild(c); });
+}
+function menuMove(d){ menuIdx=(menuIdx+d+GAMES.length)%GAMES.length; renderMenu(); }
+function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } scene='game'; curGame=g.make(); curGame.start(); }
+
+// ---------- Scoreboard ----------
+function endGame(){ curGame=null; scene='score'; renderScore(); }
+function renderScore(){
+  const sorted=players.slice().sort((a,b)=>b.score-a.score);
+  const medal=['🥇','🥈','🥉'];
+  stage.innerHTML='<div><h1>Punktestand</h1><p class="brandsub">OK für nächstes Spiel · Punkte bleiben über die ganze Party erhalten</p></div><div class="board" id="bd"></div>';
+  const bd=document.getElementById('bd');
+  sorted.forEach((p,i)=>{ const d=document.createElement('div'); d.className='score'+(i===0&&p.score>0?' lead':''); d.style.animationDelay=(i*0.08)+'s'; d.innerHTML='<div class="rank">'+(medal[i]||(i+1))+'</div><span class="em" style="font-size:4vh">'+p.emoji+'</span><div class="nm">'+esc(p.name)+'</div><div class="pts">'+p.score+'</div>'; bd.appendChild(d); });
+  const top=sorted[0];
+  broadcast({t:'wait',emoji:'🏁',title:'Punktestand',sub:top&&top.score>0?('Führung: '+top.name):'Weiter geht’s!'});
+  if(top) push(top.pid,{t:'wait',emoji:'👑',title:'Du führst!',sub:top.score+' Punkte'});
+}
+
+// ================= SPIELE =================
+function stageCenter(html){ stage.innerHTML='<div class="center">'+html+'</div>'; }
+
+// ----- Reaktor -----
+function GameReaktor(){
+  let round=0, armed=false, armTime=0, done={}, winner=null; const TOTAL=3;
+  function newRound(){ round++; armed=false; done={}; winner=null;
+    stage.innerHTML='<div class="center"><div class="big" id="rkb">Bereit…</div><div class="brandsub">Runde '+round+'/'+TOTAL+'</div></div>';
+    broadcast({t:'buzz',title:'Reaktor',sub:'Warte auf LOS…',armed:false});
+    const delay=1600+Math.random()*3400;
+    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); const b=document.getElementById('rkb'); if(b){b.textContent='LOS!';b.classList.add('go','huge');} broadcast({t:'buzz',title:'JETZT!',sub:'',armed:true}); }, delay);
+  }
+  const self={ start(){ round=0; newRound(); }, onEvent(p,d){
+    if(d.buzz===undefined)return;
+    if(!armed){ if(done[p.pid])return; done[p.pid]='foul'; push(p.pid,{t:'wait',emoji:'🙈',title:'Zu früh!',sub:'Diese Runde ist für dich gelaufen.'}); toast(p.emoji+' '+p.name+' zu früh!'); return; }
+    if(winner||done[p.pid]==='foul')return; winner=p; const ms=Math.round(performance.now()-armTime); p.score+=100;
+    stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! ⚡</div><div class="brandsub">'+ms+' ms · +100 Punkte</div></div>';
+    broadcast({t:'wait',emoji:'⚡',title:esc(p.name)+' war schneller!',sub:ms+' ms'});
+    push(p.pid,{t:'wait',emoji:'🏆',title:'Gewonnen!',sub:ms+' ms · +100'});
+    setTimeout(()=>{ if(curGame!==self)return; if(round>=TOTAL) endGame(); else newRound(); }, 2600);
+  } };
+  return self;
+}
+
+// ----- Buzzer-Battle (Trivia) -----
+function GameTrivia(){
+  const qs=shuffle(CONTENT.trivia).slice(0,8); let qi=-1, answered={}, qStart=0, timer=0, letters=['A','B','C','D'];
+  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } answered={}; qStart=performance.now(); const q=qs[qi];
+    stage.innerHTML='<div><h1>Buzzer-Battle</h1><p class="brandsub">Frage '+(qi+1)+'/'+qs.length+' · schnell & richtig</p></div>'
+      +'<div class="q">'+esc(q.q)+'</div><div class="answers" id="ans"></div><div class="timer"><div id="tb"></div></div>';
+    const an=document.getElementById('ans'); q.a.forEach((a,i)=>{ const d=document.createElement('div'); d.className='ans'; d.id='a'+i; d.innerHTML='<div class="k">'+letters[i]+'</div>'+esc(a); an.appendChild(d); });
+    pushEach(p=>({t:'buttons',title:'Frage '+(qi+1)+'/'+qs.length,sub:'Tippe A, B, C oder D',cols:2,btns:q.a.map((a,i)=>({id:i,label:letters[i]}))}));
+    const T=15000; qStart=performance.now(); clearTimeout(timer); timer=setTimeout(reveal,T);
+    const tb=document.getElementById('tb'); let st=performance.now(); (function tk(){ if(curGame!==self||qi>=qs.length)return; const el=performance.now()-st; const left=Math.max(0,1-el/T); if(tb)tb.style.width=(left*100)+'%'; if(left>0&&Object.keys(answered).length<players.length) requestAnimationFrame(tk); })();
+  }
+  function reveal(){ clearTimeout(timer); const q=qs[qi];
+    players.forEach(p=>{ const a=answered[p.pid]; const correct=a&&a.i===q.c; if(correct){ const spd=Math.max(0,1-(a.t/15000)); p.score+=100+Math.round(spd*100); } push(p.pid,{t:'wait',emoji:correct?'✅':'❌',title:correct?'Richtig!':'Daneben',sub:correct?('+'+(100+Math.round(Math.max(0,1-(a.t/15000))*100))+' Punkte'):('Richtig war '+letters[q.c])}); });
+    q.a.forEach((a,i)=>{ const d=document.getElementById('a'+i); if(!d)return; d.className='ans '+(i===q.c?'ok':'no'); });
+    const got=players.filter(p=>answered[p.pid]&&answered[p.pid].i===q.c).length; toast(got+' richtig');
+    setTimeout(()=>{ if(curGame===self) newQ(); }, 3600);
+  }
+  const self={ start(){ qi=-1; newQ(); }, onEvent(p,d){ if(d.btn===undefined||answered[p.pid]||qi>=qs.length)return; answered[p.pid]={i:+d.btn,t:performance.now()-qStart}; push(p.pid,{t:'wait',emoji:'✅',title:'Abgegeben!',sub:'Warte auf die Auflösung…'}); if(Object.keys(answered).length>=players.length) reveal(); } };
+  return self;
+}
+
+// ----- Flunkerei (Fibbing) -----
+function GameFib(){
+  const prompts=shuffle(CONTENT.fib).slice(0,3); let round=-1, phase='', truth='', fakes={}, choices={}, timer=0;
+  function newRound(){ round++; if(round>=prompts.length){ endGame(); return; } phase='invent'; fakes={}; choices={}; truth=prompts[round].a;
+    stage.innerHTML='<div><h1>Flunkerei</h1><p class="brandsub">Runde '+(round+1)+'/'+prompts.length+' · erfindet eine überzeugende Antwort</p></div>'
+      +'<div class="q">'+esc(prompts[round].q)+'</div><div class="center" id="fc"><div class="brandsub">Alle tippen am Handy eine Fake-Antwort…</div></div>';
+    broadcast({t:'text',title:prompts[round].q,sub:'Erfinde eine glaubwürdige Antwort',ph:'Deine Fake-Antwort',max:70,send:'Abschicken'});
+    clearTimeout(timer); timer=setTimeout(toChoose,45000);
+  }
+  function toChoose(){ clearTimeout(timer); phase='choose';
+    // Optionen: Wahrheit + alle (nicht mit der Wahrheit identischen) Fakes
+    const opts=[{id:'truth',label:truth,by:null}];
+    Object.keys(fakes).forEach(pidStr=>{ const f=fakes[pidStr]; if(norm(f.text)===norm(truth)){ const pl=byId(+pidStr); if(pl){pl.score+=250; push(pl.pid,{t:'wait',emoji:'🎯',title:'Du lagst richtig!',sub:'+250 – deine „Fake" war die Wahrheit'});} return; } opts.push({id:'p'+pidStr,label:f.text,by:+pidStr}); });
+    const shown=shuffle(opts); self._opts=shown;
+    stage.innerHTML='<div><h1>Flunkerei</h1><p class="brandsub">Runde '+(round+1)+'/'+prompts.length+' · Welche Antwort ist echt?</p></div>'
+      +'<div class="q" style="font-size:4vh">'+esc(prompts[round].q)+'</div><div class="reveal" id="opts"></div>';
+    const ob=document.getElementById('opts'); shown.forEach((o,i)=>{ const d=document.createElement('div'); d.className='fb'; d.id='opt'+i; d.innerHTML='<b style="color:#a78bfa">'+(i+1)+'</b> '+esc(o.label); ob.appendChild(d); });
+    // jeder sieht alle außer der EIGENEN Fake-Antwort
+    players.forEach(p=>{ const list=shown.filter(o=>o.by!==p.pid).map((o,i)=>({id:o.id,label:(shown.indexOf(o)+1)+'  '+o.label})); push(p.pid,{t:'choice',title:'Was ist die echte Antwort?',sub:'Wähle klug – nicht auf einen Bluff reinfallen',opts:list}); });
+    clearTimeout(timer); timer=setTimeout(reveal,40000);
+  }
+  function reveal(){ clearTimeout(timer); phase='reveal';
+    players.forEach(p=>{ const ch=choices[p.pid]; if(ch==='truth'){ p.score+=500; } else if(ch&&ch[0]==='p'){ const author=byId(+ch.slice(1)); if(author&&author!==p){ author.score+=250; } } });
+    const ob=document.getElementById('opts'); if(ob){ (self._opts||[]).forEach((o,i)=>{ const d=document.getElementById('opt'+i); if(!d)return; const voters=players.filter(p=>choices[p.pid]===o.id).map(p=>p.emoji).join(' '); if(o.id==='truth'){ d.className='fb truth'; d.innerHTML='<b>✅</b> '+esc(o.label)+'<span class="by">Wahrheit '+voters+'</span>'; } else { const a=byId(o.by); d.innerHTML='<b style="color:#a78bfa">'+(i+1)+'</b> '+esc(o.label)+'<span class="by">Bluff von '+(a?a.emoji+' '+esc(a.name):'?')+' '+voters+'</span>'; } }); }
+    players.forEach(p=>{ const ch=choices[p.pid]; push(p.pid,{t:'wait',emoji:ch==='truth'?'🎯':'🙃',title:ch==='truth'?'Wahrheit gefunden! +500':'Reingefallen…',sub:'Nächste Runde gleich'}); });
+    setTimeout(()=>{ if(curGame===self) newRound(); }, 5500);
+  }
+  const self={ _opts:[], start(){ round=-1; newRound(); }, onEvent(p,d){
+    if(phase==='invent'&&d.text!==undefined&&!fakes[p.pid]){ fakes[p.pid]={text:d.text.slice(0,70)}; push(p.pid,{t:'wait',emoji:'✍️',title:'Fake abgegeben!',sub:'Warte auf die anderen…'}); const cnt=Object.keys(fakes).length; const fc=document.getElementById('fc'); if(fc)fc.innerHTML='<div class="brandsub">'+cnt+'/'+players.length+' haben geflunkert…</div>'; if(cnt>=players.length) toChoose(); }
+    else if(phase==='choose'&&d.choice!==undefined&&!choices[p.pid]){ choices[p.pid]=d.choice; push(p.pid,{t:'wait',emoji:'🤔',title:'Gewählt!',sub:'Auflösung kommt gleich…'}); if(Object.keys(choices).length>=players.length) reveal(); }
+  } };
+  return self;
+}
+
+// ----- Kritzel-Klau (Draw & Guess) -----
+function GameDraw(){
+  const wordPool=shuffle(CONTENT.words); let round=-1, drawer=null, word='', solved={}, startT=0, timer=0, rafStop=false;
+  const TOTAL=Math.min(players.length, 5), ROUND_MS=80000;
+  let ctx=null, cw=0, ch=0, penDown=false, lastPt=null;
+  function setupCanvas(){ const cv=document.getElementById('dcv'); const r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height; cw=cv.width; ch=cv.height; ctx=cv.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.fillStyle='#fff'; ctx.fillRect(0,0,cw,ch); penDown=false; lastPt=null; }
+  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } drawer=players[round%players.length]; word=wordPool[round%wordPool.length]; solved={}; startT=performance.now();
+    stage.innerHTML='<div><h1>Kritzel-Klau</h1><p class="brandsub">'+drawer.emoji+' '+esc(drawer.name)+' zeichnet · Runde '+(round+1)+'/'+TOTAL+'</p></div>'
+      +'<div class="drawwrap"><canvas id="dcv"></canvas><div class="guessers" id="gs"></div></div><div class="timer"><div id="tb"></div></div>';
+    renderGuessers(); setTimeout(setupCanvas,0);
+    push(drawer.pid,{t:'draw',title:'Zeichne: '+word,sub:'Die anderen raten – nicht sprechen!'});
+    players.filter(p=>p!==drawer).forEach(p=>push(p.pid,{t:'text',title:'Was wird gezeichnet?',sub:'Tippe deinen Tipp',ph:'Dein Tipp',max:24,send:'Raten'}));
+    const tb=document.getElementById('tb'); const st=performance.now(); rafStop=false;
+    (function tk(){ if(curGame!==self||rafStop)return; const el=performance.now()-st; const left=Math.max(0,1-el/ROUND_MS); if(tb)tb.style.width=(left*100)+'%'; if(left<=0){ roundEnd(); return; } requestAnimationFrame(tk); })();
+    clearTimeout(timer); timer=setTimeout(roundEnd,ROUND_MS+200);
+  }
+  function renderGuessers(){ const gs=document.getElementById('gs'); if(!gs)return; gs.innerHTML=''; players.filter(p=>p!==drawer).forEach(p=>{ const d=document.createElement('div'); d.className='gl'+(solved[p.pid]?' ok':''); d.innerHTML='<span>'+p.emoji+'</span>'+esc(p.name)+(solved[p.pid]?' ✔':''); gs.appendChild(d); }); }
+  function roundEnd(){ rafStop=true; clearTimeout(timer); const solvers=Object.keys(solved).length;
+    stage.innerHTML='<div class="center"><div class="big">Es war: '+esc(word)+'</div><div class="brandsub">'+(solvers?(solvers+' haben es erraten'):'Niemand hat es erraten 😅')+'</div></div>';
+    broadcast({t:'wait',emoji:'✏️',title:'Lösung: '+esc(word),sub:'Weiter geht’s…'});
+    setTimeout(()=>{ if(curGame===self) newRound(); }, 3200);
+  }
+  function drawStroke(pts,color){ if(!ctx)return; ctx.strokeStyle=color||'#111'; ctx.lineWidth=Math.max(3,cw*0.006); for(let i=0;i<pts.length;i+=2){ const x=pts[i]*cw, y=pts[i+1]*ch; if(penDown&&lastPt){ ctx.beginPath(); ctx.moveTo(lastPt[0],lastPt[1]); ctx.lineTo(x,y); ctx.stroke(); } lastPt=[x,y]; penDown=true; } }
+  const self={ start(){ round=-1; newRound(); }, onEvent(p,d){
+    if(p===drawer){ if(d.stroke){ drawStroke(d.stroke,d.c); } else if(d.penup){ penDown=false; lastPt=null; } else if(d.clear){ if(ctx){ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);} penDown=false; lastPt=null; } return; }
+    if(d.text!==undefined && !solved[p.pid]){ const g=norm(d.text); const w=norm(word); const ok=(g===w)||(w.length>3&&lev(g,w)<=1);
+      if(ok){ const order=Object.keys(solved).length; const spd=Math.max(0,1-((performance.now()-startT)/ROUND_MS)); const pts=200+Math.round(spd*150)-order*20; p.score+=Math.max(80,pts); drawer.score+=100; solved[p.pid]=1; renderGuessers(); toast(p.emoji+' '+p.name+' hat’s! +'+Math.max(80,pts)); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig!',sub:'+'+Math.max(80,pts)+' Punkte'});
+        if(Object.keys(solved).length>=players.length-1) roundEnd();
+      } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" war’s nicht',ph:'Dein Tipp',max:24,send:'Raten'}); }
+    }
+  } };
+  return self;
+}
+
+// ---------- Start ----------
+(async()=>{ await initInfo(); renderLobby(); tvLoop(); })();
+</script>
+</body></html>

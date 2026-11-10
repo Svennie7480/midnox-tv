@@ -1,0 +1,126 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>midnox Party</title>
+<style>
+  :root{--bg:#0B0A14;--card:#17162a;--line:#2a2840;--mut:#9aa0c0;--me:#7C3AED}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui,sans-serif;overscroll-behavior:none}
+  body{display:flex;flex-direction:column;height:100dvh}
+  #top{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:14px;color:var(--mut);border-bottom:1px solid var(--line)}
+  #top .me{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:700;color:#fff}
+  #top .dot{width:14px;height:14px;border-radius:50%;background:var(--me)}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0;padding:16px;gap:12px}
+  h2{margin:0;font-size:22px;line-height:1.2}
+  .sub{color:var(--mut);font-size:15px;margin:-4px 0 0}
+  .grid{display:grid;gap:12px;flex:1}
+  button.big{border:0;border-radius:18px;color:#fff;font-size:22px;font-weight:800;padding:22px;cursor:pointer;background:#2a2840;transition:transform .05s}
+  button.big:active{transform:scale(.97)}
+  .buzz{flex:1;border:0;border-radius:28px;font-size:40px;font-weight:900;color:#fff;background:radial-gradient(circle at 50% 35%,#ff5a7a,#c01d47);box-shadow:0 10px 30px rgba(192,29,71,.5)}
+  .buzz:disabled{background:#241f33;color:#575573;box-shadow:none}
+  .buzz:active{transform:scale(.98)}
+  input,textarea{width:100%;background:#100f1c;border:2px solid var(--line);border-radius:14px;color:#fff;padding:16px;font-size:20px;outline:none}
+  input:focus,textarea:focus{border-color:var(--me)}
+  .send{border:0;border-radius:14px;background:var(--me);color:#fff;font-size:20px;font-weight:800;padding:16px;cursor:pointer}
+  .send:active{transform:scale(.98)}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{border:2px solid var(--line);background:#100f1c;border-radius:999px;padding:12px 16px;font-size:24px;cursor:pointer}
+  .chip.on{border-color:var(--me);background:#201a38}
+  .wait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;color:var(--mut)}
+  .wait .big-emoji{font-size:64px}
+  canvas{flex:1;background:#fff;border-radius:16px;touch-action:none;width:100%}
+  .tools{display:flex;gap:8px;align-items:center}
+  .pen{width:34px;height:34px;border-radius:50%;border:3px solid #0003}
+  .pen.on{border-color:#fff;box-shadow:0 0 0 2px #000}
+  .muted{opacity:.55}
+</style></head>
+<body>
+<div id="top"><span>midnox <b style="color:#fff">Party</b></span><span class="me" id="me"></span></div>
+<div id="app"></div>
+<script>
+const app=document.getElementById('app'), meEl=document.getElementById('me');
+const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'];
+let pid=0, ver=0, me={name:'',emoji:'🙂',color:'#7C3AED'}, curView=null;
+function vib(ms){ if(navigator.vibrate){ try{navigator.vibrate(ms);}catch(e){} } }
+function setAccent(c){ document.documentElement.style.setProperty('--me',c); }
+
+async function ev(d){ try{ await fetch('/ev?pid='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); }catch(e){} }
+
+// ---- Beitreten ----
+function joinScreen(){
+  app.innerHTML='';
+  const h=document.createElement('h2'); h.textContent='Mitspielen'; app.appendChild(h);
+  const s=document.createElement('p'); s.className='sub'; s.textContent='Name und Farbe wählen.'; app.appendChild(s);
+  const inp=document.createElement('input'); inp.placeholder='Dein Name'; inp.maxLength=12; app.appendChild(inp);
+  const emo=document.createElement('div'); emo.className='row'; emo.style.marginTop='2px';
+  ['🙂','😎','🦊','🐸','🐵','🦄','👾','🤖','🐙','🔥','🌟','🍕'].forEach(e=>{ const b=document.createElement('div'); b.className='chip'+(e===me.emoji?' on':''); b.textContent=e; b.onclick=()=>{ me.emoji=e; [...emo.children].forEach(c=>c.classList.remove('on')); b.classList.add('on'); vib(5); }; emo.appendChild(b); });
+  app.appendChild(emo);
+  const cols=document.createElement('div'); cols.className='row'; cols.style.marginTop='2px';
+  PAL.forEach(c=>{ const b=document.createElement('div'); b.className='chip'; b.style.background=c; b.style.width='44px'; b.style.height='44px'; b.textContent=''; if(c===me.color)b.classList.add('on'); b.onclick=()=>{ me.color=c; setAccent(c); [...cols.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); vib(5); }; cols.appendChild(b); });
+  app.appendChild(cols);
+  const go=document.createElement('button'); go.className='send'; go.style.marginTop='auto'; go.textContent='Beitreten'; app.appendChild(go);
+  setAccent(me.color);
+  go.onclick=async()=>{ me.name=(inp.value||'Gast').slice(0,12); go.disabled=true; go.textContent='Verbinde…';
+    try{ const r=await fetch('/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(me)}); const j=await r.json(); pid=j.pid; meEl.innerHTML='<span class="dot" style="background:'+me.color+'"></span>'+me.emoji+' '+me.name; poll(); }
+    catch(e){ go.disabled=false; go.textContent='Nochmal'; } };
+}
+
+// ---- Ansichten rendern ----
+function render(view){
+  curView=view;
+  if(!view||!view.t){ app.innerHTML='<div class="wait"><div class="big-emoji">⏳</div><div>Warte auf den Fernseher…</div></div>'; return; }
+  const T=view.t;
+  if(T==='wait'||T==='done'){ app.innerHTML=''; const w=document.createElement('div'); w.className='wait';
+    w.innerHTML='<div class="big-emoji">'+(view.emoji||(T==='done'?'🏁':'⏳'))+'</div><h2 style="color:#fff">'+esc(view.title||'')+'</h2>'+(view.sub?'<div class="sub">'+esc(view.sub)+'</div>':''); app.appendChild(w); return; }
+  if(T==='buttons'){ app.innerHTML=''; head(view); const g=document.createElement('div'); g.className='grid'; g.style.gridTemplateColumns='repeat('+(view.cols||1)+',1fr)';
+    (view.btns||[]).forEach(b=>{ const el=document.createElement('button'); el.className='big'; el.textContent=b.label; if(b.bg)el.style.background=b.bg; el.onclick=()=>{ vib(12); if(view.lock!==false) lockButtons(g); ev({btn:b.id}); }; g.appendChild(el); }); app.appendChild(g); return; }
+  if(T==='buzz'){ app.innerHTML=''; head(view); const b=document.createElement('button'); b.className='buzz'; b.textContent=view.armed?'DRÜCK!':'…'; b.disabled=!view.armed;
+    b.onclick=()=>{ vib(30); b.disabled=true; ev({buzz:Date.now()}); }; app.appendChild(b); return; }
+  if(T==='text'){ app.innerHTML=''; head(view); const ta=document.createElement(view.multiline?'textarea':'input'); ta.placeholder=view.ph||''; if(view.max)ta.maxLength=view.max; if(view.multiline)ta.rows=3; app.appendChild(ta);
+    const s=document.createElement('button'); s.className='send'; s.textContent=view.send||'Senden'; s.onclick=()=>{ const t=(ta.value||'').trim(); if(!t)return; vib(12); s.disabled=true; ta.disabled=true; ev({text:t}); }; app.appendChild(s); ta.focus(); return; }
+  if(T==='choice'){ app.innerHTML=''; head(view); const g=document.createElement('div'); g.className='grid';
+    (view.opts||[]).forEach(o=>{ const el=document.createElement('button'); el.className='big'; el.style.fontSize='18px'; el.style.textAlign='left'; el.textContent=o.label; el.onclick=()=>{ vib(12); lockButtons(g); ev({choice:o.id}); }; g.appendChild(el); }); app.appendChild(g); return; }
+  if(T==='draw'){ renderDraw(view); return; }
+  app.innerHTML='<div class="wait">…</div>';
+}
+function head(view){ const h=document.createElement('h2'); h.textContent=view.title||''; app.appendChild(h); if(view.sub){ const s=document.createElement('p'); s.className='sub'; s.textContent=view.sub; app.appendChild(s); } }
+function lockButtons(g){ [...g.children].forEach(c=>{ c.disabled=true; c.classList.add('muted'); }); }
+function esc(s){ return (s+'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+// ---- Zeichnen ----
+function renderDraw(view){
+  app.innerHTML='';
+  const h=document.createElement('h2'); h.textContent=view.title||'Zeichne!'; app.appendChild(h);
+  if(view.sub){ const s=document.createElement('p'); s.className='sub'; s.textContent=view.sub; app.appendChild(s); }
+  const cv=document.createElement('canvas'); app.appendChild(cv);
+  const tools=document.createElement('div'); tools.className='tools';
+  const colors=['#111','#e23','#2a6cf0','#10b981','#f59e0b','#fff']; let cur=colors[0];
+  colors.forEach(c=>{ const d=document.createElement('div'); d.className='pen'+(c===cur?' on':''); d.style.background=c; d.onclick=()=>{ cur=c; [...tools.querySelectorAll('.pen')].forEach(x=>x.classList.remove('on')); d.classList.add('on'); }; tools.appendChild(d); });
+  const clr=document.createElement('button'); clr.className='send'; clr.style.marginLeft='auto'; clr.style.padding='8px 14px'; clr.style.fontSize='15px'; clr.textContent='Löschen'; clr.onclick=()=>{ ctx.clearRect(0,0,cv.width,cv.height); ev({clear:1}); }; tools.appendChild(clr);
+  app.appendChild(tools);
+  const ctx=cv.getContext('2d');
+  function fit(){ const r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height; ctx.lineCap='round'; ctx.lineJoin='round'; }
+  setTimeout(fit,0); window.addEventListener('resize',fit,{once:true});
+  let drawing=false, last=null, batch=[], flushT=0;
+  function pos(e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height}; }
+  function flush(){ if(batch.length){ ev({stroke:batch, c:cur}); batch=[]; } flushT=0; }
+  function down(e){ e.preventDefault(); drawing=true; last=pos(e); batch.push(+last.x.toFixed(3),+last.y.toFixed(3)); }
+  function move(e){ if(!drawing)return; e.preventDefault(); const pcur=pos(e); ctx.strokeStyle=cur; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(last.x*cv.width,last.y*cv.height); ctx.lineTo(pcur.x*cv.width,pcur.y*cv.height); ctx.stroke(); last=pcur; batch.push(+pcur.x.toFixed(3),+pcur.y.toFixed(3)); if(!flushT) flushT=setTimeout(flush,60); }
+  function up(){ if(!drawing)return; drawing=false; flush(); ev({penup:1}); }
+  cv.addEventListener('pointerdown',down); cv.addEventListener('pointermove',move); cv.addEventListener('pointerup',up); cv.addEventListener('pointercancel',up); cv.addEventListener('pointerleave',up);
+}
+
+// ---- Long-Poll ----
+async function poll(){
+  while(true){
+    try{
+      const r=await fetch('/ppoll?pid='+pid+'&since='+ver);
+      const j=await r.json();
+      if(j.ver>ver){ ver=j.ver; render(j.view); }
+    }catch(e){ await new Promise(r=>setTimeout(r,500)); }
+  }
+}
+window.addEventListener('contextmenu',e=>e.preventDefault());
+joinScreen();
+</script>
+</body></html>

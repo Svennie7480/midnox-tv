@@ -48,6 +48,13 @@
   .go{color:#22ff88;animation:flash .4s infinite alternate}
   @keyframes flash{to{opacity:.5}}
   .toast{position:fixed;left:50%;bottom:4vh;transform:translateX(-50%);background:#000a;border:1px solid var(--line);border-radius:2vh;padding:1.4vh 3vh;font-size:2.6vh;opacity:0;transition:opacity .2s}
+  .bonusbar{display:none;position:fixed;top:0;left:0;right:0;text-align:center;padding:1vh;font-size:2.8vh;font-weight:900;color:#1a1200;background:linear-gradient(90deg,#f59e0b,#facc15,#f59e0b);background-size:200% 100%;animation:shine 2s linear infinite;z-index:50;letter-spacing:.05em}
+  @keyframes shine{to{background-position:200% 0}}
+  .out{opacity:.35;filter:grayscale(1)}
+  .alive{display:flex;flex-wrap:wrap;gap:1.4vh;justify-content:center;margin:2vh 0}
+  .ap{display:flex;align-items:center;gap:1vh;background:var(--card);border:2px solid var(--line);border-radius:2vh;padding:1.4vh 2.2vh;font-size:3vh;font-weight:700;transition:.3s}
+  .ap.dead{opacity:.3;filter:grayscale(1);border-style:dashed}
+  .ap .em{font-size:3.4vh}
   /* Zeichnen */
   .drawwrap{display:flex;gap:3vw;flex:1;min-height:0}
   .drawwrap canvas{flex:1;background:#fff;border-radius:2vh;min-height:0;min-width:0}
@@ -69,6 +76,7 @@
 </style></head>
 <body>
 <div id="stage"></div>
+<div class="bonusbar" id="bonusbar">🌟 BONUSRUNDE · DOPPELTE PUNKTE 🌟</div>
 <div class="toast" id="toast"></div>
 <script src="/lib/qrcode.js"></script>
 <script src="/content.js"></script>
@@ -84,8 +92,10 @@ function toast(t){const e=document.getElementById('toast');e.textContent=t;e.sty
 
 // ---------- Netz ----------
 const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'];
-let players=[], seq=0, scene='lobby', curGame=null, ipUrl='';
+let players=[], seq=0, scene='lobby', curGame=null, ipUrl='', mult=1;
 const byId=(pid)=>players.find(p=>p.pid===pid);
+function award(p,n){ const a=Math.round(n*mult); p.score+=a; return a; }   // zentrale Punktevergabe (Bonus x2)
+function setBonus(on){ mult=on?2:1; const b=document.getElementById('bonusbar'); if(b) b.style.display=on?'block':'none'; }
 function push(pid,view){ fetch('/push?to='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(view)}).catch(()=>{}); }
 function broadcast(view){ players.forEach(p=>push(p.pid,view)); }
 function pushEach(fn){ players.forEach(p=>push(p.pid,fn(p))); }
@@ -133,7 +143,8 @@ const GAMES=[
   {id:'reveal',ic:'🏁',name:'Flaggen-Blitz',desc:'Die Flagge wird langsam scharf – welches Land zuerst erkennt, gewinnt.',min:1,make:()=>GameReveal()},
   {id:'flunkerei',ic:'🤥',name:'Flunkerei',desc:'Erfinde eine Fake-Antwort und finde die echte unter allen.',min:3,make:()=>GameFib()},
   {id:'kritzel',ic:'✏️',name:'Kritzel-Klau',desc:'Einer malt am Handy, der Rest rät.',min:2,make:()=>GameDraw()},
-  {id:'duel',ic:'⚔️',name:'Mal-Battle',desc:'Zwei malen dasselbe Wort, der Rest rät – dann kürt die Jury.',min:3,make:()=>GameDuel()}
+  {id:'duel',ic:'⚔️',name:'Mal-Battle',desc:'Zwei malen dasselbe Wort, der Rest rät – dann kürt die Jury.',min:3,make:()=>GameDuel()},
+  {id:'royale',ic:'👑',name:'Royale',desc:'Last Man Standing: Langsamster fliegt jede Runde raus. Wer zuletzt übrig bleibt, gewinnt groß.',min:2,make:()=>GameRoyale()}
 ];
 function gotoMenu(){ scene='menu'; curGame=null; renderMenu(); broadcast({t:'wait',emoji:'🎮',title:'Spielauswahl',sub:'Der Fernseher wählt das Spiel…'}); }
 function renderMenu(){
@@ -143,10 +154,10 @@ function renderMenu(){
   const sel=gm.children[menuIdx]; if(sel) sel.scrollIntoView({inline:'center',block:'nearest'});
 }
 function menuMove(d){ menuIdx=(menuIdx+d+GAMES.length)%GAMES.length; renderMenu(); }
-function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } scene='game'; curGame=g.make(); curGame.start(); }
+function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } setBonus(false); scene='game'; curGame=g.make(); curGame.start(); }
 
 // ---------- Scoreboard ----------
-function endGame(){ curGame=null; scene='score'; renderScore(); }
+function endGame(){ curGame=null; setBonus(false); scene='score'; renderScore(); }
 function renderScore(){
   const sorted=players.slice().sort((a,b)=>b.score-a.score);
   const medal=['🥇','🥈','🥉'];
@@ -164,7 +175,7 @@ function stageCenter(html){ stage.innerHTML='<div class="center">'+html+'</div>'
 // ----- Reaktor -----
 function GameReaktor(){
   let round=0, armed=false, armTime=0, done={}, winner=null; const TOTAL=3;
-  function newRound(){ round++; armed=false; done={}; winner=null;
+  function newRound(){ round++; armed=false; done={}; winner=null; setBonus(round===TOTAL);
     stage.innerHTML='<div class="center"><div class="big" id="rkb">Bereit…</div><div class="brandsub">Runde '+round+'/'+TOTAL+'</div></div>';
     broadcast({t:'buzz',title:'Reaktor',sub:'Warte auf LOS…',armed:false});
     const delay=1600+Math.random()*3400;
@@ -173,10 +184,10 @@ function GameReaktor(){
   const self={ start(){ round=0; newRound(); }, onEvent(p,d){
     if(d.buzz===undefined)return;
     if(!armed){ if(done[p.pid])return; done[p.pid]='foul'; push(p.pid,{t:'wait',emoji:'🙈',title:'Zu früh!',sub:'Diese Runde ist für dich gelaufen.'}); toast(p.emoji+' '+p.name+' zu früh!'); return; }
-    if(winner||done[p.pid]==='foul')return; winner=p; const ms=Math.round(performance.now()-armTime); p.score+=100;
-    stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! ⚡</div><div class="brandsub">'+ms+' ms · +100 Punkte</div></div>';
+    if(winner||done[p.pid]==='foul')return; winner=p; const ms=Math.round(performance.now()-armTime); const g=award(p,100);
+    stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! ⚡</div><div class="brandsub">'+ms+' ms · +'+g+' Punkte</div></div>';
     broadcast({t:'wait',emoji:'⚡',title:esc(p.name)+' war schneller!',sub:ms+' ms'});
-    push(p.pid,{t:'wait',emoji:'🏆',title:'Gewonnen!',sub:ms+' ms · +100'});
+    push(p.pid,{t:'wait',emoji:'🏆',title:'Gewonnen!',sub:ms+' ms · +'+g});
     setTimeout(()=>{ if(curGame!==self)return; if(round>=TOTAL) endGame(); else newRound(); }, 2600);
   } };
   return self;
@@ -185,7 +196,7 @@ function GameReaktor(){
 // ----- Buzzer-Battle (Trivia) -----
 function GameTrivia(){
   const qs=shuffle(CONTENT.trivia).slice(0,8); let qi=-1, answered={}, qStart=0, timer=0, letters=['A','B','C','D'];
-  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } answered={}; qStart=performance.now(); const q=qs[qi];
+  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } setBonus(qi===qs.length-1); answered={}; qStart=performance.now(); const q=qs[qi];
     stage.innerHTML='<div><h1>Buzzer-Battle</h1><p class="brandsub">Frage '+(qi+1)+'/'+qs.length+' · schnell & richtig</p></div>'
       +'<div class="q">'+esc(q.q)+'</div><div class="answers" id="ans"></div><div class="timer"><div id="tb"></div></div>';
     const an=document.getElementById('ans'); q.a.forEach((a,i)=>{ const d=document.createElement('div'); d.className='ans'; d.id='a'+i; d.innerHTML='<div class="k">'+letters[i]+'</div>'+esc(a); an.appendChild(d); });
@@ -194,7 +205,7 @@ function GameTrivia(){
     const tb=document.getElementById('tb'); let st=performance.now(); (function tk(){ if(curGame!==self||qi>=qs.length)return; const el=performance.now()-st; const left=Math.max(0,1-el/T); if(tb)tb.style.width=(left*100)+'%'; if(left>0&&Object.keys(answered).length<players.length) requestAnimationFrame(tk); })();
   }
   function reveal(){ clearTimeout(timer); const q=qs[qi];
-    players.forEach(p=>{ const a=answered[p.pid]; const correct=a&&a.i===q.c; if(correct){ const spd=Math.max(0,1-(a.t/15000)); p.score+=100+Math.round(spd*100); } push(p.pid,{t:'wait',emoji:correct?'✅':'❌',title:correct?'Richtig!':'Daneben',sub:correct?('+'+(100+Math.round(Math.max(0,1-(a.t/15000))*100))+' Punkte'):('Richtig war '+letters[q.c])}); });
+    players.forEach(p=>{ const a=answered[p.pid]; const correct=a&&a.i===q.c; let g=0; if(correct){ const spd=Math.max(0,1-(a.t/15000)); g=award(p,100+Math.round(spd*100)); } push(p.pid,{t:'wait',emoji:correct?'✅':'❌',title:correct?'Richtig!':'Daneben',sub:correct?('+'+g+' Punkte'):('Richtig war '+letters[q.c])}); });
     q.a.forEach((a,i)=>{ const d=document.getElementById('a'+i); if(!d)return; d.className='ans '+(i===q.c?'ok':'no'); });
     const got=players.filter(p=>answered[p.pid]&&answered[p.pid].i===q.c).length; toast(got+' richtig');
     setTimeout(()=>{ if(curGame===self) newQ(); }, 3600);
@@ -206,7 +217,7 @@ function GameTrivia(){
 // ----- Flunkerei (Fibbing) -----
 function GameFib(){
   const prompts=shuffle(CONTENT.fib).slice(0,3); let round=-1, phase='', truth='', fakes={}, choices={}, timer=0;
-  function newRound(){ round++; if(round>=prompts.length){ endGame(); return; } phase='invent'; fakes={}; choices={}; truth=prompts[round].a;
+  function newRound(){ round++; if(round>=prompts.length){ endGame(); return; } setBonus(round===prompts.length-1); phase='invent'; fakes={}; choices={}; truth=prompts[round].a;
     stage.innerHTML='<div><h1>Flunkerei</h1><p class="brandsub">Runde '+(round+1)+'/'+prompts.length+' · erfindet eine überzeugende Antwort</p></div>'
       +'<div class="q">'+esc(prompts[round].q)+'</div><div class="center" id="fc"><div class="brandsub">Alle tippen am Handy eine Fake-Antwort…</div></div>';
     broadcast({t:'text',title:prompts[round].q,sub:'Erfinde eine glaubwürdige Antwort',ph:'Deine Fake-Antwort',max:70,send:'Abschicken'});
@@ -215,7 +226,7 @@ function GameFib(){
   function toChoose(){ clearTimeout(timer); phase='choose';
     // Optionen: Wahrheit + alle (nicht mit der Wahrheit identischen) Fakes
     const opts=[{id:'truth',label:truth,by:null}];
-    Object.keys(fakes).forEach(pidStr=>{ const f=fakes[pidStr]; if(norm(f.text)===norm(truth)){ const pl=byId(+pidStr); if(pl){pl.score+=250; push(pl.pid,{t:'wait',emoji:'🎯',title:'Du lagst richtig!',sub:'+250 – deine „Fake" war die Wahrheit'});} return; } opts.push({id:'p'+pidStr,label:f.text,by:+pidStr}); });
+    Object.keys(fakes).forEach(pidStr=>{ const f=fakes[pidStr]; if(norm(f.text)===norm(truth)){ const pl=byId(+pidStr); if(pl){award(pl,250); push(pl.pid,{t:'wait',emoji:'🎯',title:'Du lagst richtig!',sub:'+250 – deine „Fake" war die Wahrheit'});} return; } opts.push({id:'p'+pidStr,label:f.text,by:+pidStr}); });
     const shown=shuffle(opts); self._opts=shown;
     stage.innerHTML='<div><h1>Flunkerei</h1><p class="brandsub">Runde '+(round+1)+'/'+prompts.length+' · Welche Antwort ist echt?</p></div>'
       +'<div class="q" style="font-size:4vh">'+esc(prompts[round].q)+'</div><div class="reveal" id="opts"></div>';
@@ -225,7 +236,7 @@ function GameFib(){
     clearTimeout(timer); timer=setTimeout(reveal,40000);
   }
   function reveal(){ clearTimeout(timer); phase='reveal';
-    players.forEach(p=>{ const ch=choices[p.pid]; if(ch==='truth'){ p.score+=500; } else if(ch&&ch[0]==='p'){ const author=byId(+ch.slice(1)); if(author&&author!==p){ author.score+=250; } } });
+    players.forEach(p=>{ const ch=choices[p.pid]; if(ch==='truth'){ award(p,500); } else if(ch&&ch[0]==='p'){ const author=byId(+ch.slice(1)); if(author&&author!==p){ award(author,250); } } });
     const ob=document.getElementById('opts'); if(ob){ (self._opts||[]).forEach((o,i)=>{ const d=document.getElementById('opt'+i); if(!d)return; const voters=players.filter(p=>choices[p.pid]===o.id).map(p=>p.emoji).join(' '); if(o.id==='truth'){ d.className='fb truth'; d.innerHTML='<b>✅</b> '+esc(o.label)+'<span class="by">Wahrheit '+voters+'</span>'; } else { const a=byId(o.by); d.innerHTML='<b style="color:#a78bfa">'+(i+1)+'</b> '+esc(o.label)+'<span class="by">Bluff von '+(a?a.emoji+' '+esc(a.name):'?')+' '+voters+'</span>'; } }); }
     players.forEach(p=>{ const ch=choices[p.pid]; push(p.pid,{t:'wait',emoji:ch==='truth'?'🎯':'🙃',title:ch==='truth'?'Wahrheit gefunden! +500':'Reingefallen…',sub:'Nächste Runde gleich'}); });
     setTimeout(()=>{ if(curGame===self) newRound(); }, 5500);
@@ -243,7 +254,7 @@ function GameDraw(){
   const TOTAL=Math.min(players.length, 5), ROUND_MS=80000;
   let ctx=null, cw=0, ch=0, penDown=false, lastPt=null;
   function setupCanvas(){ const cv=document.getElementById('dcv'); const r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height; cw=cv.width; ch=cv.height; ctx=cv.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; ctx.fillStyle='#fff'; ctx.fillRect(0,0,cw,ch); penDown=false; lastPt=null; }
-  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } drawer=players[round%players.length]; word=wordPool[round%wordPool.length]; solved={}; startT=performance.now();
+  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } setBonus(round===TOTAL-1); drawer=players[round%players.length]; word=wordPool[round%wordPool.length]; solved={}; startT=performance.now();
     stage.innerHTML='<div><h1>Kritzel-Klau</h1><p class="brandsub">'+drawer.emoji+' '+esc(drawer.name)+' zeichnet · Runde '+(round+1)+'/'+TOTAL+'</p></div>'
       +'<div class="drawwrap"><canvas id="dcv"></canvas><div class="guessers" id="gs"></div></div><div class="timer"><div id="tb"></div></div>';
     renderGuessers(); setTimeout(setupCanvas,0);
@@ -263,7 +274,7 @@ function GameDraw(){
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){
     if(p===drawer){ if(d.stroke){ drawStroke(d.stroke,d.c); } else if(d.penup){ penDown=false; lastPt=null; } else if(d.clear){ if(ctx){ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);} penDown=false; lastPt=null; } return; }
     if(d.text!==undefined && !solved[p.pid]){ const g=norm(d.text); const w=norm(word); const ok=(g===w)||(w.length>3&&lev(g,w)<=1);
-      if(ok){ const order=Object.keys(solved).length; const spd=Math.max(0,1-((performance.now()-startT)/ROUND_MS)); const pts=200+Math.round(spd*150)-order*20; p.score+=Math.max(80,pts); drawer.score+=100; solved[p.pid]=1; renderGuessers(); toast(p.emoji+' '+p.name+' hat’s! +'+Math.max(80,pts)); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig!',sub:'+'+Math.max(80,pts)+' Punkte'});
+      if(ok){ const order=Object.keys(solved).length; const spd=Math.max(0,1-((performance.now()-startT)/ROUND_MS)); const pts=200+Math.round(spd*150)-order*20; const g=award(p,Math.max(80,pts)); award(drawer,100); solved[p.pid]=1; renderGuessers(); toast(p.emoji+' '+p.name+' hat’s! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig!',sub:'+'+g+' Punkte'});
         if(Object.keys(solved).length>=players.length-1) roundEnd();
       } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" war’s nicht',ph:'Dein Tipp',max:24,send:'Raten'}); }
     }
@@ -274,14 +285,14 @@ function GameDraw(){
 // ----- Schätzmeister -----
 function GameEstimate(){
   const qs=shuffle(CONTENT.estimate).slice(0,5); let qi=-1, ans={}, timer=0;
-  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } ans={}; const q=qs[qi];
+  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } setBonus(qi===qs.length-1); ans={}; const q=qs[qi];
     stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Runde '+(qi+1)+'/'+qs.length+' · am nächsten dran gewinnt</p></div><div class="q">'+esc(q.q)+'</div><div class="center" id="ec"><div class="brandsub">Alle tippen ihre Schätzung…</div></div>';
     broadcast({t:'number',title:q.q,sub:'Deine Schätzung',ph:'Zahl'+(q.u?' in '+q.u:''),send:'Abschicken'});
     clearTimeout(timer); timer=setTimeout(reveal,30000);
   }
   function reveal(){ clearTimeout(timer); const q=qs[qi];
     const ranked=players.map(p=>({p,v:ans[p.pid],diff:ans[p.pid]==null?Infinity:Math.abs(ans[p.pid]-q.a)})).sort((a,b)=>a.diff-b.diff);
-    const pts=[300,200,100]; ranked.forEach((r,i)=>{ if(r.diff===Infinity)return; let add=pts[i]!=null?pts[i]:50; if(r.diff===0)add+=100; r.p.score+=add; r._add=add; });
+    const pts=[300,200,100]; ranked.forEach((r,i)=>{ if(r.diff===Infinity)return; let add=pts[i]!=null?pts[i]:50; if(r.diff===0)add+=100; r._add=award(r.p,add); });
     stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Die richtige Antwort:</p></div><div class="center"><div class="big">'+q.a+(q.u?' '+esc(q.u):'')+'</div></div><div class="reveal" id="rv"></div>';
     const rv=document.getElementById('rv'); ranked.forEach((r,i)=>{ if(r.v==null)return; const d=document.createElement('div'); d.className='fb'+(i===0&&r._add?' truth':''); d.innerHTML='<b>'+(['🥇','🥈','🥉'][i]||(i+1))+'</b> '+r.p.emoji+' '+esc(r.p.name)+'<span class="by">'+r.v+(r._add?' · +'+r._add:'')+'</span>'; rv.appendChild(d); });
     players.forEach(p=>{ const r=ranked.find(x=>x.p===p); push(p.pid,{t:'wait',emoji:r&&r._add?'🎯':'🙂',title:'Richtig: '+q.a+(q.u?' '+q.u:''),sub:r&&r._add?('+'+r._add+' Punkte'):'Diesmal nichts'}); });
@@ -294,7 +305,7 @@ function GameEstimate(){
 // ----- Wort-Bombe -----
 function GameBomb(){
   const syl=shuffle(CONTENT.syllables).slice(0,6); let round=-1, winner=null, timer=0;
-  function newRound(){ round++; if(round>=syl.length){ endGame(); return; } winner=null; const s=syl[round];
+  function newRound(){ round++; if(round>=syl.length){ endGame(); return; } setBonus(round===syl.length-1); winner=null; const s=syl[round];
     stage.innerHTML='<div><h1>Wort-Bombe 💣</h1><p class="brandsub">Runde '+(round+1)+'/'+syl.length+' · Wort mit dieser Silbe – schnell!</p></div><div class="center"><div class="huge" id="syl">'+esc(s.toUpperCase())+'</div><div class="brandsub" id="bsub">Erstes gültiges Wort gewinnt!</div></div><div class="timer"><div id="tb"></div></div>';
     broadcast({t:'text',title:'Wort mit „'+s+'"',sub:'Schnell! Ein Wort, das die Silbe enthält',ph:'Dein Wort',max:24,send:'Feuer!'});
     const T=18000, st=performance.now(); clearTimeout(timer); timer=setTimeout(boom,T);
@@ -302,7 +313,7 @@ function GameBomb(){
   }
   function boom(){ clearTimeout(timer); if(winner)return; const sub=document.getElementById('bsub'); if(sub)sub.textContent='💥 BOOM! Niemand war schnell genug.'; broadcast({t:'wait',emoji:'💥',title:'Zeit um!',sub:'Niemand hat getroffen'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(winner||d.text===undefined)return; const s=norm(syl[round]); const w=norm(d.text);
-    if(w.includes(s)&&w.length>=s.length+1){ winner=p; clearTimeout(timer); p.score+=150; stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! 💣</div><div class="brandsub">„'+esc(d.text)+'" · +150</div></div>'; broadcast({t:'wait',emoji:'💣',title:esc(p.name)+' entschärft!',sub:'„'+esc(d.text)+'"'}); push(p.pid,{t:'wait',emoji:'🏆',title:'Entschärft! +150',sub:'„'+esc(d.text)+'"'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
+    if(w.includes(s)&&w.length>=s.length+1){ winner=p; clearTimeout(timer); const g=award(p,150); stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! 💣</div><div class="brandsub">„'+esc(d.text)+'" · +'+g+'</div></div>'; broadcast({t:'wait',emoji:'💣',title:esc(p.name)+' entschärft!',sub:'„'+esc(d.text)+'"'}); push(p.pid,{t:'wait',emoji:'🏆',title:'Entschärft! +'+g,sub:'„'+esc(d.text)+'"'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
     else { push(p.pid,{t:'text',title:'Passt nicht!',sub:'„'+esc(d.text)+'" enthält die Silbe nicht',ph:'Dein Wort',max:24,send:'Feuer!'}); } } };
   return self;
 }
@@ -310,7 +321,7 @@ function GameBomb(){
 // ----- Flaggen-Blitz (progressives Aufdecken) -----
 function GameReveal(){
   const pool=shuffle(window.FLAGS||[]).slice(0,6); let round=-1, solved={}, startT=0, timer=0, item=null; const ROUND_MS=24000;
-  function newRound(){ round++; if(round>=pool.length){ endGame(); return; } solved={}; item=pool[round]; startT=performance.now();
+  function newRound(){ round++; if(round>=pool.length){ endGame(); return; } setBonus(round===pool.length-1); solved={}; item=pool[round]; startT=performance.now();
     stage.innerHTML='<div><h1>Flaggen-Blitz 🏁</h1><p class="brandsub">Runde '+(round+1)+'/'+pool.length+' · welches Land? Wird langsam scharf</p></div>'
       +'<div class="center"><img id="rvimg" src="'+item.img+'" style="height:50vh;border-radius:2vh;filter:blur(40px);box-shadow:0 2vh 6vh #0008"></div>'
       +'<div id="gs" style="display:flex;flex-wrap:wrap;justify-content:center;gap:1vh;margin:1vh 0"></div><div class="timer"><div id="tb"></div></div>';
@@ -327,7 +338,7 @@ function GameReveal(){
   }
   function match(guess){ const g=norm(guess); if(g===norm(item.name))return true; if((item.aliases||[]).some(a=>norm(a)===g))return true; if(norm(item.name).length>4&&lev(g,norm(item.name))<=1)return true; return false; }
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(d.text===undefined||solved[p.pid])return;
-    if(match(d.text)){ const left=Math.max(0,1-(performance.now()-startT)/ROUND_MS); const pts=100+Math.round(left*200); p.score+=pts; solved[p.pid]=1; renderSolvers(); toast(p.emoji+' '+p.name+' erkennt es! +'+pts); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig: '+item.name,sub:'+'+pts+' Punkte'}); if(Object.keys(solved).length>=players.length) roundEnd(); }
+    if(match(d.text)){ const left=Math.max(0,1-(performance.now()-startT)/ROUND_MS); const pts=100+Math.round(left*200); const g=award(p,pts); solved[p.pid]=1; renderSolvers(); toast(p.emoji+' '+p.name+' erkennt es! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig: '+item.name,sub:'+'+g+' Punkte'}); if(Object.keys(solved).length>=players.length) roundEnd(); }
     else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" ist es nicht',ph:'Ländername',max:24,send:'Raten'}); } } };
   return self;
 }
@@ -336,7 +347,7 @@ function GameReveal(){
 function GameDuel(){
   const words=shuffle(CONTENT.words); let round=-1, pair=[], word='', phase='', firstSolver=null, timer=0, raf=false;
   let ctxA=null,ctxB=null,cwA=0,chA=0,cwB=0,chB=0, penA={down:false,last:null}, penB={down:false,last:null}; const ROUND_MS=70000, TOTAL=3;
-  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } phase='draw'; firstSolver=null; word=words[round%words.length];
+  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } setBonus(round===TOTAL-1); phase='draw'; firstSolver=null; word=words[round%words.length];
     const i=(round*2)%players.length; pair=[players[i%players.length], players[(i+1)%players.length]]; if(pair[0]===pair[1]) pair[1]=players[(i+2)%players.length];
     stage.innerHTML='<div><h1>Mal-Battle ⚔️</h1><p class="brandsub" id="dsub">Runde '+(round+1)+'/'+TOTAL+' · '+pair[0].emoji+' '+esc(pair[0].name)+' vs '+pair[1].emoji+' '+esc(pair[1].name)+' · der Rest rät</p></div>'
       +'<div class="drawwrap"><canvas id="cvA"></canvas><canvas id="cvB"></canvas></div><div class="timer"><div id="tb"></div></div>';
@@ -357,7 +368,7 @@ function GameDuel(){
   }
   function roundDone(){ if(phase==='done')return; phase='done'; clearTimeout(timer);
     const v=self._votes||{}; let a=0,b=0; Object.values(v).forEach(x=>{if(x==='a')a++;else if(x==='b')b++;});
-    if(a>b)pair[0].score+=150; else if(b>a)pair[1].score+=150; else {pair[0].score+=75;pair[1].score+=75;}
+    if(a>b)award(pair[0],150); else if(b>a)award(pair[1],150); else {award(pair[0],75);award(pair[1],75);}
     stage.innerHTML='<div class="center"><div class="big">Wort: '+esc(word)+'</div><div class="brandsub">🅰 '+esc(pair[0].name)+': '+a+' · 🅱 '+esc(pair[1].name)+': '+b+(firstSolver?(' · erraten von '+esc(firstSolver.name)):'')+'</div></div>';
     broadcast({t:'wait',emoji:'⚔️',title:'Runde vorbei',sub:'Wort war: '+word});
     setTimeout(()=>{ if(curGame===self) newRound(); },3800);
@@ -365,8 +376,53 @@ function GameDuel(){
   const self={ _votes:{}, start(){ round=-1; newRound(); }, onEvent(p,d){
     if(phase==='draw'){ if(p===pair[0]){ if(d.stroke)drawOn(ctxA,cwA,chA,penA,d.stroke,d.c); else if(d.penup){penA.down=false;penA.last=null;} else if(d.clear){if(ctxA){ctxA.fillStyle='#fff';ctxA.fillRect(0,0,cwA,chA);}penA.down=false;penA.last=null;} return; }
       if(p===pair[1]){ if(d.stroke)drawOn(ctxB,cwB,chB,penB,d.stroke,d.c); else if(d.penup){penB.down=false;penB.last=null;} else if(d.clear){if(ctxB){ctxB.fillStyle='#fff';ctxB.fillRect(0,0,cwB,chB);}penB.down=false;penB.last=null;} return; }
-      if(d.text!==undefined && !firstSolver){ const g=norm(d.text),w=norm(word); if(g===w||(w.length>3&&lev(g,w)<=1)){ firstSolver=p; p.score+=150; pair[0].score+=50;pair[1].score+=50; toast(p.emoji+' '+p.name+' hat’s erraten! +150'); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig! +150',sub:'Es war: '+word}); toVote(); } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" nicht',ph:'Dein Tipp',max:24,send:'Raten'}); } } }
+      if(d.text!==undefined && !firstSolver){ const g=norm(d.text),w=norm(word); if(g===w||(w.length>3&&lev(g,w)<=1)){ firstSolver=p; award(p,150); award(pair[0],50);award(pair[1],50); toast(p.emoji+' '+p.name+' hat’s erraten! +150'); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig! +150',sub:'Es war: '+word}); toVote(); } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" nicht',ph:'Dein Tipp',max:24,send:'Raten'}); } } }
     else if(phase==='vote'){ if(d.choice!==undefined && !self._votes[p.pid]){ self._votes[p.pid]=d.choice; push(p.pid,{t:'wait',emoji:'🗳️',title:'Stimme zählt!',sub:'Gleich das Ergebnis…'}); const spec=players.filter(x=>x!==pair[0]&&x!==pair[1]); if(Object.keys(self._votes).length>=spec.length) roundDone(); } }
+  } };
+  return self;
+}
+
+// ----- Royale (Last Man Standing) -----
+function GameRoyale(){
+  let alive=[], round=0, armed=false, armTime=0, buzzed={}, timer=0, ending=false;
+  function bt(p){ return buzzed[p.pid] ? buzzed[p.pid].t : Infinity; }
+  function renderAlive(msg,big){
+    stage.innerHTML='<div><h1>Royale 👑</h1><p class="brandsub">'+(msg||'Letzter Überlebender gewinnt – Langsamster fliegt raus')+'</p></div>'
+      +(big!=null?'<div class="center"><div class="huge" id="rb">'+big+'</div></div>':'')
+      +'<div class="alive" id="av"></div>';
+    const av=document.getElementById('av'); players.forEach(p=>{ const d=document.createElement('div'); d.className='ap'+(alive.includes(p)?'':' dead'); d.innerHTML='<span class="em">'+p.emoji+'</span>'+esc(p.name); av.appendChild(d); });
+  }
+  function newRound(){ if(alive.length<=1){ finish(); return; } round++; armed=false; buzzed={};
+    renderAlive('Runde '+round+' · '+alive.length+' übrig · bei LOS drücken!','Bereit…');
+    alive.forEach(p=>push(p.pid,{t:'buzz',title:'Bereit machen…',sub:'Nicht zu früh!',armed:false}));
+    players.filter(p=>!alive.includes(p)).forEach(p=>push(p.pid,{t:'wait',emoji:'💀',title:'Ausgeschieden',sub:alive.length+' noch im Rennen'}));
+    const delay=1600+Math.random()*3200;
+    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); const b=document.getElementById('rb'); if(b){b.textContent='LOS!';b.classList.add('go');} alive.forEach(p=>push(p.pid,{t:'buzz',title:'JETZT!',sub:'',armed:true})); clearTimeout(timer); timer=setTimeout(resolve,2600); }, delay);
+  }
+  function resolve(){ if(ending||curGame!==self)return; clearTimeout(timer); armed=false;
+    const fouls=alive.filter(p=>buzzed[p.pid]&&buzzed[p.pid].foul);
+    let outs;
+    if(fouls.length && fouls.length<alive.length){ outs=fouls; }
+    else if(fouls.length && fouls.length===alive.length){ renderAlive('Alle zu früh! Nochmal…',null); setTimeout(()=>{ if(curGame===self) newRound(); },1800); return; }
+    else { const ranked=alive.slice().sort((a,b)=>bt(a)-bt(b)); outs=[ranked[ranked.length-1]]; }
+    outs.forEach(p=>{ const i=alive.indexOf(p); if(i>=0) alive.splice(i,1); });
+    alive.forEach(p=>award(p,50));   // Überlebensbonus pro Runde
+    const outNames=outs.map(p=>p.emoji+' '+p.name).join(', ');
+    renderAlive(outNames+' fliegt raus! · '+alive.length+' übrig', fouls.length?'Fehlstart!':'Raus!');
+    outs.forEach(p=>push(p.pid,{t:'wait',emoji:'💀',title:'Ausgeschieden!',sub:'Du hast '+round+' Runden überlebt'}));
+    setTimeout(()=>{ if(curGame!==self)return; if(alive.length<=1) finish(); else newRound(); },2600);
+  }
+  function finish(){ if(ending)return; ending=true; const win=alive[0];
+    if(win){ const g=award(win,500); stage.innerHTML='<div class="center"><div class="huge">👑</div><div class="big">'+win.emoji+' '+esc(win.name)+' überlebt!</div><div class="brandsub">+'+g+' für den letzten Überlebenden</div></div>'; broadcast({t:'wait',emoji:'🏁',title:'Royale vorbei',sub:win.name+' hat gewonnen'}); push(win.pid,{t:'wait',emoji:'👑',title:'Du hast überlebt!',sub:'+'+g}); }
+    else { stageCenter('<div class="big">Niemand übrig 😅</div>'); }
+    setTimeout(endGame,3600);
+  }
+  const self={ start(){ alive=players.slice(); round=0; ending=false; armed=false; newRound(); }, onEvent(p,d){
+    if(d.buzz===undefined||!alive.includes(p)||buzzed[p.pid])return;
+    if(!armed){ buzzed[p.pid]={t:Infinity,foul:true}; push(p.pid,{t:'buzz',title:'Zu früh! 🙈',sub:'Das wirft dich wohl raus…',armed:false}); return; }
+    buzzed[p.pid]={t:performance.now()-armTime,foul:false};
+    push(p.pid,{t:'wait',emoji:'⚡',title:'Gedrückt!',sub:Math.round(buzzed[p.pid].t)+' ms'});
+    if(alive.every(x=>buzzed[x.pid])) resolve();
   } };
   return self;
 }

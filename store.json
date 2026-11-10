@@ -117,6 +117,14 @@
    "desc": "Spielt alles: Dateien, Netzwerkfreigaben, Streams."
   },
   {
+   "id": "tiktok",
+   "name": "TikTok",
+   "cat": "Video",
+   "pkg": "",
+   "search": "TikTok",
+   "desc": "Die offizielle TikTok-App für den Fernseher – Kurzvideos per Fernbedienung durchblättern. Für Deutschland verfügbar."
+  },
+  {
    "id": "justplayer",
    "name": "Just Player",
    "cat": "Video",

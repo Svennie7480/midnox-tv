@@ -20,7 +20,7 @@ final class Voice {
             try { available = new org.json.JSONObject(U.http(Scores.SERVER + "?a=tts&info=1", null)).optBoolean("on"); } catch (Exception e) { available = false; }
         }}).start();
     }
-    static boolean on() { return available && ctx != null && U.prefs(ctx).getBoolean("voice", true) && Audio.on(); }
+    static boolean on() { return ctx != null && U.prefs(ctx).getBoolean("voice", true) && Audio.on(); }   // Moderator-Clips sind gebündelt, daher nicht mehr vom Server abhängig
     static File file(String key) { File d = new File(ctx.getCacheDir(), "tts"); d.mkdirs(); return new File(d, key.replaceAll("[^A-Za-z0-9_]", "_") + ".mp3"); }
     static String url(String key) {
         try { return Scores.SERVER + "?a=tts&" + (key.startsWith("p:") ? "p=" : "q=") + URLEncoder.encode(key.substring(2), "UTF-8"); } catch (Exception e) { return ""; }
@@ -28,6 +28,16 @@ final class Voice {
     static File fetch(String key) {
         File f = file(key);
         if (f.exists() && f.length() > 500) return f;
+        // Gebündelte Moderator-Clips (p:) bevorzugen – offline, ohne Server/Key
+        if (key.startsWith("p:")) {
+            String asset = "voice/p_" + key.substring(2).replaceAll("[^A-Za-z0-9_]", "_") + ".mp3";
+            try {
+                InputStream in = ctx.getAssets().open(asset);
+                OutputStream o = new FileOutputStream(f);
+                try { byte[] b = new byte[16384]; int n; while ((n = in.read(b)) > 0) o.write(b, 0, n); } finally { in.close(); o.close(); }
+                if (f.length() > 500) return f;
+            } catch (Exception ignored) {}
+        }
         try {
             HttpURLConnection c = (HttpURLConnection) new URL(url(key)).openConnection();
             c.setConnectTimeout(8000); c.setReadTimeout(45000);

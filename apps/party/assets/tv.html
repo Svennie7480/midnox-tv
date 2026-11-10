@@ -26,8 +26,9 @@
   .cta b{color:#fff}
   .empty{color:var(--mut);font-size:2.6vh;align-self:center;margin:auto}
   /* Menü */
-  .menu{display:flex;gap:3vw;flex:1;align-items:center;justify-content:center}
-  .gcard{width:22vw;height:52vh;border-radius:3vh;background:var(--card);border:2px solid var(--line);padding:3vh;display:flex;flex-direction:column;gap:1.4vh;transition:transform .15s,border-color .15s;opacity:.6}
+  .menu{display:flex;gap:2.5vw;flex:1;align-items:center;overflow-x:auto;overflow-y:hidden;padding:0 40vw;scrollbar-width:none}
+  .menu::-webkit-scrollbar{display:none}
+  .gcard{flex:none;width:24vw;height:50vh;border-radius:3vh;background:var(--card);border:2px solid var(--line);padding:3vh;display:flex;flex-direction:column;gap:1.4vh;transition:transform .15s,border-color .15s;opacity:.55}
   .gcard.sel{opacity:1;transform:scale(1.06);border-color:#a78bfa;box-shadow:0 2vh 6vh #0006}
   .gcard .ic{font-size:9vh}
   .gcard h2{margin:0;font-size:3.4vh}
@@ -49,7 +50,7 @@
   .toast{position:fixed;left:50%;bottom:4vh;transform:translateX(-50%);background:#000a;border:1px solid var(--line);border-radius:2vh;padding:1.4vh 3vh;font-size:2.6vh;opacity:0;transition:opacity .2s}
   /* Zeichnen */
   .drawwrap{display:flex;gap:3vw;flex:1;min-height:0}
-  #dcv{flex:1;background:#fff;border-radius:2vh;min-height:0}
+  .drawwrap canvas{flex:1;background:#fff;border-radius:2vh;min-height:0;min-width:0}
   .guessers{width:22vw;display:flex;flex-direction:column;gap:1.2vh;overflow:hidden}
   .gl{background:var(--card);border:1px solid var(--line);border-radius:1.4vh;padding:1.2vh 1.8vh;font-size:2.4vh;display:flex;gap:1vh;align-items:center}
   .gl.ok{border-color:#10b981;color:#10b981}
@@ -71,6 +72,7 @@
 <div class="toast" id="toast"></div>
 <script src="/lib/qrcode.js"></script>
 <script src="/content.js"></script>
+<script src="/flags.js"></script>
 <script>
 const stage=document.getElementById('stage');
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
@@ -126,14 +128,19 @@ let menuIdx=0;
 const GAMES=[
   {id:'reaktor',ic:'⚡',name:'Reaktor',desc:'Wer bei „LOS!" zuerst drückt. Reaktionsduell.',min:1,make:()=>GameReaktor()},
   {id:'trivia',ic:'🧠',name:'Buzzer-Battle',desc:'Quiz – richtig und schnell antworten gibt die meisten Punkte.',min:1,make:()=>GameTrivia()},
+  {id:'estimate',ic:'📏',name:'Schätzmeister',desc:'Zahlen schätzen – wer am nächsten dran ist, gewinnt.',min:1,make:()=>GameEstimate()},
+  {id:'bomb',ic:'💣',name:'Wort-Bombe',desc:'Schnell ein Wort mit der gezeigten Silbe tippen, bevor es knallt.',min:1,make:()=>GameBomb()},
+  {id:'reveal',ic:'🏁',name:'Flaggen-Blitz',desc:'Die Flagge wird langsam scharf – welches Land zuerst erkennt, gewinnt.',min:1,make:()=>GameReveal()},
   {id:'flunkerei',ic:'🤥',name:'Flunkerei',desc:'Erfinde eine Fake-Antwort und finde die echte unter allen.',min:3,make:()=>GameFib()},
-  {id:'kritzel',ic:'✏️',name:'Kritzel-Klau',desc:'Einer malt am Handy, der Rest rät.',min:2,make:()=>GameDraw()}
+  {id:'kritzel',ic:'✏️',name:'Kritzel-Klau',desc:'Einer malt am Handy, der Rest rät.',min:2,make:()=>GameDraw()},
+  {id:'duel',ic:'⚔️',name:'Mal-Battle',desc:'Zwei malen dasselbe Wort, der Rest rät – dann kürt die Jury.',min:3,make:()=>GameDuel()}
 ];
 function gotoMenu(){ scene='menu'; curGame=null; renderMenu(); broadcast({t:'wait',emoji:'🎮',title:'Spielauswahl',sub:'Der Fernseher wählt das Spiel…'}); }
 function renderMenu(){
   stage.innerHTML='<div><h1>Spiel wählen</h1><p class="brandsub">◂ ▸ wählen · OK starten · Zurück zur Lobby · '+players.length+' Spieler</p></div><div class="menu" id="gm"></div>';
   const gm=document.getElementById('gm');
   GAMES.forEach((g,i)=>{ const ok=players.length>=g.min; const c=document.createElement('div'); c.className='gcard'+(i===menuIdx?' sel':''); c.innerHTML='<div class="ic">'+g.ic+'</div><h2>'+g.name+'</h2><p>'+g.desc+'</p><div class="min">'+(ok?'bereit':('ab '+g.min+' Spielern')) +'</div>'; if(!ok)c.style.filter='grayscale(.7)'; gm.appendChild(c); });
+  const sel=gm.children[menuIdx]; if(sel) sel.scrollIntoView({inline:'center',block:'nearest'});
 }
 function menuMove(d){ menuIdx=(menuIdx+d+GAMES.length)%GAMES.length; renderMenu(); }
 function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } scene='game'; curGame=g.make(); curGame.start(); }
@@ -260,6 +267,106 @@ function GameDraw(){
         if(Object.keys(solved).length>=players.length-1) roundEnd();
       } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" war’s nicht',ph:'Dein Tipp',max:24,send:'Raten'}); }
     }
+  } };
+  return self;
+}
+
+// ----- Schätzmeister -----
+function GameEstimate(){
+  const qs=shuffle(CONTENT.estimate).slice(0,5); let qi=-1, ans={}, timer=0;
+  function newQ(){ qi++; if(qi>=qs.length){ endGame(); return; } ans={}; const q=qs[qi];
+    stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Runde '+(qi+1)+'/'+qs.length+' · am nächsten dran gewinnt</p></div><div class="q">'+esc(q.q)+'</div><div class="center" id="ec"><div class="brandsub">Alle tippen ihre Schätzung…</div></div>';
+    broadcast({t:'number',title:q.q,sub:'Deine Schätzung',ph:'Zahl'+(q.u?' in '+q.u:''),send:'Abschicken'});
+    clearTimeout(timer); timer=setTimeout(reveal,30000);
+  }
+  function reveal(){ clearTimeout(timer); const q=qs[qi];
+    const ranked=players.map(p=>({p,v:ans[p.pid],diff:ans[p.pid]==null?Infinity:Math.abs(ans[p.pid]-q.a)})).sort((a,b)=>a.diff-b.diff);
+    const pts=[300,200,100]; ranked.forEach((r,i)=>{ if(r.diff===Infinity)return; let add=pts[i]!=null?pts[i]:50; if(r.diff===0)add+=100; r.p.score+=add; r._add=add; });
+    stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Die richtige Antwort:</p></div><div class="center"><div class="big">'+q.a+(q.u?' '+esc(q.u):'')+'</div></div><div class="reveal" id="rv"></div>';
+    const rv=document.getElementById('rv'); ranked.forEach((r,i)=>{ if(r.v==null)return; const d=document.createElement('div'); d.className='fb'+(i===0&&r._add?' truth':''); d.innerHTML='<b>'+(['🥇','🥈','🥉'][i]||(i+1))+'</b> '+r.p.emoji+' '+esc(r.p.name)+'<span class="by">'+r.v+(r._add?' · +'+r._add:'')+'</span>'; rv.appendChild(d); });
+    players.forEach(p=>{ const r=ranked.find(x=>x.p===p); push(p.pid,{t:'wait',emoji:r&&r._add?'🎯':'🙂',title:'Richtig: '+q.a+(q.u?' '+q.u:''),sub:r&&r._add?('+'+r._add+' Punkte'):'Diesmal nichts'}); });
+    setTimeout(()=>{ if(curGame===self) newQ(); },5200);
+  }
+  const self={ start(){ qi=-1; newQ(); }, onEvent(p,d){ if(d.num===undefined||ans[p.pid]!=null)return; ans[p.pid]=d.num; push(p.pid,{t:'wait',emoji:'✍️',title:'Schätzung abgegeben!',sub:'Warte auf die anderen…'}); const ec=document.getElementById('ec'); if(ec)ec.innerHTML='<div class="brandsub">'+Object.keys(ans).length+'/'+players.length+' haben geschätzt…</div>'; if(Object.keys(ans).length>=players.length) reveal(); } };
+  return self;
+}
+
+// ----- Wort-Bombe -----
+function GameBomb(){
+  const syl=shuffle(CONTENT.syllables).slice(0,6); let round=-1, winner=null, timer=0;
+  function newRound(){ round++; if(round>=syl.length){ endGame(); return; } winner=null; const s=syl[round];
+    stage.innerHTML='<div><h1>Wort-Bombe 💣</h1><p class="brandsub">Runde '+(round+1)+'/'+syl.length+' · Wort mit dieser Silbe – schnell!</p></div><div class="center"><div class="huge" id="syl">'+esc(s.toUpperCase())+'</div><div class="brandsub" id="bsub">Erstes gültiges Wort gewinnt!</div></div><div class="timer"><div id="tb"></div></div>';
+    broadcast({t:'text',title:'Wort mit „'+s+'"',sub:'Schnell! Ein Wort, das die Silbe enthält',ph:'Dein Wort',max:24,send:'Feuer!'});
+    const T=18000, st=performance.now(); clearTimeout(timer); timer=setTimeout(boom,T);
+    (function tk(){ if(curGame!==self||winner||round>=syl.length)return; const left=Math.max(0,1-(performance.now()-st)/T); const tb=document.getElementById('tb'); if(tb){tb.style.width=(left*100)+'%'; tb.style.background=left<0.3?'#ef4444':'';} if(left>0)requestAnimationFrame(tk); })();
+  }
+  function boom(){ clearTimeout(timer); if(winner)return; const sub=document.getElementById('bsub'); if(sub)sub.textContent='💥 BOOM! Niemand war schnell genug.'; broadcast({t:'wait',emoji:'💥',title:'Zeit um!',sub:'Niemand hat getroffen'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
+  const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(winner||d.text===undefined)return; const s=norm(syl[round]); const w=norm(d.text);
+    if(w.includes(s)&&w.length>=s.length+1){ winner=p; clearTimeout(timer); p.score+=150; stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! 💣</div><div class="brandsub">„'+esc(d.text)+'" · +150</div></div>'; broadcast({t:'wait',emoji:'💣',title:esc(p.name)+' entschärft!',sub:'„'+esc(d.text)+'"'}); push(p.pid,{t:'wait',emoji:'🏆',title:'Entschärft! +150',sub:'„'+esc(d.text)+'"'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
+    else { push(p.pid,{t:'text',title:'Passt nicht!',sub:'„'+esc(d.text)+'" enthält die Silbe nicht',ph:'Dein Wort',max:24,send:'Feuer!'}); } } };
+  return self;
+}
+
+// ----- Flaggen-Blitz (progressives Aufdecken) -----
+function GameReveal(){
+  const pool=shuffle(window.FLAGS||[]).slice(0,6); let round=-1, solved={}, startT=0, timer=0, item=null; const ROUND_MS=24000;
+  function newRound(){ round++; if(round>=pool.length){ endGame(); return; } solved={}; item=pool[round]; startT=performance.now();
+    stage.innerHTML='<div><h1>Flaggen-Blitz 🏁</h1><p class="brandsub">Runde '+(round+1)+'/'+pool.length+' · welches Land? Wird langsam scharf</p></div>'
+      +'<div class="center"><img id="rvimg" src="'+item.img+'" style="height:50vh;border-radius:2vh;filter:blur(40px);box-shadow:0 2vh 6vh #0008"></div>'
+      +'<div id="gs" style="display:flex;flex-wrap:wrap;justify-content:center;gap:1vh;margin:1vh 0"></div><div class="timer"><div id="tb"></div></div>';
+    renderSolvers();
+    players.forEach(p=>push(p.pid,{t:'text',title:'Welches Land?',sub:'Je früher, desto mehr Punkte',ph:'Ländername',max:24,send:'Raten'}));
+    const st=performance.now(); clearTimeout(timer); timer=setTimeout(roundEnd,ROUND_MS);
+    (function tk(){ if(curGame!==self||round>=pool.length)return; const el=performance.now()-st; const left=Math.max(0,1-el/ROUND_MS); const img=document.getElementById('rvimg'); if(img) img.style.filter='blur('+(left*left*40)+'px)'; const tb=document.getElementById('tb'); if(tb)tb.style.width=(left*100)+'%'; if(left>0&&Object.keys(solved).length<players.length) requestAnimationFrame(tk); else if(left<=0) roundEnd(); })();
+  }
+  function renderSolvers(){ const gs=document.getElementById('gs'); if(!gs)return; gs.innerHTML=''; Object.keys(solved).forEach(pid=>{ const p=byId(+pid); if(!p)return; const d=document.createElement('div'); d.className='gl ok'; d.innerHTML=p.emoji+' '+esc(p.name)+' ✔'; gs.appendChild(d); }); }
+  function roundEnd(){ clearTimeout(timer); const n=Object.keys(solved).length;
+    stage.innerHTML='<div class="center"><img src="'+item.img+'" style="height:44vh;border-radius:2vh;box-shadow:0 2vh 6vh #0008"><div class="big" style="font-size:6vh">'+esc(item.name)+'</div><div class="brandsub">'+(n?(n+' haben es erkannt'):'Niemand hat es erkannt 😅')+'</div></div>';
+    broadcast({t:'wait',emoji:'🏁',title:item.name,sub:'Weiter geht’s…'});
+    setTimeout(()=>{ if(curGame===self) newRound(); },3200);
+  }
+  function match(guess){ const g=norm(guess); if(g===norm(item.name))return true; if((item.aliases||[]).some(a=>norm(a)===g))return true; if(norm(item.name).length>4&&lev(g,norm(item.name))<=1)return true; return false; }
+  const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(d.text===undefined||solved[p.pid])return;
+    if(match(d.text)){ const left=Math.max(0,1-(performance.now()-startT)/ROUND_MS); const pts=100+Math.round(left*200); p.score+=pts; solved[p.pid]=1; renderSolvers(); toast(p.emoji+' '+p.name+' erkennt es! +'+pts); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig: '+item.name,sub:'+'+pts+' Punkte'}); if(Object.keys(solved).length>=players.length) roundEnd(); }
+    else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" ist es nicht',ph:'Ländername',max:24,send:'Raten'}); } } };
+  return self;
+}
+
+// ----- Mal-Battle (Duell) -----
+function GameDuel(){
+  const words=shuffle(CONTENT.words); let round=-1, pair=[], word='', phase='', firstSolver=null, timer=0, raf=false;
+  let ctxA=null,ctxB=null,cwA=0,chA=0,cwB=0,chB=0, penA={down:false,last:null}, penB={down:false,last:null}; const ROUND_MS=70000, TOTAL=3;
+  function newRound(){ round++; if(round>=TOTAL){ endGame(); return; } phase='draw'; firstSolver=null; word=words[round%words.length];
+    const i=(round*2)%players.length; pair=[players[i%players.length], players[(i+1)%players.length]]; if(pair[0]===pair[1]) pair[1]=players[(i+2)%players.length];
+    stage.innerHTML='<div><h1>Mal-Battle ⚔️</h1><p class="brandsub" id="dsub">Runde '+(round+1)+'/'+TOTAL+' · '+pair[0].emoji+' '+esc(pair[0].name)+' vs '+pair[1].emoji+' '+esc(pair[1].name)+' · der Rest rät</p></div>'
+      +'<div class="drawwrap"><canvas id="cvA"></canvas><canvas id="cvB"></canvas></div><div class="timer"><div id="tb"></div></div>';
+    setTimeout(setupDuel,0);
+    pair.forEach(dr=>push(dr.pid,{t:'draw',title:'Zeichne: '+word,sub:'Duell! Schneller & klarer malen'}));
+    players.filter(p=>p!==pair[0]&&p!==pair[1]).forEach(p=>push(p.pid,{t:'text',title:'Was zeichnen die beiden?',sub:'Erster richtiger Tipp gewinnt',ph:'Dein Tipp',max:24,send:'Raten'}));
+    const st=performance.now(); clearTimeout(timer); timer=setTimeout(toVote,ROUND_MS); raf=false;
+    (function tk(){ if(curGame!==self||raf||phase!=='draw')return; const left=Math.max(0,1-(performance.now()-st)/ROUND_MS); const tb=document.getElementById('tb'); if(tb)tb.style.width=(left*100)+'%'; if(left<=0){toVote();return;} requestAnimationFrame(tk); })();
+  }
+  function setupDuel(){ const a=document.getElementById('cvA'),b=document.getElementById('cvB'); if(!a||!b)return; [a,b].forEach(cv=>{const r=cv.getBoundingClientRect();cv.width=r.width;cv.height=r.height;const c=cv.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,cv.width,cv.height);c.lineCap='round';c.lineJoin='round';}); ctxA=a.getContext('2d');cwA=a.width;chA=a.height; ctxB=b.getContext('2d');cwB=b.width;chB=b.height; penA={down:false,last:null};penB={down:false,last:null}; }
+  function drawOn(ctx,cw,ch,pen,pts,color){ if(!ctx)return; ctx.strokeStyle=color||'#111'; ctx.lineWidth=Math.max(3,cw*0.006); for(let i=0;i<pts.length;i+=2){ const x=pts[i]*cw,y=pts[i+1]*ch; if(pen.down&&pen.last){ctx.beginPath();ctx.moveTo(pen.last[0],pen.last[1]);ctx.lineTo(x,y);ctx.stroke();} pen.last=[x,y];pen.down=true; } }
+  function toVote(){ if(phase==='vote'||phase==='done')return; phase='vote'; raf=true; clearTimeout(timer);
+    const spec=players.filter(p=>p!==pair[0]&&p!==pair[1]); const ds=document.getElementById('dsub'); if(ds)ds.textContent='Wort war: '+word+' · wer hat schöner gemalt?';
+    if(!spec.length){ roundDone(); return; }
+    spec.forEach(p=>push(p.pid,{t:'choice',title:'Wer hat schöner gemalt?',sub:'Wort war: '+word,opts:[{id:'a',label:'🅰 '+pair[0].name},{id:'b',label:'🅱 '+pair[1].name}]}));
+    pair.forEach(dr=>push(dr.pid,{t:'wait',emoji:'🖼️',title:'Fertig gemalt!',sub:'Die Jury stimmt ab…'}));
+    self._votes={}; timer=setTimeout(roundDone,20000);
+  }
+  function roundDone(){ if(phase==='done')return; phase='done'; clearTimeout(timer);
+    const v=self._votes||{}; let a=0,b=0; Object.values(v).forEach(x=>{if(x==='a')a++;else if(x==='b')b++;});
+    if(a>b)pair[0].score+=150; else if(b>a)pair[1].score+=150; else {pair[0].score+=75;pair[1].score+=75;}
+    stage.innerHTML='<div class="center"><div class="big">Wort: '+esc(word)+'</div><div class="brandsub">🅰 '+esc(pair[0].name)+': '+a+' · 🅱 '+esc(pair[1].name)+': '+b+(firstSolver?(' · erraten von '+esc(firstSolver.name)):'')+'</div></div>';
+    broadcast({t:'wait',emoji:'⚔️',title:'Runde vorbei',sub:'Wort war: '+word});
+    setTimeout(()=>{ if(curGame===self) newRound(); },3800);
+  }
+  const self={ _votes:{}, start(){ round=-1; newRound(); }, onEvent(p,d){
+    if(phase==='draw'){ if(p===pair[0]){ if(d.stroke)drawOn(ctxA,cwA,chA,penA,d.stroke,d.c); else if(d.penup){penA.down=false;penA.last=null;} else if(d.clear){if(ctxA){ctxA.fillStyle='#fff';ctxA.fillRect(0,0,cwA,chA);}penA.down=false;penA.last=null;} return; }
+      if(p===pair[1]){ if(d.stroke)drawOn(ctxB,cwB,chB,penB,d.stroke,d.c); else if(d.penup){penB.down=false;penB.last=null;} else if(d.clear){if(ctxB){ctxB.fillStyle='#fff';ctxB.fillRect(0,0,cwB,chB);}penB.down=false;penB.last=null;} return; }
+      if(d.text!==undefined && !firstSolver){ const g=norm(d.text),w=norm(word); if(g===w||(w.length>3&&lev(g,w)<=1)){ firstSolver=p; p.score+=150; pair[0].score+=50;pair[1].score+=50; toast(p.emoji+' '+p.name+' hat’s erraten! +150'); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig! +150',sub:'Es war: '+word}); toVote(); } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" nicht',ph:'Dein Tipp',max:24,send:'Raten'}); } } }
+    else if(phase==='vote'){ if(d.choice!==undefined && !self._votes[p.pid]){ self._votes[p.pid]=d.choice; push(p.pid,{t:'wait',emoji:'🗳️',title:'Stimme zählt!',sub:'Gleich das Ergebnis…'}); const spec=players.filter(x=>x!==pair[0]&&x!==pair[1]); if(Object.keys(self._votes).length>=spec.length) roundDone(); } }
   } };
   return self;
 }

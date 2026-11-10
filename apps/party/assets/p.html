@@ -78,6 +78,8 @@ function render(view){
     b.onclick=()=>{ vib(30); b.disabled=true; ev({buzz:Date.now()}); }; app.appendChild(b); return; }
   if(T==='text'){ app.innerHTML=''; head(view); const ta=document.createElement(view.multiline?'textarea':'input'); ta.placeholder=view.ph||''; if(view.max)ta.maxLength=view.max; if(view.multiline)ta.rows=3; app.appendChild(ta);
     const s=document.createElement('button'); s.className='send'; s.textContent=view.send||'Senden'; s.onclick=()=>{ const t=(ta.value||'').trim(); if(!t)return; vib(12); s.disabled=true; ta.disabled=true; ev({text:t}); }; app.appendChild(s); ta.focus(); return; }
+  if(T==='number'){ app.innerHTML=''; head(view); const inp=document.createElement('input'); inp.type='number'; inp.inputMode='numeric'; inp.placeholder=view.ph||'Deine Zahl'; app.appendChild(inp);
+    const s=document.createElement('button'); s.className='send'; s.textContent=view.send||'Senden'; s.onclick=()=>{ const n=parseFloat((inp.value||'').replace(',','.')); if(isNaN(n))return; vib(12); s.disabled=true; inp.disabled=true; ev({num:n}); }; app.appendChild(s); inp.focus(); return; }
   if(T==='choice'){ app.innerHTML=''; head(view); const g=document.createElement('div'); g.className='grid';
     (view.opts||[]).forEach(o=>{ const el=document.createElement('button'); el.className='big'; el.style.fontSize='18px'; el.style.textAlign='left'; el.textContent=o.label; el.onclick=()=>{ vib(12); lockButtons(g); ev({choice:o.id}); }; g.appendChild(el); }); app.appendChild(g); return; }
   if(T==='draw'){ renderDraw(view); return; }

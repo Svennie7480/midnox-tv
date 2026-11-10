@@ -40,6 +40,29 @@ window.CONTENT = {
     "Hund","Schmetterling","Ananas","Vulkan","Zahnbürste","Fernseher","Känguru","Pinguin","Hexe","Ritter",
     "Krokodil","Schnecke","Waschmaschine","Kaktus","Eule","Traktor","Pilz","Anker","Glühbirne","Zauberer",
     "Meerjungfrau","Dinosaurier","Hubschrauber","Schildkröte","Seestern","Mikrofon","Clown","Pyramide","Igel","Toaster"],
+  // Schätzmeister: Frage + Zahl + Einheit
+  estimate: [
+    {q:"Wie viele Knochen hat ein erwachsener Mensch?", a:206, u:""},
+    {q:"Wie viele Tasten hat ein Klavier?", a:88, u:""},
+    {q:"Wie viele Länder hat Afrika?", a:54, u:""},
+    {q:"Wie viele Meter ist der Eiffelturm hoch?", a:330, u:"m"},
+    {q:"Wie viele Herzen hat ein Oktopus?", a:3, u:""},
+    {q:"Wie viele Zähne hat ein erwachsener Mensch?", a:32, u:""},
+    {q:"Wie viele Planeten hat unser Sonnensystem?", a:8, u:""},
+    {q:"Wie viele Sekunden hat ein Tag?", a:86400, u:""},
+    {q:"Wie viele Bundesländer hat Deutschland?", a:16, u:""},
+    {q:"Wie viele Grad hat ein rechter Winkel?", a:90, u:"°"},
+    {q:"Wie viele Jahre dauert ein Jahrhundert?", a:100, u:""},
+    {q:"Wie viele Felder hat ein Schachbrett?", a:64, u:""},
+    {q:"Wie viele Streifen hat die US-Flagge?", a:13, u:""},
+    {q:"Wie viele Knöpfe hat ein klassisches Akkordeon-Diskant maximal etwa?", a:41, u:""},
+    {q:"Wie viele Millionen Einwohner hat Deutschland etwa?", a:84, u:"Mio"},
+    {q:"Wie viele Kilometer ist der Mond von der Erde entfernt (Tausend)?", a:384, u:"Tsd km"},
+    {q:"Wie viele Beine hat ein Tausendfüßler typischerweise höchstens etwa?", a:400, u:""},
+    {q:"Wie viele Minuten dauert ein Fußballspiel regulär?", a:90, u:"min"}
+  ],
+  // Wort-Bombe: Silben/Buchstabenfolgen, die im Wort vorkommen müssen
+  syllables: ["au","sch","er","en","ung","ei","ber","tra","isch","markt","halt","stra","ren","lich","and","ter","spiel","wasser","licht","baum","stein","kopf","haus","gang","zeit","feld","werk","nacht","mond","gold"],
   // Flunkerei: Prompt + echte Antwort
   fib: [
     {q:"Wie heißt die Angst vor langen Wörtern (ironisch)?", a:"Hippopotomonstrosesquippedaliophobie"},

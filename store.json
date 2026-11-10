@@ -52,8 +52,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.party",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-party.apk",
-   "version": "1.0",
-   "desc": "Die Party-Spielesammlung für den Fernseher – der TV ist das Spielbrett, jedes Handy ist der Controller. Einfach im WLAN den QR-Code scannen, Name wählen, loslegen (bis 8 Spieler, ohne App-Installation bei den Gästen). Mit dabei: Reaktor (Reaktionsduell), Buzzer-Battle (Quiz), Flunkerei (Bluff-Spiel) und Kritzel-Klau (malen & raten). Punkte über die ganze Party, mit Vibration am Handy. Ohne Werbung."
+   "version": "1.1",
+   "desc": "Die Party-Spielesammlung für den Fernseher – der TV ist das Spielbrett, jedes Handy ist der Controller. Einfach im WLAN den QR-Code scannen, Name wählen, loslegen (bis 8 Spieler, ohne App-Installation bei den Gästen). Acht Spiele: Reaktor (Reaktion), Buzzer-Battle (Quiz), Schätzmeister (Zahlen schätzen), Wort-Bombe (Silben-Hetze), Flaggen-Blitz (Flagge langsam aufdecken), Flunkerei (Bluff), Kritzel-Klau und Mal-Battle (malen & raten). Punkte über die ganze Party, mit Vibration am Handy. Ohne Werbung."
   },
   {
    "id": "emby",

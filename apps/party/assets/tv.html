@@ -81,6 +81,7 @@
 <script src="/lib/qrcode.js"></script>
 <script src="/content.js"></script>
 <script src="/flags.js"></script>
+<script src="/sound.js"></script>
 <script>
 const stage=document.getElementById('stage');
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
@@ -95,20 +96,20 @@ const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899'
 let players=[], seq=0, scene='lobby', curGame=null, ipUrl='', mult=1;
 const byId=(pid)=>players.find(p=>p.pid===pid);
 function award(p,n){ const a=Math.round(n*mult); p.score+=a; return a; }   // zentrale Punktevergabe (Bonus x2)
-function setBonus(on){ mult=on?2:1; const b=document.getElementById('bonusbar'); if(b) b.style.display=on?'block':'none'; }
+function setBonus(on){ const was=mult; mult=on?2:1; const b=document.getElementById('bonusbar'); if(b) b.style.display=on?'block':'none'; if(on&&was!==2){ try{SND.play('bonus'); SND.voice('bonus','Bonusrunde! Doppelte Punkte!');}catch(e){} } }
 function push(pid,view){ fetch('/push?to='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(view)}).catch(()=>{}); }
 function broadcast(view){ players.forEach(p=>push(p.pid,view)); }
 function pushEach(fn){ players.forEach(p=>push(p.pid,fn(p))); }
 async function tvLoop(){ while(true){ try{ const r=await fetch('/tvpoll?since='+seq); const j=await r.json(); seq=j.seq; for(const e of j.evs) onEvent(e); }catch(e){ await sleep(400); } } }
 function onEvent(e){
-  if(e.t==='join'){ if(byId(e.pid))return; const d=e.d||{}; const p={pid:e.pid,name:(d.name||'Gast').slice(0,12),emoji:d.emoji||'🙂',color:d.color||PAL[players.length%PAL.length],score:0}; players.push(p);
+  if(e.t==='join'){ if(byId(e.pid))return; const d=e.d||{}; const p={pid:e.pid,name:(d.name||'Gast').slice(0,12),emoji:d.emoji||'🙂',color:d.color||PAL[players.length%PAL.length],score:0}; players.push(p); SND.play('join');
     if(scene==='lobby'){ renderLobby(); push(p.pid,{t:'wait',emoji:p.emoji,title:'Drin, '+p.name+'!',sub:'Gleich geht’s los…'}); }
     else { push(p.pid,{t:'wait',emoji:'🎮',title:'Willkommen!',sub:'Du bist beim nächsten Spiel dabei.'}); }
   } else if(e.t==='ev'){ const p=byId(e.pid); if(!p)return; if(curGame&&curGame.onEvent) curGame.onEvent(p,e.d||{}); }
 }
 
 // ---------- Fernbedienung ----------
-window.TV={ key(k){
+window.TV={ key(k){ SND.resume(); if(k==='menu'){ const m=SND.toggle(); toast(m?'🔇 Ton aus':'🔊 Ton an'); return; }
   if(scene==='lobby'){ if(k==='ok'){ if(players.length>=1) gotoMenu(); } }
   else if(scene==='menu'){ if(k==='left') menuMove(-1); else if(k==='right') menuMove(1); else if(k==='ok') startGame(); else if(k==='back') gotoLobby(); }
   else if(scene==='game'){ if(k==='back'){ curGame=null; gotoMenu(); } }
@@ -118,7 +119,7 @@ window.TV={ key(k){
 // ---------- Lobby ----------
 async function initInfo(){ try{ ipUrl='http://'+Android.ip()+':'+Android.port()+'/p'; }catch(e){ try{ const j=await (await fetch('/info')).json(); ipUrl='http://'+j.ip+':'+j.port+'/p'; }catch(_){ ipUrl=location.origin+'/p'; } } }
 function qrSvg(url){ try{ const q=qrcode(0,'M'); q.addData(url); q.make(); return q.createSvgTag({cellSize:4,margin:1,scalable:true}); }catch(e){ return ''; } }
-function gotoLobby(){ scene='lobby'; curGame=null; renderLobby(); broadcast({t:'wait',emoji:'🎉',title:'Lobby',sub:'Gleich geht’s weiter…'}); }
+function gotoLobby(){ scene='lobby'; curGame=null; SND.music('lobby'); renderLobby(); broadcast({t:'wait',emoji:'🎉',title:'Lobby',sub:'Gleich geht’s weiter…'}); }
 function renderLobby(){
   const url=ipUrl||'…'; const shortUrl=url.replace('http://','');
   stage.innerHTML=
@@ -153,11 +154,11 @@ function renderMenu(){
   GAMES.forEach((g,i)=>{ const ok=players.length>=g.min; const c=document.createElement('div'); c.className='gcard'+(i===menuIdx?' sel':''); c.innerHTML='<div class="ic">'+g.ic+'</div><h2>'+g.name+'</h2><p>'+g.desc+'</p><div class="min">'+(ok?'bereit':('ab '+g.min+' Spielern')) +'</div>'; if(!ok)c.style.filter='grayscale(.7)'; gm.appendChild(c); });
   const sel=gm.children[menuIdx]; if(sel) sel.scrollIntoView({inline:'center',block:'nearest'});
 }
-function menuMove(d){ menuIdx=(menuIdx+d+GAMES.length)%GAMES.length; renderMenu(); }
-function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } setBonus(false); scene='game'; curGame=g.make(); curGame.start(); }
+function menuMove(d){ menuIdx=(menuIdx+d+GAMES.length)%GAMES.length; SND.play('select'); renderMenu(); }
+function startGame(){ const g=GAMES[menuIdx]; if(players.length<g.min){ toast('Dafür braucht ihr mindestens '+g.min+' Spieler'); return; } setBonus(false); SND.play('start'); SND.music('game'); SND.voice('game_'+g.id,g.name); scene='game'; curGame=g.make(); curGame.start(); }
 
 // ---------- Scoreboard ----------
-function endGame(){ curGame=null; setBonus(false); scene='score'; renderScore(); }
+function endGame(){ curGame=null; setBonus(false); SND.music('lobby'); SND.play('fanfare'); scene='score'; renderScore(); }
 function renderScore(){
   const sorted=players.slice().sort((a,b)=>b.score-a.score);
   const medal=['🥇','🥈','🥉'];
@@ -179,12 +180,12 @@ function GameReaktor(){
     stage.innerHTML='<div class="center"><div class="big" id="rkb">Bereit…</div><div class="brandsub">Runde '+round+'/'+TOTAL+'</div></div>';
     broadcast({t:'buzz',title:'Reaktor',sub:'Warte auf LOS…',armed:false});
     const delay=1600+Math.random()*3400;
-    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); const b=document.getElementById('rkb'); if(b){b.textContent='LOS!';b.classList.add('go','huge');} broadcast({t:'buzz',title:'JETZT!',sub:'',armed:true}); }, delay);
+    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); SND.play('go'); SND.voice('los','Los!'); const b=document.getElementById('rkb'); if(b){b.textContent='LOS!';b.classList.add('go','huge');} broadcast({t:'buzz',title:'JETZT!',sub:'',armed:true}); }, delay);
   }
   const self={ start(){ round=0; newRound(); }, onEvent(p,d){
     if(d.buzz===undefined)return;
-    if(!armed){ if(done[p.pid])return; done[p.pid]='foul'; push(p.pid,{t:'wait',emoji:'🙈',title:'Zu früh!',sub:'Diese Runde ist für dich gelaufen.'}); toast(p.emoji+' '+p.name+' zu früh!'); return; }
-    if(winner||done[p.pid]==='foul')return; winner=p; const ms=Math.round(performance.now()-armTime); const g=award(p,100);
+    if(!armed){ if(done[p.pid])return; done[p.pid]='foul'; SND.play('wrong'); push(p.pid,{t:'wait',emoji:'🙈',title:'Zu früh!',sub:'Diese Runde ist für dich gelaufen.'}); toast(p.emoji+' '+p.name+' zu früh!'); return; }
+    if(winner||done[p.pid]==='foul')return; winner=p; const ms=Math.round(performance.now()-armTime); const g=award(p,100); SND.play('correct');
     stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! ⚡</div><div class="brandsub">'+ms+' ms · +'+g+' Punkte</div></div>';
     broadcast({t:'wait',emoji:'⚡',title:esc(p.name)+' war schneller!',sub:ms+' ms'});
     push(p.pid,{t:'wait',emoji:'🏆',title:'Gewonnen!',sub:ms+' ms · +'+g});
@@ -207,7 +208,7 @@ function GameTrivia(){
   function reveal(){ clearTimeout(timer); const q=qs[qi];
     players.forEach(p=>{ const a=answered[p.pid]; const correct=a&&a.i===q.c; let g=0; if(correct){ const spd=Math.max(0,1-(a.t/15000)); g=award(p,100+Math.round(spd*100)); } push(p.pid,{t:'wait',emoji:correct?'✅':'❌',title:correct?'Richtig!':'Daneben',sub:correct?('+'+g+' Punkte'):('Richtig war '+letters[q.c])}); });
     q.a.forEach((a,i)=>{ const d=document.getElementById('a'+i); if(!d)return; d.className='ans '+(i===q.c?'ok':'no'); });
-    const got=players.filter(p=>answered[p.pid]&&answered[p.pid].i===q.c).length; toast(got+' richtig');
+    const got=players.filter(p=>answered[p.pid]&&answered[p.pid].i===q.c).length; SND.play(got?'correct':'wrong'); toast(got+' richtig');
     setTimeout(()=>{ if(curGame===self) newQ(); }, 3600);
   }
   const self={ start(){ qi=-1; newQ(); }, onEvent(p,d){ if(d.btn===undefined||answered[p.pid]||qi>=qs.length)return; answered[p.pid]={i:+d.btn,t:performance.now()-qStart}; push(p.pid,{t:'wait',emoji:'✅',title:'Abgegeben!',sub:'Warte auf die Auflösung…'}); if(Object.keys(answered).length>=players.length) reveal(); } };
@@ -237,7 +238,7 @@ function GameFib(){
   }
   function reveal(){ clearTimeout(timer); phase='reveal';
     players.forEach(p=>{ const ch=choices[p.pid]; if(ch==='truth'){ award(p,500); } else if(ch&&ch[0]==='p'){ const author=byId(+ch.slice(1)); if(author&&author!==p){ award(author,250); } } });
-    const ob=document.getElementById('opts'); if(ob){ (self._opts||[]).forEach((o,i)=>{ const d=document.getElementById('opt'+i); if(!d)return; const voters=players.filter(p=>choices[p.pid]===o.id).map(p=>p.emoji).join(' '); if(o.id==='truth'){ d.className='fb truth'; d.innerHTML='<b>✅</b> '+esc(o.label)+'<span class="by">Wahrheit '+voters+'</span>'; } else { const a=byId(o.by); d.innerHTML='<b style="color:#a78bfa">'+(i+1)+'</b> '+esc(o.label)+'<span class="by">Bluff von '+(a?a.emoji+' '+esc(a.name):'?')+' '+voters+'</span>'; } }); }
+    SND.play('ding'); const ob=document.getElementById('opts'); if(ob){ (self._opts||[]).forEach((o,i)=>{ const d=document.getElementById('opt'+i); if(!d)return; const voters=players.filter(p=>choices[p.pid]===o.id).map(p=>p.emoji).join(' '); if(o.id==='truth'){ d.className='fb truth'; d.innerHTML='<b>✅</b> '+esc(o.label)+'<span class="by">Wahrheit '+voters+'</span>'; } else { const a=byId(o.by); d.innerHTML='<b style="color:#a78bfa">'+(i+1)+'</b> '+esc(o.label)+'<span class="by">Bluff von '+(a?a.emoji+' '+esc(a.name):'?')+' '+voters+'</span>'; } }); }
     players.forEach(p=>{ const ch=choices[p.pid]; push(p.pid,{t:'wait',emoji:ch==='truth'?'🎯':'🙃',title:ch==='truth'?'Wahrheit gefunden! +500':'Reingefallen…',sub:'Nächste Runde gleich'}); });
     setTimeout(()=>{ if(curGame===self) newRound(); }, 5500);
   }
@@ -274,7 +275,7 @@ function GameDraw(){
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){
     if(p===drawer){ if(d.stroke){ drawStroke(d.stroke,d.c); } else if(d.penup){ penDown=false; lastPt=null; } else if(d.clear){ if(ctx){ctx.fillStyle='#fff';ctx.fillRect(0,0,cw,ch);} penDown=false; lastPt=null; } return; }
     if(d.text!==undefined && !solved[p.pid]){ const g=norm(d.text); const w=norm(word); const ok=(g===w)||(w.length>3&&lev(g,w)<=1);
-      if(ok){ const order=Object.keys(solved).length; const spd=Math.max(0,1-((performance.now()-startT)/ROUND_MS)); const pts=200+Math.round(spd*150)-order*20; const g=award(p,Math.max(80,pts)); award(drawer,100); solved[p.pid]=1; renderGuessers(); toast(p.emoji+' '+p.name+' hat’s! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig!',sub:'+'+g+' Punkte'});
+      if(ok){ const order=Object.keys(solved).length; const spd=Math.max(0,1-((performance.now()-startT)/ROUND_MS)); const pts=200+Math.round(spd*150)-order*20; const g=award(p,Math.max(80,pts)); award(drawer,100); SND.play('correct'); solved[p.pid]=1; renderGuessers(); toast(p.emoji+' '+p.name+' hat’s! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig!',sub:'+'+g+' Punkte'});
         if(Object.keys(solved).length>=players.length-1) roundEnd();
       } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" war’s nicht',ph:'Dein Tipp',max:24,send:'Raten'}); }
     }
@@ -293,7 +294,7 @@ function GameEstimate(){
   function reveal(){ clearTimeout(timer); const q=qs[qi];
     const ranked=players.map(p=>({p,v:ans[p.pid],diff:ans[p.pid]==null?Infinity:Math.abs(ans[p.pid]-q.a)})).sort((a,b)=>a.diff-b.diff);
     const pts=[300,200,100]; ranked.forEach((r,i)=>{ if(r.diff===Infinity)return; let add=pts[i]!=null?pts[i]:50; if(r.diff===0)add+=100; r._add=award(r.p,add); });
-    stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Die richtige Antwort:</p></div><div class="center"><div class="big">'+q.a+(q.u?' '+esc(q.u):'')+'</div></div><div class="reveal" id="rv"></div>';
+    SND.play('ding'); stage.innerHTML='<div><h1>Schätzmeister</h1><p class="brandsub">Die richtige Antwort:</p></div><div class="center"><div class="big">'+q.a+(q.u?' '+esc(q.u):'')+'</div></div><div class="reveal" id="rv"></div>';
     const rv=document.getElementById('rv'); ranked.forEach((r,i)=>{ if(r.v==null)return; const d=document.createElement('div'); d.className='fb'+(i===0&&r._add?' truth':''); d.innerHTML='<b>'+(['🥇','🥈','🥉'][i]||(i+1))+'</b> '+r.p.emoji+' '+esc(r.p.name)+'<span class="by">'+r.v+(r._add?' · +'+r._add:'')+'</span>'; rv.appendChild(d); });
     players.forEach(p=>{ const r=ranked.find(x=>x.p===p); push(p.pid,{t:'wait',emoji:r&&r._add?'🎯':'🙂',title:'Richtig: '+q.a+(q.u?' '+q.u:''),sub:r&&r._add?('+'+r._add+' Punkte'):'Diesmal nichts'}); });
     setTimeout(()=>{ if(curGame===self) newQ(); },5200);
@@ -311,9 +312,9 @@ function GameBomb(){
     const T=18000, st=performance.now(); clearTimeout(timer); timer=setTimeout(boom,T);
     (function tk(){ if(curGame!==self||winner||round>=syl.length)return; const left=Math.max(0,1-(performance.now()-st)/T); const tb=document.getElementById('tb'); if(tb){tb.style.width=(left*100)+'%'; tb.style.background=left<0.3?'#ef4444':'';} if(left>0)requestAnimationFrame(tk); })();
   }
-  function boom(){ clearTimeout(timer); if(winner)return; const sub=document.getElementById('bsub'); if(sub)sub.textContent='💥 BOOM! Niemand war schnell genug.'; broadcast({t:'wait',emoji:'💥',title:'Zeit um!',sub:'Niemand hat getroffen'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
+  function boom(){ clearTimeout(timer); if(winner)return; SND.play('boom'); const sub=document.getElementById('bsub'); if(sub)sub.textContent='💥 BOOM! Niemand war schnell genug.'; broadcast({t:'wait',emoji:'💥',title:'Zeit um!',sub:'Niemand hat getroffen'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(winner||d.text===undefined)return; const s=norm(syl[round]); const w=norm(d.text);
-    if(w.includes(s)&&w.length>=s.length+1){ winner=p; clearTimeout(timer); const g=award(p,150); stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! 💣</div><div class="brandsub">„'+esc(d.text)+'" · +'+g+'</div></div>'; broadcast({t:'wait',emoji:'💣',title:esc(p.name)+' entschärft!',sub:'„'+esc(d.text)+'"'}); push(p.pid,{t:'wait',emoji:'🏆',title:'Entschärft! +'+g,sub:'„'+esc(d.text)+'"'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
+    if(w.includes(s)&&w.length>=s.length+1){ winner=p; clearTimeout(timer); const g=award(p,150); SND.play('correct'); stage.innerHTML='<div class="center"><div class="big">'+p.emoji+' '+esc(p.name)+'! 💣</div><div class="brandsub">„'+esc(d.text)+'" · +'+g+'</div></div>'; broadcast({t:'wait',emoji:'💣',title:esc(p.name)+' entschärft!',sub:'„'+esc(d.text)+'"'}); push(p.pid,{t:'wait',emoji:'🏆',title:'Entschärft! +'+g,sub:'„'+esc(d.text)+'"'}); setTimeout(()=>{ if(curGame===self) newRound(); },2600); }
     else { push(p.pid,{t:'text',title:'Passt nicht!',sub:'„'+esc(d.text)+'" enthält die Silbe nicht',ph:'Dein Wort',max:24,send:'Feuer!'}); } } };
   return self;
 }
@@ -338,7 +339,7 @@ function GameReveal(){
   }
   function match(guess){ const g=norm(guess); if(g===norm(item.name))return true; if((item.aliases||[]).some(a=>norm(a)===g))return true; if(norm(item.name).length>4&&lev(g,norm(item.name))<=1)return true; return false; }
   const self={ start(){ round=-1; newRound(); }, onEvent(p,d){ if(d.text===undefined||solved[p.pid])return;
-    if(match(d.text)){ const left=Math.max(0,1-(performance.now()-startT)/ROUND_MS); const pts=100+Math.round(left*200); const g=award(p,pts); solved[p.pid]=1; renderSolvers(); toast(p.emoji+' '+p.name+' erkennt es! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig: '+item.name,sub:'+'+g+' Punkte'}); if(Object.keys(solved).length>=players.length) roundEnd(); }
+    if(match(d.text)){ const left=Math.max(0,1-(performance.now()-startT)/ROUND_MS); const pts=100+Math.round(left*200); const g=award(p,pts); SND.play('ding'); solved[p.pid]=1; renderSolvers(); toast(p.emoji+' '+p.name+' erkennt es! +'+g); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig: '+item.name,sub:'+'+g+' Punkte'}); if(Object.keys(solved).length>=players.length) roundEnd(); }
     else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" ist es nicht',ph:'Ländername',max:24,send:'Raten'}); } } };
   return self;
 }
@@ -376,7 +377,7 @@ function GameDuel(){
   const self={ _votes:{}, start(){ round=-1; newRound(); }, onEvent(p,d){
     if(phase==='draw'){ if(p===pair[0]){ if(d.stroke)drawOn(ctxA,cwA,chA,penA,d.stroke,d.c); else if(d.penup){penA.down=false;penA.last=null;} else if(d.clear){if(ctxA){ctxA.fillStyle='#fff';ctxA.fillRect(0,0,cwA,chA);}penA.down=false;penA.last=null;} return; }
       if(p===pair[1]){ if(d.stroke)drawOn(ctxB,cwB,chB,penB,d.stroke,d.c); else if(d.penup){penB.down=false;penB.last=null;} else if(d.clear){if(ctxB){ctxB.fillStyle='#fff';ctxB.fillRect(0,0,cwB,chB);}penB.down=false;penB.last=null;} return; }
-      if(d.text!==undefined && !firstSolver){ const g=norm(d.text),w=norm(word); if(g===w||(w.length>3&&lev(g,w)<=1)){ firstSolver=p; award(p,150); award(pair[0],50);award(pair[1],50); toast(p.emoji+' '+p.name+' hat’s erraten! +150'); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig! +150',sub:'Es war: '+word}); toVote(); } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" nicht',ph:'Dein Tipp',max:24,send:'Raten'}); } } }
+      if(d.text!==undefined && !firstSolver){ const g=norm(d.text),w=norm(word); if(g===w||(w.length>3&&lev(g,w)<=1)){ firstSolver=p; award(p,150); award(pair[0],50);award(pair[1],50); SND.play('correct'); toast(p.emoji+' '+p.name+' hat’s erraten! +150'); push(p.pid,{t:'wait',emoji:'🎉',title:'Richtig! +150',sub:'Es war: '+word}); toVote(); } else { push(p.pid,{t:'text',title:'Weiter raten!',sub:'„'+esc(d.text)+'" nicht',ph:'Dein Tipp',max:24,send:'Raten'}); } } }
     else if(phase==='vote'){ if(d.choice!==undefined && !self._votes[p.pid]){ self._votes[p.pid]=d.choice; push(p.pid,{t:'wait',emoji:'🗳️',title:'Stimme zählt!',sub:'Gleich das Ergebnis…'}); const spec=players.filter(x=>x!==pair[0]&&x!==pair[1]); if(Object.keys(self._votes).length>=spec.length) roundDone(); } }
   } };
   return self;
@@ -397,7 +398,7 @@ function GameRoyale(){
     alive.forEach(p=>push(p.pid,{t:'buzz',title:'Bereit machen…',sub:'Nicht zu früh!',armed:false}));
     players.filter(p=>!alive.includes(p)).forEach(p=>push(p.pid,{t:'wait',emoji:'💀',title:'Ausgeschieden',sub:alive.length+' noch im Rennen'}));
     const delay=1600+Math.random()*3200;
-    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); const b=document.getElementById('rb'); if(b){b.textContent='LOS!';b.classList.add('go');} alive.forEach(p=>push(p.pid,{t:'buzz',title:'JETZT!',sub:'',armed:true})); clearTimeout(timer); timer=setTimeout(resolve,2600); }, delay);
+    setTimeout(()=>{ if(curGame!==self||scene!=='game')return; armed=true; armTime=performance.now(); SND.play('go'); SND.voice('los','Los!'); const b=document.getElementById('rb'); if(b){b.textContent='LOS!';b.classList.add('go');} alive.forEach(p=>push(p.pid,{t:'buzz',title:'JETZT!',sub:'',armed:true})); clearTimeout(timer); timer=setTimeout(resolve,2600); }, delay);
   }
   function resolve(){ if(ending||curGame!==self)return; clearTimeout(timer); armed=false;
     const fouls=alive.filter(p=>buzzed[p.pid]&&buzzed[p.pid].foul);
@@ -407,13 +408,13 @@ function GameRoyale(){
     else { const ranked=alive.slice().sort((a,b)=>bt(a)-bt(b)); outs=[ranked[ranked.length-1]]; }
     outs.forEach(p=>{ const i=alive.indexOf(p); if(i>=0) alive.splice(i,1); });
     alive.forEach(p=>award(p,50));   // Überlebensbonus pro Runde
-    const outNames=outs.map(p=>p.emoji+' '+p.name).join(', ');
+    const outNames=outs.map(p=>p.emoji+' '+p.name).join(', '); SND.play('eliminate'); SND.voice('ausgeschieden','Ausgeschieden!');
     renderAlive(outNames+' fliegt raus! · '+alive.length+' übrig', fouls.length?'Fehlstart!':'Raus!');
     outs.forEach(p=>push(p.pid,{t:'wait',emoji:'💀',title:'Ausgeschieden!',sub:'Du hast '+round+' Runden überlebt'}));
     setTimeout(()=>{ if(curGame!==self)return; if(alive.length<=1) finish(); else newRound(); },2600);
   }
   function finish(){ if(ending)return; ending=true; const win=alive[0];
-    if(win){ const g=award(win,500); stage.innerHTML='<div class="center"><div class="huge">👑</div><div class="big">'+win.emoji+' '+esc(win.name)+' überlebt!</div><div class="brandsub">+'+g+' für den letzten Überlebenden</div></div>'; broadcast({t:'wait',emoji:'🏁',title:'Royale vorbei',sub:win.name+' hat gewonnen'}); push(win.pid,{t:'wait',emoji:'👑',title:'Du hast überlebt!',sub:'+'+g}); }
+    if(win){ const g=award(win,500); SND.play('fanfare'); SND.voice('sieger',win.name+' überlebt!'); stage.innerHTML='<div class="center"><div class="huge">👑</div><div class="big">'+win.emoji+' '+esc(win.name)+' überlebt!</div><div class="brandsub">+'+g+' für den letzten Überlebenden</div></div>'; broadcast({t:'wait',emoji:'🏁',title:'Royale vorbei',sub:win.name+' hat gewonnen'}); push(win.pid,{t:'wait',emoji:'👑',title:'Du hast überlebt!',sub:'+'+g}); }
     else { stageCenter('<div class="big">Niemand übrig 😅</div>'); }
     setTimeout(endGame,3600);
   }
@@ -428,6 +429,6 @@ function GameRoyale(){
 }
 
 // ---------- Start ----------
-(async()=>{ await initInfo(); renderLobby(); tvLoop(); })();
+(async()=>{ await initInfo(); SND.resume(); SND.music('lobby'); setTimeout(()=>SND.voice('willkommen','Willkommen bei midnox Party!'),600); renderLobby(); tvLoop(); })();
 </script>
 </body></html>

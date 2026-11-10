@@ -83,6 +83,7 @@
 <script src="/flags.js"></script>
 <script src="/sound.js"></script>
 <script>
+window.addEventListener('error',function(ev){ try{ var s=document.getElementById('stage'); if(s) s.innerHTML='<div style="padding:5vh;color:#fff;font:3vh/1.4 sans-serif;white-space:pre-wrap"><b style="color:#f87171">JS-Fehler</b>\n'+(((ev.error&&ev.error.stack)||ev.message||'')+'').slice(0,600)+'</div>'; }catch(_){} });
 const stage=document.getElementById('stage');
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 const shuffle=(a)=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -429,6 +430,13 @@ function GameRoyale(){
 }
 
 // ---------- Start ----------
-(async()=>{ await initInfo(); SND.resume(); SND.music('lobby'); setTimeout(()=>SND.voice('willkommen','Willkommen bei midnox Party!'),600); renderLobby(); tvLoop(); })();
+function safe(fn,label){ try{ fn(); }catch(e){ var s=document.getElementById('stage'); if(s) s.innerHTML='<div style="padding:5vh;color:#fff;font:3vh/1.4 sans-serif;white-space:pre-wrap"><b style="color:#f87171">Fehler ('+(label||'')+')</b>\n'+(((e&&e.stack)||(e&&e.message)||e)+'').slice(0,600)+'</div>'; } }
+(async()=>{
+  safe(renderLobby,'lobby');               // Lobby sofort zeigen – unabhängig von Audio/Netz
+  try{ await initInfo(); }catch(e){}
+  safe(renderLobby,'lobby2');              // QR aktualisieren, sobald IP bekannt
+  safe(function(){ SND.resume(); SND.music('lobby'); setTimeout(function(){ try{ SND.voice('willkommen','Willkommen bei midnox Party!'); }catch(_){} },600); },'audio');
+  safe(tvLoop,'netz');
+})();
 </script>
 </body></html>

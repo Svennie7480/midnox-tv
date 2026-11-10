@@ -137,6 +137,12 @@ final class Web {
                 send(s, 200, "application/json", ("{\"ip\":\"" + U.ownIp() + "\",\"port\":" + port + "}").getBytes("UTF-8"));
                 return;
             }
+            // Statische Assets: content.js, flags.js, sound.js, flags/*.svg, voice/*.mp3, …
+            String rel = path.replaceAll("[?#].*$", "");
+            if (rel.startsWith("/")) rel = rel.substring(1);
+            if (!rel.isEmpty() && !rel.contains("..")) {
+                try { send(s, 200, U.mime(rel), U.asset(act, rel)); return; } catch (Exception ignored) {}
+            }
             send(s, 404, "text/plain", "not found".getBytes());
         } catch (Exception ignored) {}
         finally { try { s.close(); } catch (Exception ignored) {} }

@@ -26,6 +26,8 @@ final class U {
         if (n.endsWith(".css")) return "text/css; charset=utf-8";
         if (n.endsWith(".json")) return "application/json; charset=utf-8";
         if (n.endsWith(".png")) return "image/png";
+        if (n.endsWith(".mp3")) return "audio/mpeg";
+        if (n.endsWith(".ogg")) return "audio/ogg";
         if (n.endsWith(".svg")) return "image/svg+xml";
         if (n.endsWith(".woff2")) return "font/woff2";
         return "application/octet-stream";

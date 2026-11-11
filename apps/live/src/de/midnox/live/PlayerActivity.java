@@ -297,12 +297,23 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     }
 
     // ------------------------------------------------------------ Player
+    String builtBuf = "";   // Puffer-Voreinstellung, mit der der aktuelle Player gebaut wurde
+    // minBuffer, maxBuffer, Start-Puffer (bis das Bild kommt), Start-Puffer nach Stocken – alles in ms.
+    static int[] bufValues(String p) {
+        switch (p) {
+            case "turbo":  return new int[]{1000, 20000, 250, 600};    // schnellster Start, nur bei stabiler Leitung
+            case "normal": return new int[]{2500, 30000, 700, 1500};   // ausgewogen (frühere Einstellung)
+            case "stabil": return new int[]{5000, 40000, 1500, 3000};  // ruckelfrei bei schwachem Netz, startet träger
+            default:       return new int[]{1500, 30000, 350, 800};    // „schnell" (Standard)
+        }
+    }
     void initPlayer() {
-        // Blitz-Zapping: so früh wie vertretbar starten (nach ~0,35 s statt Default ~2,5 s), Zeit vor Größe.
-        // Das Bild kommt trotzdem erst mit dem nächsten Keyframe des Streams (sender­seitig alle 2–4 s) –
-        // der Start-Puffer ist der Teil, den die App steuert, und der ist hier bewusst knapp gehalten.
+        // Blitz-Zapping: so früh wie vertretbar starten. Das Bild kommt trotzdem erst mit dem nächsten
+        // Keyframe des Streams (senderseitig alle 2–4 s); der Start-Puffer ist der Teil, den die App steuert.
+        String bp = U.prefs(this).getString("buf", "schnell"); builtBuf = bp;
+        int[] b = bufValues(bp);
         DefaultLoadControl lc = new DefaultLoadControl.Builder()
-            .setBufferDurationsMs(1500, 30000, 350, 800)
+            .setBufferDurationsMs(b[0], b[1], b[2], b[3])
             .setPrioritizeTimeOverSizeThresholds(true)
             .build();
         player = new ExoPlayer.Builder(this).setLoadControl(lc).build();
@@ -372,6 +383,9 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         }
         if (current != null && !current.id.equals(ch.id)) previous = current;
         current = ch;
+        // Puffer-Einstellung geändert? Player mit neuen Werten neu aufbauen (greift ab diesem Senderwechsel).
+        String bp = U.prefs(this).getString("buf", "schnell");
+        if (player == null || !bp.equals(builtBuf)) { if (player != null) { player.release(); player = null; } initPlayer(); }
         retries = 0; reconnectTries = 0; h.removeCallbacks(reconnect);
         U.prefs(this).edit().putString("last", ch.id).apply();
         showBanner(ch);

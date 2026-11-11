@@ -1,6 +1,6 @@
 {
- "versionCode": 34,
- "versionName": "2.24",
+ "versionCode": 35,
+ "versionName": "2.25",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Schnelleres Umschalten: Start-Puffer von 700 auf 350 ms verkleinert, Puffer-Reserven knapper – das Bild kommt so früh wie vertretbar. Die restliche Umschaltzeit ist das Keyframe-Intervall des Streams selbst (2–4 s), das keine App entfernen kann."
+ "notes": "Puffer einstellbar: Neuer Bereich „Bild & Umschalten\" in den Einstellungen (Turbo / Schnell / Normal / Stabil). Kleinerer Puffer schaltet schneller um, größerer läuft ruckelfreier. Wirkt am Fernseher beim nächsten Senderwechsel."
 }

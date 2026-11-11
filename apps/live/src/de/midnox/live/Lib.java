@@ -27,7 +27,7 @@ final class Lib {
         try { for (Model.Source s : l) a.put(s.json()); } catch (Exception ignored) {}
         U.prefs(c).edit().putString("sources", a.toString()).apply();
     }
-    static Model.Source source(Context c, String id) { for (Model.Source s : sources(c)) if (s.id.equals(id)) return s; return null; }
+    static Model.Source source(Context c, String id) { for (Model.Source s : sources(c)) if (s.id.equals(id)) { String w = U.prefs(c).getString("work_" + s.id, ""); if (!w.isEmpty()) s.active = w; return s; } return null; }
     static File m3uFile(Context c, String id) { return new File(c.getFilesDir(), "m3u_" + id + ".m3u"); }
 
     // ------------------------------------------------------------ Laden
@@ -50,21 +50,39 @@ final class Lib {
             for (Model.Source s : sources(c)) {
                 if (!s.on) continue;
                 status = "Lade " + s.name + " …";
+                String work = U.prefs(c).getString("work_" + s.id, "");   // zuletzt funktionierender Ausweich-Server zuerst
+                if (!work.isEmpty()) s.active = work;
                 try {
-                    List<Model.Channel> l;
-                    if (s.type.equals("xtream")) l = Xtream.channels(s);
-                    else if (s.type.equals("stalker")) l = Stalker.channels(s);
-                    else {
-                        InputStream in = s.url.isEmpty() || s.url.startsWith("datei:") ? new FileInputStream(m3uFile(c, s.id)) : U.stream(s.url, null, 60000);
-                        M3u.Result r = M3u.parse(new BufferedReader(new InputStreamReader(in, "UTF-8"), 65536), s.id);
-                        in.close();
-                        l = r.channels;
-                        Vod.saveM3u(c, s.id, r.vod);
-                        U.prefs(c).edit().putString("epg_auto_" + s.id, r.epg).apply();
+                    // Bei Stalker probiert die Sitzung die Ausweich-Server selbst; sonst hier der Reihe nach.
+                    boolean local = s.url.isEmpty() || s.url.startsWith("datei:");
+                    List<String> cands = (s.type.equals("stalker") || local) ? java.util.Arrays.asList(s.activeUrl()) : s.candidates();
+                    List<Model.Channel> l = null; Exception last = null;
+                    for (int ci = 0; ci < cands.size(); ci++) {
+                        s.active = cands.get(ci);
+                        if (cands.size() > 1) status = "Lade " + s.name + (ci > 0 ? " · Ausweich-Server " + (ci + 1) : "") + " …";
+                        try {
+                            List<Model.Channel> r;
+                            if (s.type.equals("xtream")) r = Xtream.channels(s);
+                            else if (s.type.equals("stalker")) r = Stalker.channels(s);
+                            else {
+                                InputStream in = local ? new FileInputStream(m3uFile(c, s.id)) : U.stream(s.active, null, 60000);
+                                M3u.Result res = M3u.parse(new BufferedReader(new InputStreamReader(in, "UTF-8"), 65536), s.id);
+                                in.close();
+                                r = res.channels;
+                                Vod.saveM3u(c, s.id, res.vod);
+                                U.prefs(c).edit().putString("epg_auto_" + s.id, res.epg).apply();
+                            }
+                            if (r.isEmpty() && !(s.type.equals("m3u") && Vod.m3uFile(c, s.id).length() > 5)) throw new Exception("keine Sender gefunden");
+                            l = r; last = null; break;
+                        } catch (Exception e) { last = e; }
                     }
-                    if (l.isEmpty() && !(s.type.equals("m3u") && Vod.m3uFile(c, s.id).length() > 5)) throw new Exception("keine Sender gefunden");
+                    if (l == null) throw last != null ? last : new Exception("nicht erreichbar");
                     all.addAll(l);
                     errors.remove(s.id);
+                    // Ausweich-Server aktiv? merken, damit der nächste Lauf dort beginnt.
+                    if (s.active != null && !s.active.equals(s.url) && !s.active.isEmpty() && !s.active.startsWith("datei:"))
+                        U.prefs(c).edit().putString("work_" + s.id, s.active).apply();
+                    else U.prefs(c).edit().remove("work_" + s.id).apply();
                 } catch (Exception e) {
                     errors.put(s.id, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
                     // alte Sender dieser Quelle behalten

@@ -1,6 +1,6 @@
 {
- "versionCode": 32,
- "versionName": "2.22",
+ "versionCode": 33,
+ "versionName": "2.23",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Sport-Tab verbessert: zeigt jetzt den kommenden Spieltag mit Datum/Uhrzeit (\"Als Nächstes\"), nicht nur abgeschlossene Spiele. Live-Ergebnisse aktualisieren sich automatisch, sobald Spiele laufen. Bundesliga, 2./3. Liga, DFB-Pokal, Champions League und \"Meine Teams\"."
+ "notes": "Ausweich-URLs & Auto-Reconnect: Zu jeder Quelle lassen sich jetzt Ausweich-Adressen hinterlegen (M3U-Liste, Xtream-Server, Stalker-Portal). Fällt der Hauptserver aus, schaltet midnox Live beim Laden automatisch auf die erste erreichbare um und merkt sie sich. Bricht ein laufender Sender ganz weg, versucht die App danach dauerhaft im Hintergrund weiter (10/20/30 s) und erholt sich von selbst, sobald die Quelle zurück ist."
 }

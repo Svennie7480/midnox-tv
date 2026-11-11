@@ -120,7 +120,7 @@ final class Stalker {
         Session s = sessions.get(sk);
         if (s != null && !fresh && System.currentTimeMillis() - s.since < 3 * 3600000L) return s;
         Exception last = null;
-        for (String api : apis(src.url)) {
+        for (String cand : src.candidates()) for (String api : apis(cand)) {
             try {
                 Session n = new Session();
                 n.api = api; n.mac = theMac;
@@ -137,6 +137,7 @@ final class Stalker {
                 if (js != null && js.has("block_msg") && js.optString("block_msg").length() > 0) throw new Exception(js.optString("block_msg"));
                 n.since = System.currentTimeMillis(); n.profile = js;
                 sessions.put(sk, n);
+                src.active = cand;   // funktionierenden (Ausweich-)Server merken
                 return n;
             } catch (Exception e) { last = e; }
         }

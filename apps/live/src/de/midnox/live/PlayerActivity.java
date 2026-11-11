@@ -310,7 +310,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
                 if (vodMode) { vodState(st); return; }
                 h.removeCallbacks(stallWatch);
                 if (st == Player.STATE_BUFFERING) { if (!tryMsg) showStatus("Lädt …", 0); h.postDelayed(stallWatch, everReady ? 25000 : 15000); }
-                else if (st == Player.STATE_READY) { hideStatus(); tryMsg = false; retries = 0; everReady = true; updateBadge(); succeeded(); }
+                else if (st == Player.STATE_READY) { hideStatus(); tryMsg = false; retries = 0; reconnectTries = 0; h.removeCallbacks(reconnect); everReady = true; updateBadge(); succeeded(); }
                 else if (st == Player.STATE_ENDED && current != null) h.postDelayed(new Runnable() { public void run() { if (current != null) runTry(); } }, 1500);
             }
             @Override public void onPlayerError(PlaybackException e) {
@@ -370,7 +370,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         }
         if (current != null && !current.id.equals(ch.id)) previous = current;
         current = ch;
-        retries = 0;
+        retries = 0; reconnectTries = 0; h.removeCallbacks(reconnect);
         U.prefs(this).edit().putString("last", ch.id).apply();
         showBanner(ch);
         buildPlan(ch);
@@ -383,6 +383,13 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     static final class Try { Model.Channel ch; int mac = -1, macs; String label = ""; }
     final List<Try> plan = new ArrayList<>();
     int planPos; boolean everReady, tryMsg; String lastError = "";
+    int reconnectTries;
+    // Dauerhafter Auto-Reconnect: sind alle Wege erschöpft, später den ganzen Plan neu probieren – erholt sich selbst, wenn Netz/Quelle zurückkommt.
+    final Runnable reconnect = new Runnable() { public void run() {
+        if (current == null || player == null) return;
+        buildPlan(current);   // Quellen neu bewerten (evtl. wieder erreichbar)
+        runTry();
+    }};
 
     void buildPlan(Model.Channel ch) {
         plan.clear(); planPos = 0; everReady = false; tryMsg = false;
@@ -416,7 +423,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (planPos >= plan.size()) {
             tryMsg = false;
             String what = plan.size() > 1 ? " – alle " + plan.size() + " Wege probiert" : "";
-            showStatus("„" + current.name + "“ lässt sich gerade nicht abspielen" + what + (lastError.isEmpty() ? "" : " (" + lastError + ")"), 0);
+            long wait = Math.min(30000L, 10000L + reconnectTries * 10000L);   // 10 s, 20 s, dann alle 30 s
+            reconnectTries++;
+            showStatus("„" + current.name + "“ läuft gerade nicht" + what + (lastError.isEmpty() ? "" : " (" + lastError + ")") + " – neuer Versuch in " + (wait / 1000) + " s …", 0);
+            h.removeCallbacks(reconnect);
+            h.postDelayed(reconnect, wait);
             return;
         }
         runTry();
@@ -425,7 +436,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (player != null && player.getPlaybackState() == Player.STATE_BUFFERING && current != null) { lastError = "kein Bild"; if (everReady && retries++ < 1) runTry(); else failNext(); }
     }};
     void runTry() {
-        if (current == null || plan.isEmpty()) return;
+        if (current == null || plan.isEmpty() || player == null) return;
         if (planPos >= plan.size()) planPos = 0;
         final Try t = plan.get(planPos);
         final Model.Channel ch = current;
@@ -1257,6 +1268,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     @Override protected void onStart() { super.onStart(); if (player == null) { initPlayer(); if (current != null) start(current, false); } }
     @Override protected void onStop() {
         super.onStop();
+        h.removeCallbacks(reconnect); h.removeCallbacks(stallWatch);
         if (vodMode) { saveVodPos(); vodMode = false; vodOsd.setVisibility(View.GONE); library.setVisibility(View.VISIBLE); }
         if (player != null) { player.release(); player = null; }
     }

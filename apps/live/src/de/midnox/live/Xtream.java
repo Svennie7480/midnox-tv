@@ -6,7 +6,7 @@ import java.util.*;
 /** Xtream-Codes-Server (player_api.php). */
 final class Xtream {
     static String base(Model.Source s) {
-        String u = s.url.trim().replaceAll("/+$", "");
+        String u = s.activeUrl().trim().replaceAll("/+$", "");
         if (!u.matches("(?i)^https?://.*")) u = "http://" + u;
         return u.replaceAll("(?i)/(player_api\\.php|get\\.php|c)$", "");
     }

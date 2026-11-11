@@ -1,6 +1,6 @@
 {
- "versionCode": 31,
- "versionName": "2.21",
+ "versionCode": 32,
+ "versionName": "2.22",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Blitz-Zapping: Sender starten spürbar schneller (Wiedergabe beginnt nach ~0,7 s statt ~2,5 s Puffer), tote Quellen geben schneller auf. Dazu der neue Sport-Tab mit Spielplan und Live-Ergebnissen."
+ "notes": "Sport-Tab verbessert: zeigt jetzt den kommenden Spieltag mit Datum/Uhrzeit (\"Als Nächstes\"), nicht nur abgeschlossene Spiele. Live-Ergebnisse aktualisieren sich automatisch, sobald Spiele laufen. Bundesliga, 2./3. Liga, DFB-Pokal, Champions League und \"Meine Teams\"."
 }

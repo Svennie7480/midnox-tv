@@ -65,16 +65,34 @@ const LEAGUES=[
 ];
 const AGG=['bl1','bl2','bl3','dfb','ucl'];   // Quellen für Live/Heute/Favoriten
 const API='https://api.openligadb.de/getmatchdata/';
-let cache={}, cacheAt={}, leagueIdx=1, matches=[], sel=0, pollTimer=0;
+let cache={}, cacheAt={}, leagueIdx=1, matches=[], sel=0, pollTimer=0, curTitle='';
+const SEASON_TTL=300000;
 let follow=load('favTeams',[]);
 function load(k,d){ try{ return JSON.parse(localStorage.getItem(k))||d; }catch(e){ return d; } }
 function save(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 function esc(s){ return (s+'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-// --- Daten ---
-async function fetchLeague(id){ if(cache[id] && Date.now()-cacheAt[id]<25000) return cache[id];
-  try{ const r=await fetch(API+id); const j=await r.json(); cache[id]=Array.isArray(j)?j:[]; cacheAt[id]=Date.now(); return cache[id]; }
-  catch(e){ return cache[id]||[]; } }
+// --- Daten (volle Saison, damit auch kommende Spiele erscheinen) ---
+async function fetchSeason(id){ if(cache[id] && Date.now()-cacheAt[id]<SEASON_TTL) return cache[id];
+  try{
+    const bare=await (await fetch(API+id)).json();
+    const season=(Array.isArray(bare)&&bare[0]&&bare[0].leagueSeason)||new Date().getFullYear();
+    let full=await (await fetch(API+id+'/'+season)).json();
+    if(!Array.isArray(full)||!full.length) full=Array.isArray(bare)?bare:[];
+    full.forEach(m=>m._lg=id);
+    cache[id]=full; cacheAt[id]=Date.now(); return full;
+  }catch(e){ return cache[id]||[]; } }
+function groupId(m){ return (m.group||{}).groupOrderID||0; }
+function isToday(m){ const t=new Date(m.matchDateTimeUTC||m.matchDateTime); return t.toDateString()===new Date().toDateString(); }
+// Spiele des relevanten Spieltags: der nächste kommende (bzw. live/heute), sonst der letzte
+function activeMatches(ms){ if(!ms.length) return [];
+  const now=Date.now();
+  const liveToday=ms.filter(m=>liveState(m)===1||isToday(m));
+  let gid;
+  if(liveToday.length) gid=Math.min.apply(null,liveToday.map(groupId));
+  else { const up=ms.filter(m=>new Date(m.matchDateTimeUTC||m.matchDateTime).getTime()>now); gid=up.length?Math.min.apply(null,up.map(groupId)):Math.max.apply(null,ms.map(groupId)); }
+  return ms.filter(m=>groupId(m)===gid).sort((a,b)=>new Date(a.matchDateTimeUTC||a.matchDateTime)-new Date(b.matchDateTimeUTC||b.matchDateTime));
+}
 function liveState(m){ // 0=kommend,1=live,2=beendet
   if(m.matchIsFinished) return 2;
   const t=new Date(m.matchDateTimeUTC||m.matchDateTime).getTime();
@@ -90,16 +108,31 @@ function scoreOf(m){ // [a,b] oder null
 function isFav(name){ return follow.indexOf(name)>=0; }
 function toggleFav(name){ const i=follow.indexOf(name); if(i>=0) follow.splice(i,1); else follow.push(name); save('favTeams',follow); }
 
+const byDate=(a,b)=> new Date(a.matchDateTimeUTC||a.matchDateTime)-new Date(b.matchDateTimeUTC||b.matchDateTime);
+let loadSeq=0;
 async function loadView(){
+  const myseq=++loadSeq;
   const lg=LEAGUES[leagueIdx]; $('list').innerHTML='<div class="load">Lade…</div>';
-  let ms=[];
+  let ms=[], title=''; const now=Date.now();
   if(lg.id==='live'||lg.id==='fav'){
-    const all=[]; for(const id of AGG){ const d=await fetchLeague(id); d.forEach(m=>{m._lg=id;}); all.push(...d); }
-    if(lg.id==='live') ms=all.filter(m=>{ const s=liveState(m); if(s===1) return true; const t=new Date(m.matchDateTimeUTC||m.matchDateTime); const n=new Date(); return t.toDateString()===n.toDateString(); });
-    else ms=all.filter(m=> isFav((m.team1||{}).teamName)||isFav((m.team2||{}).teamName) );
-    ms.sort((a,b)=> new Date(a.matchDateTimeUTC||a.matchDateTime)-new Date(b.matchDateTimeUTC||b.matchDateTime));
-  } else { ms=await fetchLeague(lg.id); }
-  matches=ms; sel=Math.min(sel, Math.max(0,ms.length-1)); render(); schedulePoll();
+    let all=[]; for(const id of AGG){ all=all.concat(await fetchSeason(id)); }
+    if(lg.id==='live'){
+      let cur=all.filter(m=>liveState(m)===1||isToday(m));
+      if(cur.length){ title='Live & Heute'; }
+      else { for(const id of AGG){ activeMatches(all.filter(m=>m._lg===id)).forEach(m=>{ if(new Date(m.matchDateTimeUTC||m.matchDateTime).getTime()>now) cur.push(m); }); } title='Als Nächstes'; }
+      ms=cur.sort(byDate).slice(0,30);
+    } else {
+      const fav=all.filter(m=> isFav((m.team1||{}).teamName)||isFav((m.team2||{}).teamName) ).sort(byDate);
+      ms=fav.filter(m=>{ const t=new Date(m.matchDateTimeUTC||m.matchDateTime).getTime(); return liveState(m)===1 || t>now || (now-t)<4*86400000; });
+      if(!ms.length) ms=fav.slice(-6);
+      title='Meine Teams';
+    }
+  } else {
+    const full=await fetchSeason(lg.id); ms=activeMatches(full);
+    title=(ms[0]&&ms[0].group&&ms[0].group.groupName)||'';
+  }
+  if(myseq!==loadSeq) return;   // eine neuere Ansicht hat bereits übernommen
+  matches=ms; curTitle=title; sel=Math.min(sel, Math.max(0,ms.length-1)); render(); schedulePoll();
 }
 function fmtDay(d){ const days=['So','Mo','Di','Mi','Do','Fr','Sa']; return days[d.getDay()]+' '+d.getDate()+'.'+(d.getMonth()+1)+'.'; }
 function fmtTime(d){ return (''+d.getHours()).padStart(2,'0')+':'+(''+d.getMinutes()).padStart(2,'0'); }
@@ -107,6 +140,7 @@ function render(){
   const list=$('list');
   if(!matches.length){ list.innerHTML='<div class="empty">'+(LEAGUES[leagueIdx].id==='fav'?'Noch keine Teams gefolgt.<br>Öffne ein Spiel mit OK und wähle „★ Team folgen".':(LEAGUES[leagueIdx].id==='live'?'Gerade keine Spiele live oder heute.':'Keine Spiele gefunden.'))+'</div>'; return; }
   list.innerHTML=''; let lastDay='';
+  if(curTitle){ const h=document.createElement('div'); h.className='day'; h.style.color='#a78bfa'; h.style.fontSize='2.4vh'; h.textContent=curTitle; list.appendChild(h); }
   matches.forEach((m,i)=>{
     const dt=new Date(m.matchDateTimeUTC||m.matchDateTime); const day=fmtDay(dt);
     if(day!==lastDay){ lastDay=day; const h=document.createElement('div'); h.className='day'; h.textContent=day; list.appendChild(h); }
@@ -133,7 +167,7 @@ function renderTabs(){
 }
 
 // --- Live-Poll ---
-function schedulePoll(){ clearTimeout(pollTimer); const anyLive=matches.some(m=>liveState(m)===1); if(anyLive){ pollTimer=setTimeout(async()=>{ const lg=LEAGUES[leagueIdx]; if(lg.id==='live'||lg.id==='fav'){ for(const id of AGG){ cacheAt[id]=0; } } else cacheAt[lg.id]=0; await loadView(); },30000); } }
+function schedulePoll(){ clearTimeout(pollTimer); const liveLg=[...new Set(matches.filter(m=>liveState(m)===1).map(m=>m._lg||LEAGUES[leagueIdx].id))]; if(liveLg.length){ pollTimer=setTimeout(async()=>{ liveLg.forEach(id=>{ cacheAt[id]=0; }); await loadView(); },40000); } }
 
 // --- Aktions-Popup ---
 let popItems=[], popIdx=0, popOpen=false;

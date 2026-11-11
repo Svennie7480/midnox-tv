@@ -13,6 +13,7 @@ import android.webkit.*;
 import androidx.media3.common.*;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.DefaultLoadControl;
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import androidx.media3.exoplayer.source.MediaSource;
 import java.util.*;
@@ -297,7 +298,12 @@ public class PlayerActivity extends Activity implements Views.ListCb {
 
     // ------------------------------------------------------------ Player
     void initPlayer() {
-        player = new ExoPlayer.Builder(this).build();
+        // Blitz-Zapping: früher Wiedergabestart (nach ~0,7 s statt Default ~2,5 s), Zeit vor Größe
+        DefaultLoadControl lc = new DefaultLoadControl.Builder()
+            .setBufferDurationsMs(2500, 30000, 700, 1500)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build();
+        player = new ExoPlayer.Builder(this).setLoadControl(lc).build();
         player.setVideoSurfaceView(surface);
         player.addListener(new Player.Listener() {
             @Override public void onPlaybackStateChanged(int st) {
@@ -462,7 +468,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         DefaultHttpDataSource.Factory ds = new DefaultHttpDataSource.Factory()
             .setUserAgent(ua != null ? ua : U.UA)
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(10000).setReadTimeoutMs(15000);
+            .setConnectTimeoutMs(6000).setReadTimeoutMs(15000);
         if (!ch.referer.isEmpty()) { Map<String, String> hd = new HashMap<>(); hd.put("Referer", ch.referer); ds.setDefaultRequestProperties(hd); }
         MediaItem.Builder mi = new MediaItem.Builder().setUri(url);
         String lu = url.toLowerCase(Locale.ROOT);

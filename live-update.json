@@ -1,6 +1,6 @@
 {
- "versionCode": 30,
- "versionName": "2.20",
+ "versionCode": 31,
+ "versionName": "2.21",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Neu: Sport-Tab! Spielplan und Live-Ergebnisse direkt in der App – Fußball aus Bundesliga, 2. und 3. Liga, DFB-Pokal und Champions League. Teams folgen, „Live & Heute\" auf einen Blick, und per OK „auf TV suchen\"."
+ "notes": "Blitz-Zapping: Sender starten spürbar schneller (Wiedergabe beginnt nach ~0,7 s statt ~2,5 s Puffer), tote Quellen geben schneller auf. Dazu der neue Sport-Tab mit Spielplan und Live-Ergebnissen."
 }

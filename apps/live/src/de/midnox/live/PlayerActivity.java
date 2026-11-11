@@ -383,15 +383,24 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         }
         if (current != null && !current.id.equals(ch.id)) previous = current;
         current = ch;
+        long _t0 = System.nanoTime();
         // Puffer-Einstellung geändert? Player mit neuen Werten neu aufbauen (greift ab diesem Senderwechsel).
         String bp = U.prefs(this).getString("buf", "schnell");
         if (player == null || !bp.equals(builtBuf)) { if (player != null) { player.release(); player = null; } initPlayer(); }
+        long _t1 = System.nanoTime();
         retries = 0; reconnectTries = 0; h.removeCallbacks(reconnect);
         U.prefs(this).edit().putString("last", ch.id).apply();
         showBanner(ch);
+        long _t2 = System.nanoTime();
         buildPlan(ch);
+        long _t3 = System.nanoTime();
         runTry();
+        long _t4 = System.nanoTime();
         Epg.ensureShort(this, ch, new Runnable() { public void run() { banner.invalidate(); } });
+        if (U.prefs(this).getBoolean("diag", false)) {
+            long ms = 1000000L;
+            toast("⏱ buf=" + (_t1 - _t0) / ms + " banner=" + (_t2 - _t1) / ms + " plan=" + (_t3 - _t2) / ms + " try=" + (_t4 - _t3) / ms + " ms");
+        }
     }
     void start(Model.Channel ch, boolean retry) { runTry(); }
 

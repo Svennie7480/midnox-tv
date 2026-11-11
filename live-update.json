@@ -1,6 +1,6 @@
 {
- "versionCode": 35,
- "versionName": "2.25",
+ "versionCode": 36,
+ "versionName": "2.26",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Puffer einstellbar: Neuer Bereich „Bild & Umschalten\" in den Einstellungen (Turbo / Schnell / Normal / Stabil). Kleinerer Puffer schaltet schneller um, größerer läuft ruckelfreier. Wirkt am Fernseher beim nächsten Senderwechsel."
+ "notes": "Diagnose-Schalter für die Umschaltzeit: In den Einstellungen unter „Bild & Umschalten\" aktivierbar; zeigt beim Senderwechsel kurz die gemessenen Zeiten am Fernseher, um die 4-Sekunden-Verzögerung einzugrenzen."
 }

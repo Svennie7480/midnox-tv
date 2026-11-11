@@ -15,6 +15,9 @@ final class Lib {
     static volatile boolean loading;
     static volatile String status = "";
     static volatile Map<String, String> srcNames = new HashMap<>();   // Quelle-ID -> Name (fuer die Anzeige)
+    static volatile Map<String, Model.Channel> byIdMap = new HashMap<>();              // schneller Zugriff per ID
+    static volatile Map<String, List<Model.Channel>> byName = new HashMap<>();         // normalisierter Name -> Sender (fuer Ausweich gleichnamig)
+    static volatile int nameGen;                                                       // zaehlt Listen-Versionen fuer den Hintergrund-Index
 
     // ------------------------------------------------------------ Quellen
     static List<Model.Source> sources(Context c) {
@@ -116,6 +119,21 @@ final class Lib {
         for (Model.Channel ch : vis) if (ch.num > 0) { numbered = true; break; }
         if (!numbered) for (Model.Channel ch : vis) ch.num = ++n;
         channels = vis;
+        // Schneller ID-Zugriff sofort (billig, keine Regex) – wird synchron auch im Start-Thread gebraucht.
+        Map<String, Model.Channel> bi = new HashMap<>();
+        for (Model.Channel ch : vis) bi.put(ch.id, ch);
+        byIdMap = bi;
+        // Teuren Namens-Index (U.norm je Sender) im Hintergrund bauen, damit Start/Umschalten nicht blockieren.
+        final List<Model.Channel> fvis = vis; final int gen = ++nameGen;
+        new Thread(new Runnable() { public void run() {
+            Map<String, List<Model.Channel>> bn = new HashMap<>();
+            for (Model.Channel ch : fvis) {
+                if (gen != nameGen) return;   // neuere Liste da – Aufbau abbrechen
+                String nm = U.norm(ch.name);
+                List<Model.Channel> l = bn.get(nm); if (l == null) { l = new ArrayList<>(); bn.put(nm, l); } l.add(ch);
+            }
+            if (gen == nameGen) byName = bn;
+        }}).start();
         clearDedup();   // Cache für zusammengefasste Sender verwerfen, Liste hat sich geändert
         List<String> g = new ArrayList<>();
         g.add(FAV); g.add(ALL); g.addAll(ordered(gs, grpOrder(c))); g.add(MANAGE); g.add(SETTINGS);   // Filme & Serien sind jetzt eine eigene Rubrik oben
@@ -272,7 +290,12 @@ final class Lib {
         for (Model.Channel ch : l) { String k = U.norm(ch.name); if (k.isEmpty() || seen.add(k)) out.add(ch); }
         return out;
     }
-    static Model.Channel byId(String id) { for (Model.Channel ch : channels) if (ch.id.equals(id)) return ch; return null; }
+    static Model.Channel byId(String id) { return byIdMap.get(id); }
+    /** Gleichnamige Sender (für den Ausweich auf eine andere Quelle) – vorberechneter Index, sonst leer. */
+    static List<Model.Channel> sameName(Model.Channel ch) {
+        List<Model.Channel> l = byName.get(U.norm(ch.name));
+        return l == null ? Collections.<Model.Channel>emptyList() : l;
+    }
     static Model.Channel byNum(int n) { for (Model.Channel ch : channels) if (ch.num == n) return ch; return null; }
     /** Fuer den Launcher: Sender per EPG-Kennung ("RTL.de"), direkt oder ueber die EPG-Zuordnung; HD bevorzugt. */
     static Model.Channel byTvg(String tvg) {

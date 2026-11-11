@@ -421,10 +421,9 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         addTries(ch);
         // eigene Zuordnung (am PC festgelegt), in der dort gewaehlten Reihenfolge
         for (Model.Channel o : Mapping.alternatives(this, ch)) if (plan.size() < 24) addTries(o);
-        // derselbe Sender aus anderen Quellen (gleicher Name)
+        // derselbe Sender aus anderen Quellen (gleicher Name) – über den vorberechneten Index statt Komplett-Scan
         if (U.prefs(this).getBoolean("fallback", true)) {
-            String n = U.norm(ch.name);
-            for (Model.Channel o : Lib.channels) if (!o.id.equals(ch.id) && !o.src.equals(ch.src) && U.norm(o.name).equals(n) && plan.size() < 24 && !planned(o)) addTries(o);
+            for (Model.Channel o : Lib.sameName(ch)) if (!o.id.equals(ch.id) && !o.src.equals(ch.src) && plan.size() < 24 && !planned(o)) addTries(o);
         }
     }
     boolean planned(Model.Channel o) { for (Try t : plan) if (t.ch.id.equals(o.id)) return true; return false; }

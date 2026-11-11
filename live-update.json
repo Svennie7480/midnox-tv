@@ -1,6 +1,6 @@
 {
- "versionCode": 36,
- "versionName": "2.26",
+ "versionCode": 37,
+ "versionName": "2.27",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Diagnose-Schalter für die Umschaltzeit: In den Einstellungen unter „Bild & Umschalten\" aktivierbar; zeigt beim Senderwechsel kurz die gemessenen Zeiten am Fernseher, um die 4-Sekunden-Verzögerung einzugrenzen."
+ "notes": "Umschalten endlich schnell: Die Ausweich-Liste wird nicht mehr bei jedem Senderwechsel aus der kompletten Senderliste berechnet (das kostete bei großen Listen ~2,5 s), sondern einmal im Hintergrund als Index. Senderwechsel reagiert jetzt sofort."
 }

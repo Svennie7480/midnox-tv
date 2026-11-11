@@ -298,9 +298,11 @@ public class PlayerActivity extends Activity implements Views.ListCb {
 
     // ------------------------------------------------------------ Player
     void initPlayer() {
-        // Blitz-Zapping: früher Wiedergabestart (nach ~0,7 s statt Default ~2,5 s), Zeit vor Größe
+        // Blitz-Zapping: so früh wie vertretbar starten (nach ~0,35 s statt Default ~2,5 s), Zeit vor Größe.
+        // Das Bild kommt trotzdem erst mit dem nächsten Keyframe des Streams (sender­seitig alle 2–4 s) –
+        // der Start-Puffer ist der Teil, den die App steuert, und der ist hier bewusst knapp gehalten.
         DefaultLoadControl lc = new DefaultLoadControl.Builder()
-            .setBufferDurationsMs(2500, 30000, 700, 1500)
+            .setBufferDurationsMs(1500, 30000, 350, 800)
             .setPrioritizeTimeOverSizeThresholds(true)
             .build();
         player = new ExoPlayer.Builder(this).setLoadControl(lc).build();

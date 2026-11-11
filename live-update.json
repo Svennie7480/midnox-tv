@@ -1,6 +1,6 @@
 {
- "versionCode": 33,
- "versionName": "2.23",
+ "versionCode": 34,
+ "versionName": "2.24",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Ausweich-URLs & Auto-Reconnect: Zu jeder Quelle lassen sich jetzt Ausweich-Adressen hinterlegen (M3U-Liste, Xtream-Server, Stalker-Portal). Fällt der Hauptserver aus, schaltet midnox Live beim Laden automatisch auf die erste erreichbare um und merkt sie sich. Bricht ein laufender Sender ganz weg, versucht die App danach dauerhaft im Hintergrund weiter (10/20/30 s) und erholt sich von selbst, sobald die Quelle zurück ist."
+ "notes": "Schnelleres Umschalten: Start-Puffer von 700 auf 350 ms verkleinert, Puffer-Reserven knapper – das Bild kommt so früh wie vertretbar. Die restliche Umschaltzeit ist das Keyframe-Intervall des Streams selbst (2–4 s), das keine App entfernen kann."
 }

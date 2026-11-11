@@ -9,6 +9,7 @@ import android.text.InputType;
 import org.json.*;
 import android.view.*;
 import android.widget.*;
+import android.webkit.*;
 import androidx.media3.common.*;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -29,6 +30,7 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     Views.Banner banner;
     Views.Guide guide;
     Views.Menu menu;
+    WebView sportWeb;
     TextView status, numEntry;
     LinearLayout setup;
     Model.Channel current, previous;
@@ -61,6 +63,15 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         root.addView(vodOsd, new FrameLayout.LayoutParams(-1, -1));
         library = new Library(this, libCb); library.setVisibility(View.GONE);
         root.addView(library, new FrameLayout.LayoutParams(-1, -1));
+        sportWeb = new WebView(this);
+        sportWeb.getSettings().setJavaScriptEnabled(true);
+        sportWeb.getSettings().setDomStorageEnabled(true);
+        sportWeb.setBackgroundColor(0xFF0B0A14);
+        sportWeb.setWebViewClient(new WebViewClient());
+        sportWeb.addJavascriptInterface(new SportBridge(), "Android");
+        sportWeb.setVisibility(View.GONE);
+        sportWeb.loadUrl("file:///android_asset/sport.html");
+        root.addView(sportWeb, new FrameLayout.LayoutParams(-1, -1));
         root.addView(menu, new FrameLayout.LayoutParams(-1, -1));
         status = U.text(this, "", 16, Color.WHITE);
         status.setPadding(U.px(18), U.px(10), U.px(18), U.px(10));
@@ -477,6 +488,29 @@ public class PlayerActivity extends Activity implements Views.ListCb {
         if (player != null) player.stop();
         hideStatus();
         library.openTab(tab);
+    }
+    @Override public void sport() {
+        closeList();
+        banner.setVisibility(View.GONE); menu.setVisibility(View.GONE); guide.setVisibility(View.GONE);
+        if (player != null) player.setPlayWhenReady(false);
+        hideStatus();
+        sportWeb.setVisibility(View.VISIBLE); sportWeb.bringToFront(); sportWeb.requestFocus();
+    }
+    void closeSport() {
+        sportWeb.setVisibility(View.GONE);
+        if (player != null) player.setPlayWhenReady(true);
+        banner.setVisibility(View.GONE);
+        list.setVisibility(View.VISIBLE); list.requestFocus();
+    }
+    final class SportBridge {
+        @JavascriptInterface public void exitHub() { h.post(new Runnable() { public void run() { closeSport(); } }); }
+        @JavascriptInterface public void findOnTv(final String t1, final String t2, final String comp) {
+            h.post(new Runnable() { public void run() {
+                sportWeb.setVisibility(View.GONE);
+                if (player != null) player.setPlayWhenReady(true);
+                doSearch(t1 != null && t1.length() > 0 ? t1 : comp);
+            } });
+        }
     }
     @Override public void searchVod(String q) { closeList(); openLibrary(); library.search(q); }
     @Override public void search() {
@@ -901,6 +935,22 @@ public class PlayerActivity extends Activity implements Views.ListCb {
     boolean okDown, okLong;
     @Override public boolean dispatchKeyEvent(KeyEvent e) {
         int k = e.getKeyCode();
+        // Sport-Hub (WebView) offen: Fernbedienung an die Seite weiterreichen
+        if (sportWeb != null && sportWeb.getVisibility() == View.VISIBLE) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN) {
+                String sk = null;
+                switch (k) {
+                    case KeyEvent.KEYCODE_DPAD_UP: sk = "up"; break;
+                    case KeyEvent.KEYCODE_DPAD_DOWN: sk = "down"; break;
+                    case KeyEvent.KEYCODE_DPAD_LEFT: sk = "left"; break;
+                    case KeyEvent.KEYCODE_DPAD_RIGHT: sk = "right"; break;
+                    case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_BUTTON_A: sk = "ok"; break;
+                    case KeyEvent.KEYCODE_BACK: sk = "back"; break;
+                }
+                if (sk != null) sportWeb.evaluateJavascript("SPORT.key('" + sk + "')", null);
+            }
+            return true;
+        }
         // OK lange druecken = Optionen (nur in Senderliste und Mediathek); kurzes OK wird dann beim Loslassen ausgefuehrt
         boolean okKey = k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER;
         boolean optView = menu.getVisibility() != View.VISIBLE && !vodMode && (library.getVisibility() == View.VISIBLE || (list.getVisibility() == View.VISIBLE && guide.getVisibility() != View.VISIBLE));

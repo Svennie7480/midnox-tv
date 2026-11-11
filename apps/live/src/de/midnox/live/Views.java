@@ -65,7 +65,7 @@ final class Views {
     }
 
     // ============================================================ Senderliste
-    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void library(int tab); void search(); void searchVod(String q); void manageGroups(); void toast(String s); void groupOptions(String g); void channelOptions(Model.Channel ch); }
+    interface ListCb { void play(Model.Channel ch); void guide(Model.Channel ch); void fav(Model.Channel ch); void settings(); void library(); void library(int tab); void search(); void searchVod(String q); void manageGroups(); void toast(String s); void groupOptions(String g); void channelOptions(Model.Channel ch); void sport(); }
 
     static final class ListPanel extends View {
         final ListCb cb;
@@ -75,7 +75,7 @@ final class Views {
         List<Model.Channel> chans = new ArrayList<>();
         int gi, ci, gTop, cTop, col = 1;
         String playingId;
-        static final String[] TABS = {"\uD83D\uDCFA  Live-TV", "\uD83C\uDFAC  Filme", "\uD83C\uDF9E  Serien", "\uD83D\uDD0D  Suche"};
+        static final String[] TABS = {"\uD83D\uDCFA  Live-TV", "\uD83C\uDFAC  Filme", "\uD83C\uDF9E  Serien", "\uD83D\uDD0D  Suche", "\u26BD  Sport"};
         static final String SVOD = "\uD83C\uDFAC Filme & Serien  \u203A";   // Ergebnis-Rubrik in der Suche
         int tab = 0; boolean onTabs; String query = "";
         boolean searchMode() { return Lib.searchGroup != null && !groups.isEmpty() && groups.get(0).equals(Lib.searchGroup); }
@@ -161,7 +161,8 @@ final class Views {
             if (tab == 0) { onTabs = false; if (searchMode()) { groups = new ArrayList<>(Lib.groups); gi = Math.max(0, groups.indexOf(Lib.ALL)); loadGroup(); } col = chans.isEmpty() ? 0 : 1; invalidate(); }
             else if (tab == 1) cb.library(0);
             else if (tab == 2) cb.library(1);
-            else cb.search();
+            else if (tab == 3) cb.search();
+            else cb.sport();
         }
         /** Touch: Gruppe oder Sender antippen. false = ausserhalb der Liste. */
         boolean tap(float x, float y) {

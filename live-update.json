@@ -1,6 +1,6 @@
 {
- "versionCode": 29,
- "versionName": "2.19",
+ "versionCode": 30,
+ "versionName": "2.20",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Gruppen verwalten jetzt nach Anbieter gebündelt: pro Portal „Alle aus\" und „Alle an\" – so kann man alles ausblenden und nur die paar gewünschten Gruppen anschalten. Gilt auch auf der Einrichtungsseite (Handy/PC)."
+ "notes": "Neu: Sport-Tab! Spielplan und Live-Ergebnisse direkt in der App – Fußball aus Bundesliga, 2. und 3. Liga, DFB-Pokal und Champions League. Teams folgen, „Live & Heute\" auf einen Blick, und per OK „auf TV suchen\"."
 }

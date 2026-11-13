@@ -1,0 +1,152 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>midnox Kartentisch</title>
+<style>
+  :root{--bg:#0B0A14;--card:#17162a;--line:#2a2840;--mut:#9aa0c0;--me:#7C3AED;--gold:#FACC15}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui,sans-serif;overscroll-behavior:none}
+  body{display:flex;flex-direction:column;height:100dvh}
+  #top{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:14px;color:var(--mut);border-bottom:1px solid var(--line)}
+  #top .me{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:700;color:#fff}
+  #top .dot{width:12px;height:12px;border-radius:50%;background:var(--me)}
+  #chips{font-weight:800;color:var(--gold);margin-left:8px}
+  #app{flex:1;display:flex;flex-direction:column;min-height:0;padding:14px;gap:10px;overflow-y:auto}
+  h2{margin:0;font-size:22px;line-height:1.2}
+  .sub{color:var(--mut);font-size:15px;margin:0}
+  input{width:100%;background:#100f1c;border:2px solid var(--line);border-radius:14px;color:#fff;padding:16px;font-size:20px;outline:none}
+  input:focus{border-color:var(--me)}
+  .send{border:0;border-radius:14px;background:var(--me);color:#fff;font-size:20px;font-weight:800;padding:16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{border:2px solid var(--line);background:#100f1c;border-radius:999px;padding:10px 14px;font-size:24px}
+  .chip.on{border-color:#fff;background:#201a38}
+  .wait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;color:var(--mut)}
+  .wait .big-emoji{font-size:64px}
+  .turn h2{color:var(--gold)}
+  .tbar{height:6px;border-radius:3px;background:#2a2840;overflow:hidden}
+  .tbar>div{height:100%;background:linear-gradient(90deg,#a78bfa,#22d3ee);width:100%}
+  .board{display:flex;gap:5px;justify-content:center;font-size:13px;padding:8px;background:#0f3d2a;border-radius:14px;border:1px solid #1d5a40;min-height:70px;align-items:center}
+  .board .lbl{color:#9fd8bd;font-size:13px}
+  .hand{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-content:center;flex:1;min-height:120px;padding:6px 0}
+  .hand .card{transition:transform .08s}
+  .hand .card.tap:active{transform:translateY(-8px)}
+  .hand .card.tap{box-shadow:0 0 0 3px var(--gold),0 4px 14px #000a}
+  .stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:14px;color:var(--mut)}
+  .stat b{color:#fff;font-size:16px;margin-left:4px}
+  .btns{display:grid;gap:10px;grid-template-columns:1fr 1fr}
+  .btns.one{grid-template-columns:1fr}
+  button.act{border:0;border-radius:16px;color:#fff;font-size:19px;font-weight:800;padding:18px 10px;background:#2a2840}
+  button.act.pri{background:linear-gradient(135deg,#7C3AED,#3B5BF0)}
+  button.act.warn{background:#7f1d2e}
+  button.act.gold{background:linear-gradient(135deg,#d97706,#f59e0b);color:#1a1200}
+  button:active{transform:scale(.97)}
+  button:disabled{opacity:.4}
+  .raise{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .raise .pre{display:flex;gap:8px}
+  .raise .pre button{flex:1;border:1px solid var(--line);background:#100f1c;color:#fff;border-radius:10px;padding:10px 2px;font-size:14px;font-weight:700}
+  .raise .amt{display:flex;align-items:center;gap:10px}
+  .raise .amt button{width:56px;height:52px;border:0;border-radius:12px;background:#2a2840;color:#fff;font-size:26px;font-weight:800}
+  .raise .amt .v{flex:1;text-align:center;font-size:30px;font-weight:900;color:var(--gold)}
+  .suits{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .suits button{border:0;border-radius:18px;background:#fff;font-size:54px;padding:14px;line-height:1}
+  .note{text-align:center;color:var(--mut);font-size:14px}
+</style></head>
+<body>
+<div id="top"><span>midnox <b style="color:#fff">Kartentisch</b></span><span class="me" id="me"></span><span id="chips"></span></div>
+<div id="app"></div>
+<script src="/cards.js"></script>
+<script>
+CARDS.injectCss();
+const app=document.getElementById('app'), meEl=document.getElementById('me'), chipsEl=document.getElementById('chips');
+const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#84CC16'];
+let pid=0, ver=0, sid='', key='', me={name:'',emoji:'🙂',color:PAL[0]}, lastTurn=false, tick=null;
+function vib(ms){ if(navigator.vibrate){ try{navigator.vibrate(ms);}catch(e){} } }
+function setAccent(c){ document.documentElement.style.setProperty('--me',c); }
+function esc(s){ return (s+'').replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function el(tag,cls,txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
+async function ev(d){ try{ await fetch('/ev?pid='+pid+'&key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); }catch(e){} }
+function showMe(){ meEl.innerHTML='<span class="dot" style="background:'+me.color+'"></span>'+me.emoji+' '+esc(me.name); setAccent(me.color); }
+meEl.onclick=()=>{ if(pid&&confirm('Neu anmelden? Dein Platz am Tisch geht verloren.')){ store('mk',null); location.reload(); } };
+
+// ---- Beitreten ----
+function joinScreen(){
+  const old=store('mk_me'); if(old) me=old;
+  app.innerHTML='';
+  app.appendChild(el('h2','','Platz nehmen'));
+  app.appendChild(el('p','sub','Name, Figur und Farbe wählen.'));
+  const inp=el('input'); inp.placeholder='Dein Name'; inp.maxLength=12; inp.value=me.name||''; app.appendChild(inp);
+  const emo=el('div','row');
+  ['🙂','😎','🦊','🐸','🐵','🦄','👾','🤖','🐙','🔥','🎩','🃏'].forEach(e=>{ const b=el('div','chip'+(e===me.emoji?' on':''),e); b.onclick=()=>{ me.emoji=e; [...emo.children].forEach(c=>c.classList.remove('on')); b.classList.add('on'); vib(5); }; emo.appendChild(b); });
+  app.appendChild(emo);
+  const cols=el('div','row');
+  PAL.forEach(c=>{ const b=el('div','chip'+(c===me.color?' on':'')); b.style.background=c; b.style.width='44px'; b.style.height='44px'; b.onclick=()=>{ me.color=c; setAccent(c); [...cols.children].forEach(x=>x.classList.remove('on')); b.classList.add('on'); vib(5); }; cols.appendChild(b); });
+  app.appendChild(cols);
+  const go=el('button','send','An den Tisch'); go.style.marginTop='auto'; app.appendChild(go);
+  setAccent(me.color);
+  go.onclick=async()=>{ me.name=(inp.value.trim()||'Gast').slice(0,12); go.disabled=true; go.textContent='Verbinde…';
+    try{ const r=await fetch('/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(me)}); const j=await r.json(); pid=j.pid; key=j.key||'';
+      store('mk_me',me); store('mk',{sid:sid,pid:pid,key:key,me:me}); showMe(); render(null); poll(); }
+    catch(e){ go.disabled=false; go.textContent='Nochmal versuchen'; } };
+}
+
+// ---- Ansichten ----
+function lockAll(){ app.querySelectorAll('button').forEach(b=>b.disabled=true); app.querySelectorAll('.card.tap').forEach(c=>{ c.classList.remove('tap'); c.onclick=null; }); }
+function render(v){
+  clearInterval(tick); tick=null;
+  chipsEl.textContent=(v&&v.chips!=null)?'🪙 '+v.chips:'';
+  if(!v||!v.t){ app.className=''; app.innerHTML='<div class="wait"><div class="big-emoji">⏳</div><div>Warte auf den Fernseher…</div></div>'; lastTurn=false; return; }
+  if(v.turn&&!lastTurn) vib([70,50,70]);
+  lastTurn=!!v.turn;
+  app.className=v.turn?'turn':'';
+  if(v.t==='wait'){ app.innerHTML=''; const w=el('div','wait');
+    w.innerHTML='<div class="big-emoji">'+(v.emoji||'⏳')+'</div><h2 style="color:#fff">'+esc(v.title||'')+'</h2>'+(v.sub?'<div class="sub">'+esc(v.sub)+'</div>':''); app.appendChild(w); return; }
+  if(v.t!=='table'){ app.innerHTML='<div class="wait">…</div>'; return; }
+  app.innerHTML='';
+  app.appendChild(el('h2','',v.title||''));
+  if(v.sub) app.appendChild(el('p','sub',v.sub));
+  if(v.secs){ const tb=el('div','tbar'), fill=el('div'); tb.appendChild(fill); app.appendChild(tb); const end=Date.now()+v.secs*1000, total=v.secs*1000;
+    tick=setInterval(()=>{ const left=Math.max(0,end-Date.now()); fill.style.width=(left/total*100)+'%'; if(left<=0){ clearInterval(tick); } },200); }
+  if(v.board){ const b=el('div','board'); b.innerHTML=v.board.length?v.board.map(c=>CARDS.html(c)).join(''):'<span class="lbl">'+esc(v.boardLabel||'Noch keine Karten auf dem Tisch')+'</span>'; if(v.board.length) b.style.fontSize=(v.board.length>5?11:14)+'px'; app.appendChild(b); }
+  if(v.hand){ const h=el('div','hand'); const n=v.hand.length; h.style.fontSize=(n<=2?36:n<=4?26:n<=6?22:n<=10?19:16)+'px';
+    v.hand.forEach((c,i)=>{ const tmp=el('div'); const can=v.playable?v.playable.indexOf(i)>=0:false; tmp.innerHTML=CARDS.html(c,v.playable&&!can?'dim':(can?'tap':'')); const node=tmp.firstChild;
+      if(can) node.onclick=()=>{ vib(15); lockAll(); ev({card:i,c:c}); }; h.appendChild(node); });
+    app.appendChild(h); }
+  else if(v.emoji){ const w=el('div','wait'); w.innerHTML='<div class="big-emoji">'+v.emoji+'</div>'; app.appendChild(w); }
+  if(v.note) app.appendChild(el('div','note',v.note));
+  if(v.stats&&v.stats.length){ const s=el('div','stats'); v.stats.forEach(x=>{ const d=el('div','stat'); d.innerHTML=esc(x[0])+'<b>'+esc(x[1])+'</b>'; s.appendChild(d); }); app.appendChild(s); }
+  if(v.suits){ const g=el('div','suits'); CARDS.SUITS.forEach(s=>{ const b=el('button','',CARDS.SYM[s]); b.style.color=(s==='H'||s==='D')?'#d21f3c':'#15141f'; b.onclick=()=>{ vib(15); lockAll(); ev({suit:s}); }; g.appendChild(b); }); app.appendChild(g); }
+  if(v.raise){ const R=v.raise; let amt=R.min; const box=el('div','raise');
+    const pre=el('div','pre'), amtRow=el('div','amt'), val=el('div','v'), go=el('button','act gold');
+    const set=(x)=>{ amt=Math.max(R.min,Math.min(R.max,Math.round(x))); val.textContent=amt; go.textContent=(amt>=R.max&&R.allin?'All-in ':(R.verb||'Erhöhen auf')+' ')+amt; };
+    (R.presets||[]).forEach(p=>{ const b=el('button','',p.label); b.onclick=()=>{ vib(8); set(p.v); }; pre.appendChild(b); });
+    const minus=el('button','','−'), plus=el('button','','+'); minus.onclick=()=>{ vib(5); set(amt-R.step); }; plus.onclick=()=>{ vib(5); set(amt+R.step); };
+    amtRow.appendChild(minus); amtRow.appendChild(val); amtRow.appendChild(plus);
+    go.onclick=()=>{ vib(20); lockAll(); ev({raise:amt}); };
+    if(pre.children.length) box.appendChild(pre); box.appendChild(amtRow); box.appendChild(go); set(R.start||R.min); app.appendChild(box); }
+  if(v.btns&&v.btns.length){ const g=el('div','btns'+(v.btns.length===1?' one':'')); v.btns.forEach(b=>{ const x=el('button','act '+(b.kind||''),b.label); if(b.dis)x.disabled=true; x.onclick=()=>{ vib(15); lockAll(); ev({btn:b.id}); }; g.appendChild(x); }); app.appendChild(g); }
+}
+
+// ---- Long-Poll ----
+async function poll(){
+  let fails=0;
+  while(true){
+    try{
+      const r=await fetch('/ppoll?pid='+pid+'&key='+key+'&since='+ver);
+      if(r.status===403){ store('mk',null); location.reload(); return; }   // Platz gehört nicht (mehr) zu diesem Handy
+      const j=await r.json(); fails=0;
+      if(j.sid&&sid&&j.sid!==sid){ store('mk',null); location.reload(); return; }   // App am Fernseher wurde neu gestartet
+      if(j.ver>ver){ ver=j.ver; render(j.view); }
+    }catch(e){ fails++; await new Promise(r=>setTimeout(r,Math.min(3000,400*fails))); }
+  }
+}
+window.addEventListener('contextmenu',e=>e.preventDefault());
+(async function boot(){
+  try{ const j=await (await fetch('/info')).json(); sid=j.sid||''; }catch(e){}
+  const s=store('mk');
+  if(s&&s.sid&&s.sid===sid&&s.pid){ pid=s.pid; key=s.key||''; me=s.me||me; showMe(); render(null); poll(); }   // Seite neu geladen: alten Platz weiterbenutzen
+  else joinScreen();
+})();
+</script>
+</body></html>

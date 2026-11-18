@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>midnox Emby</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;min-height:100vh;background:radial-gradient(800px 500px at 30% 0,#2a1a5c,#07060d 70%);color:#eef0f8;font-family:system-ui,sans-serif;padding:28px 22px}
+  h1{font-size:30px;font-weight:300;margin:0 0 6px} h1 b{font-weight:900;background:linear-gradient(120deg,#7c3aed,#3b5bf0,#06b6d4);-webkit-background-clip:text;color:transparent}
+  p{color:#9a9cb5;font-size:15px;line-height:1.5;margin:0 0 22px} label{display:block;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#9a9cb5;margin:18px 0 8px;font-weight:700}
+  input,textarea{width:100%;font-size:19px;padding:15px;border-radius:14px;border:2px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;outline:none;font-family:inherit}
+  input:focus,textarea:focus{border-color:#a78bfa} textarea{min-height:120px;resize:vertical}
+  button{margin-top:26px;width:100%;border:0;border-radius:16px;padding:18px;font-size:19px;font-weight:800;color:#fff;background:linear-gradient(120deg,#7c3aed,#3b5bf0,#06b6d4)}
+  .ok{text-align:center;margin-top:60px;font-size:22px} .ok div{font-size:64px} .hide{display:none}
+</style></head><body>
+<h1>midnox <b>Emby</b></h1>
+<div id="idle"><p>Wähle am Fernseher „Per Handy tippen“ oder „Mit dem Handy einrichten“ – dann erscheint hier das passende Feld.</p></div>
+<form id="login" class="hide"><p>Gib deine Emby-Daten ein. Sie gehen direkt an den Fernseher.</p>
+  <label>Server-Adresse</label><input id="server" placeholder="z. B. 192.168.178.20 oder emby.meinedomain.de" autocapitalize="off" autocorrect="off">
+  <label>Benutzername</label><input id="user" autocapitalize="off" autocorrect="off">
+  <label>Passwort</label><input id="pw" type="password">
+  <button type="submit">An den Fernseher senden</button></form>
+<form id="text" class="hide"><p id="ttitle"></p><textarea id="tval"></textarea><input id="tpw" type="password" class="hide"><button type="submit">Senden</button></form>
+<div id="done" class="ok hide"><div>✅</div>Ist angekommen!</div>
+<script>
+const k=new URLSearchParams(location.search).get('k')||''; let mode='';
+const $=id=>document.getElementById(id);
+function show(id){ ['idle','login','text','done'].forEach(x=>$(x).classList.toggle('hide',x!==id)); }
+async function state(){ try{ const s=await (await fetch('/state?k='+k)).json(); if(s.mode!==mode && mode!=='sent'){ mode=s.mode;
+  if(mode==='login'){ if(s.server) $('server').value=s.server; show('login'); }
+  else if(mode==='text'){ $('ttitle').textContent=s.title||'Text'; $('tval').value=s.value||''; $('tval').classList.toggle('hide',!!s.password); $('tpw').classList.toggle('hide',!s.password); show('text'); (s.password?$('tpw'):$('tval')).focus(); }
+  else show('idle'); } else if(mode==='sent' && s.mode==='idle'){ mode='idle'; } }catch(e){} setTimeout(state,1500); }
+async function send(d){ await fetch('/send?k='+k,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); show('done'); mode='sent'; }
+$('login').onsubmit=e=>{ e.preventDefault(); send({server:$('server').value.trim(),user:$('user').value.trim(),pw:$('pw').value}); };
+$('text').onsubmit=e=>{ e.preventDefault(); send({text:($('tpw').classList.contains('hide')?$('tval').value:$('tpw').value)}); };
+state();
+</script></body></html>

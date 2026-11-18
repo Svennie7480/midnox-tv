@@ -11,6 +11,15 @@
    "desc": "Deine eigene IPTV-App: Live-TV und Mediathek mit Filmen und Serien (Poster, Staffeln, Weiterschauen) aus M3U, Xtream Codes und Stalker-Portalen mit mehreren MACs. TV-Guide, Senderlogos, Favoriten, Senderzuordnung. Quickübertragen: alle Geräte im Netzwerk mit einem Tastendruck auf denselben Stand bringen – ohne Server. Einrichten per Handy, PC oder Einrichtungscode."
   },
   {
+   "id": "midnox-emby",
+   "name": "midnox Emby",
+   "cat": "midnox",
+   "pkg": "de.midnox.emby",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
+   "version": "1.0",
+   "desc": "Moderner Emby-Client im midnox-Stil für Filme, Serien und Musik: Startseite mit Weiterschauen und nächsten Folgen, Bibliotheken mit Sortierung und Filtern, Detailseiten mit Staffeln, Besetzung und Ähnlichem, Suche, Musik mit Warteschlange. Player mit Direktwiedergabe oder Umwandlung, Ton- und Untertitelwahl, Intro überspringen und nächster Folge. Dazu die midnox-Community: Bewertungen von allen (inkl. Bewertungsmodus), Empfehlungs-Chat, synchrone Watch-Partys mit Emoji-Reaktionen und Admin-Nachrichten an alle Geräte. Login bequem per Handy-QR-Code."
+  },
+  {
    "id": "midnox-quiz",
    "name": "midnox Quiz",
    "cat": "midnox",

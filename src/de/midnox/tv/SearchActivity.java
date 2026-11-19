@@ -332,7 +332,7 @@ public class SearchActivity extends Activity {
         try { i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" + URLEncoder.encode(q, "UTF-8"))); }
         catch (Exception ex) { return; }
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        for (String pkg : new String[]{"com.liskovsoft.smarttubetv.beta", "com.liskovsoft.smarttubetv"}) {
+        for (String pkg : new String[]{"com.teamsmart.videomanager.tv", "com.liskovsoft.smarttubetv.beta", "com.liskovsoft.smarttubetv", "com.amazon.firetv.youtube", "com.google.android.youtube.tv"}) {
             if (Style.launchIntent(getPackageManager(), pkg) != null) {
                 i.setPackage(pkg);
                 try { startActivity(i); return; } catch (Exception ignored) {}

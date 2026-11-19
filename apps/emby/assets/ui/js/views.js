@@ -131,27 +131,86 @@ ROUTER.reg('login', async (scr, srv) => {
 });
 
 // ---------- Startseite ----------
+const GENRE_COLORS = [['#7c3aed', '#3b5bf0'], ['#f43f5e', '#f97316'], ['#0ea5e9', '#14b8a6'], ['#10b981', '#84cc16'], ['#ec4899', '#a855f7'], ['#f59e0b', '#ef4444'], ['#6366f1', '#06b6d4'], ['#64748b', '#334155']];
 ROUTER.reg('home', async (scr) => {
   BG.dim(false);
   const el = scr.el; el.style.paddingLeft = '0';
-  const hero = h('div', 'hero'); const rows = h('div', 'rows'); rows.setAttribute('data-vs', 'anchor'); rows.dataset.at = '27.5'; rows.setAttribute('data-mem', '');
+  const hero = h('div', 'hero'); const info = h('div', 'hinfo'); hero.appendChild(info);
+  const spot = h('div', 'spot'); spot.setAttribute('data-mem', ''); hero.appendChild(spot);
+  const sbtns = h('div', 'btns'); const dots = h('div', 'dots'); spot.appendChild(sbtns); spot.appendChild(dots);
+  const rows = h('div', 'rows'); rows.setAttribute('data-vs', 'anchor'); rows.dataset.at = '27.5'; rows.setAttribute('data-mem', '');
   const rowsWrap = h('div', ''); rowsWrap.style.cssText = 'position:absolute;left:0;right:0;top:0;bottom:0'; rowsWrap.appendChild(rows);
-  const setHero = debounce((it) => {
-    if (!it) return;
+  let spots = [], si = 0, spotMode = false, rotT = 0;
+  const paint = (it, kickerOverride) => {
     const logo = EMBY.img(it.Type === 'Episode' ? Object.assign({}, it, { ImageTags: {} }) : it, 'Logo', 700);
-    const kicker = it.Type === 'Episode' ? 'Folge' : it.Type === 'Series' ? 'Serie' : it.Type === 'MusicAlbum' ? 'Album' : it.Type === 'Movie' ? 'Film' : '';
+    const kicker = kickerOverride || (it.Type === 'Episode' ? 'Folge' : it.Type === 'Series' ? 'Serie' : it.Type === 'MusicAlbum' ? 'Album' : it.Type === 'Movie' ? 'Film' : '');
     const title = it.Type === 'Episode' ? (it.SeriesName || it.Name) : it.Name;
-    hero.innerHTML = (kicker ? '<div class="kicker"><i></i>' + kicker + '</div>' : '') + (logo ? '<img class="logoimg" src="' + logo + '" onerror="this.outerHTML=\'<h1>' + esc(title).replace(/'/g, '') + '</h1>\'">' : '<h1>' + esc(title) + '</h1>')
+    info.innerHTML = (kicker ? '<div class="kicker"><i></i>' + kicker + '</div>' : '') + (logo ? '<img class="logoimg" src="' + logo + '" onerror="this.outerHTML=\'<h1>' + esc(title).replace(/'/g, '') + '</h1>\'">' : '<h1>' + esc(title) + '</h1>')
       + V.meta(it, { mx: COMM.cache[it.Id] || (it.SeriesId ? COMM.cache[it.SeriesId] : null) }) + (it.Overview ? '<div class="ov">' + esc(it.Type === 'Episode' ? it.Name + ' – ' + it.Overview : it.Overview) + '</div>' : '');
+    info.classList.remove('swap'); void info.offsetWidth; info.classList.add('swap');
     BG.set(EMBY.backdrop(it) || (it.Type === 'MusicAlbum' ? EMBY.img(it, 'Primary', 1200) : ''));
-  }, 180);
-  const focus = (it) => setHero(it);
+  };
+  const leaveSpot = () => { spotMode = false; hero.classList.remove('spotmode'); for (const b of sbtns.children) b.classList.add('dis'); };
+  const setHero = debounce((it) => { if (it && !spotMode) paint(it); }, 180);
+  const focus = (it) => { leaveSpot(); clearTimeout(rotT); setHero(it); };
+  // --- Spotlight ---
+  const showSpot = (i, keepFocus) => {
+    if (!spots.length) return; si = (i + spots.length) % spots.length; const it = spots[si];
+    paint(it, 'Spotlight · ' + (it.Type === 'Series' ? 'Serie' : 'Film'));
+    const pos = (it.UserData || {}).PlaybackPositionTicks;
+    const had = NAV.cur && sbtns.contains(NAV.cur) ? Array.from(sbtns.children).indexOf(NAV.cur) : -1;
+    sbtns.innerHTML = '';
+    const b1 = onOk(h('div', 'btn pri', ic('play') + (pos ? 'Fortsetzen' : 'Abspielen')), () => APP.play(it));
+    const b2 = onOk(h('div', 'btn', ic('info') + 'Details'), () => APP.open(it));
+    const b3 = onOk(h('div', 'btn icon', ic('next')), () => { showSpot(si + 1, true); });
+    for (const b of [b1, b2, b3]) { b._focus = enterSpot; sbtns.appendChild(b); }
+    dots.innerHTML = spots.map((_, k) => '<i class="' + (k === si ? 'on' : '') + '"></i>').join('');
+    if (keepFocus && had >= 0) NAV.focus(sbtns.children[had]);
+    clearTimeout(rotT); if (spotMode) rotT = setTimeout(() => { if (spotMode && ROUTER.top() === scr && !$('#layer .modal') && !SAVER.on) showSpot(si + 1, true); }, 9000);
+  };
+  const enterSpot = () => {
+    if (!spotMode) { spotMode = true; hero.classList.add('spotmode'); showSpot(si, true); }
+    for (const b of sbtns.children) b.classList.remove('dis');
+    rows._ty = 34 * rem(); rows.style.transform = 'translateY(' + rows._ty + 'px)'; for (const r of rows.children) r.classList.remove('gone');
+  };
+  const rowList = () => Array.from(rows.children).filter(r => r.classList.contains('row') && r.querySelector('.f'));
+  const pick = (r) => (r._last && r._last.isConnected && r.contains(r._last)) ? r._last : r.querySelector('.f');
+  scr.key = (k) => {
+    const cur = NAV.cur; if (!cur) return false;
+    const inSpot = sbtns.contains(cur);
+    if (inSpot && (k === 'ff' || k === 'rew')) { showSpot(si + (k === 'ff' ? 1 : -1), true); return true; }
+    if (inSpot && k === 'down') { const r = rowList()[0]; if (r) NAV.focus(pick(r)); return true; }
+    if (inSpot && k === 'up') return true;
+    if (inSpot && k === 'left' && cur === sbtns.firstChild) return false;
+    const row = rows.contains(cur) ? cur.closest('.row') : null;
+    if (row && (k === 'up' || k === 'down')) {
+      const list = rowList(); const i = list.indexOf(row); const to = list[i + (k === 'up' ? -1 : 1)];
+      if (to) NAV.focus(pick(to)); else if (k === 'up' && spots.length) { for (const b of sbtns.children) b.classList.remove('dis'); NAV.focus(sbtns.firstChild); }
+      return true;
+    }
+    return false;
+  };
   rows._onScroll = (row) => { let after = false; for (const r of rows.children) { if (r === row) after = true; r.classList.toggle('gone', !after); } };
+  const actCard = (a) => {
+    const c = h('div', 'card act f'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + a.id + '/Images/Primary?maxWidth=200")'; c.appendChild(p);
+    const t = h('div', 'tx'); const w = h('div', 'who'); w.appendChild(avatar(a.name)); w.appendChild(h('span', '', esc(a.name) + (a.stars ? ' <b class="st">★ ' + a.stars + '</b>' : ' <b class="st">empfiehlt</b>')));
+    t.appendChild(w); t.appendChild(h('div', 'ti', esc(a.title))); t.appendChild(h('div', 'cm', esc(a.text || (a.stars ? STAR_WORDS[a.stars] : '')) + ' · ' + ago(a.t)));
+    c.appendChild(t); c._ok = () => APP.openId(a.id);
+    c._focus = async () => { leaveSpot(); clearTimeout(rotT);
+      try { if (!c._it) c._it = ((await EMBY.items({ Ids: a.id, Fields: FIELDS })).Items || [])[0]; if (c._it && NAV.cur === c) setHero(c._it); } catch (e) {} };
+    return c;
+  };
   const load = async () => {
-    const tasks = [EMBY.resume().catch(() => ({ Items: [] })), EMBY.nextUp().catch(() => ({ Items: [] }))];
+    const U = EMBY.user.id;
+    const tasks = [EMBY.resume().catch(() => ({ Items: [] })), EMBY.nextUp().catch(() => ({ Items: [] })),
+      EMBY.items({ Recursive: true, IncludeItemTypes: 'Movie,Series', SortBy: 'DateCreated', SortOrder: 'Descending', ImageTypes: 'Backdrop', Limit: 14 }).catch(() => ({ Items: [] })),
+      EMBY.items({ Recursive: true, IncludeItemTypes: 'Movie,Series', Filters: 'IsFavorite', SortBy: 'DateCreated', SortOrder: 'Descending', Limit: 24 }).catch(() => ({ Items: [] })),
+      EMBY.items({ Recursive: true, IncludeItemTypes: 'Movie', Filters: 'IsPlayed', SortBy: 'DatePlayed', SortOrder: 'Descending', Limit: 1 }).catch(() => ({ Items: [] }))];
     const libs = EMBY.views.filter(v => ['movies', 'tvshows', 'music', 'homevideos', 'musicvideos', 'boxsets', ''].indexOf(v.CollectionType || '') >= 0);
     for (const v of libs) tasks.push(EMBY.latest(v.Id, 20).catch(() => []));
-    const [resume, next, ...latest] = await Promise.all(tasks);
+    const [resume, next, spotR, favs, lastPlayed, ...latest] = await Promise.all(tasks);
+    spots = (spotR.Items || []).filter(i => !(i.UserData || {}).Played).slice(0, 8);
+    if (spots.length < 3) spots = (spotR.Items || []).slice(0, 8);
     rows.innerHTML = '';
     const resumeIds = new Set((resume.Items || []).map(i => i.Id));
     if ((resume.Items || []).length) rows.appendChild(V.row('Weiterschauen', resume.Items, 'land', { focus }));
@@ -159,14 +218,19 @@ ROUTER.reg('home', async (scr) => {
     if (nx.length) rows.appendChild(V.row('Nächste Folgen', nx, 'land', { focus }));
     if (COMM.parties && COMM.parties.length) {
       const pr = h('div', 'row'); pr.setAttribute('data-mem', ''); pr.setAttribute('data-vsi', ''); pr.appendChild(h('h2', '', '🍿 Watch-Partys jetzt')); const tr = h('div', 'track'); pr.appendChild(tr);
-      for (const p of COMM.parties) { const c = h('div', 'party-card f'); c.style.width = '40rem'; const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im); c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || '') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei</small><small>OK = beitreten</small>')); c._ok = () => PARTY.join(p); tr.appendChild(c); }
+      for (const p of COMM.parties) { const c = h('div', 'party-card f'); c.style.width = '40rem'; const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im); c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || '') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei</small><small>OK = beitreten</small>')); c._ok = () => PARTY.join(p); c._focus = () => focus(null); tr.appendChild(c); }
       rows.appendChild(pr);
     }
-    libs.forEach((v, i) => {
+    if ((favs.Items || []).length) rows.appendChild(V.row('Meine Liste', favs.Items, 'poster', { focus, small: 'deine Favoriten' }));
+    const addLatest = (types) => libs.forEach((v, i) => {
+      if (types.indexOf(v.CollectionType || '') < 0) return;
       const items = latest[i] || []; if (!items.length) return;
       const kind = v.CollectionType === 'music' ? 'square' : 'poster';
-      rows.appendChild(V.row((v.CollectionType === 'music' ? 'Neue Musik' : 'Neu bei ' + v.Name), items, kind, { focus, small: v.CollectionType === 'tvshows' ? 'Serien' : '' }));
+      rows.appendChild(V.row((v.CollectionType === 'music' ? 'Neue Musik' : 'Neu bei ' + v.Name), items, kind, { focus }));
     });
+    addLatest(['movies', 'homevideos', 'musicvideos', 'boxsets', '']);
+    const lp = (lastPlayed.Items || [])[0];
+    let commRow = null;
     if (COMM.ok) {
       try {
         const t = await COMM.call('top');
@@ -175,25 +239,48 @@ ROUTER.reg('home', async (scr) => {
           const r = await EMBY.items({ Ids: ids.join(','), Fields: FIELDS });
           const by = {}; for (const it of r.Items || []) by[it.Id] = it;
           const its = ids.map(id => by[id]).filter(Boolean);
-          if (its.length) { const row = V.row('Community-Favoriten', its, 'poster', { focus, small: 'von euch am besten bewertet' }); const anchor = rows.children[Math.min(2, rows.children.length)]; rows.insertBefore(row, anchor || null); }
+          if (its.length) rows.appendChild(V.row('Community-Favoriten', its, 'poster', { focus, small: 'von euch am besten bewertet' }));
+        }
+        const acts = t.recent.map(x => ({ id: x.id, name: x.name, stars: x.stars, text: x.comment, title: x.meta.name, t: x.t }));
+        try { const ch = await COMM.call('chat'); for (const m of ch.msgs) if (m.item && !m.del) acts.push({ id: m.item.id, name: m.name, stars: 0, text: m.text, title: m.item.name, t: m.t }); } catch (e) {}
+        acts.sort((x, y) => y.t - x.t);
+        if (acts.length) { commRow = h('div', 'row'); commRow.setAttribute('data-mem', ''); commRow.setAttribute('data-vsi', ''); commRow.appendChild(h('h2', '', 'Neu in der Community <small>Bewertungen & Empfehlungen</small>')); const tr = h('div', 'track'); commRow.appendChild(tr); for (const a of acts.slice(0, 16)) tr.appendChild(actCard(a)); }
+      } catch (e) {}
+    }
+    if (lp) {
+      try { const sim = ((await EMBY.similar(lp.Id)).Items || []).filter(i => !(i.UserData || {}).Played); if (sim.length) rows.appendChild(V.row('Weil du „' + lp.Name + '“ geschaut hast', sim, 'poster', { focus })); } catch (e) {}
+    }
+    addLatest(['tvshows']);
+    if (commRow) rows.appendChild(commRow);
+    addLatest(['music']);
+    const mv = EMBY.viewsOf('movies')[0];
+    if (mv) {
+      try {
+        const g = ((await EMBY.genres(mv.Id)).Items || []).slice(0, 14);
+        if (g.length) {
+          const gr = h('div', 'row'); gr.setAttribute('data-mem', ''); gr.setAttribute('data-vsi', ''); gr.appendChild(h('h2', '', 'Genres')); const tr = h('div', 'track'); gr.appendChild(tr);
+          g.forEach((x, i) => { const c = h('div', 'card genre f', '<span>' + esc(x.Name) + '</span>'); const col = GENRE_COLORS[i % GENRE_COLORS.length]; c.style.background = 'linear-gradient(135deg,' + col[0] + ',' + col[1] + ')'; c._ok = () => ROUTER.go('movies', { genre: x.Name }); c._focus = () => focus(null); tr.appendChild(c); });
+          rows.appendChild(gr);
         }
       } catch (e) {}
     }
     const lr = h('div', 'row'); lr.setAttribute('data-mem', ''); lr.setAttribute('data-vsi', ''); lr.appendChild(h('h2', '', 'Deine Bibliotheken')); const lt = h('div', 'track'); lr.appendChild(lt);
     for (const v of EMBY.views) {
-      const c = V.card(v, 'lib', { cap: false, focus: () => setHero({ Name: v.Name, Id: v.Id, Type: 'Folder', ImageTags: {} }) });
+      const c = V.card(v, 'lib', { cap: false, focus: () => { leaveSpot(); paint({ Name: v.Name, Id: v.Id, Type: 'Folder', ImageTags: {} }); } });
       c.classList.add('lib'); c.appendChild(h('div', 'lbl', esc(v.Name)));
       c._ok = () => APP.openLibrary(v); c._menu = null; lt.appendChild(c);
     }
     rows.appendChild(lr);
     if (!rows.querySelector('.card')) rows.appendChild(h('div', 'empty', 'Noch nichts da. Füge in Emby Bibliotheken hinzu.'));
     COMM.decorate(rows);
+    if (spots.length) showSpot(0); else spot.classList.add('hidden');
   };
   el.innerHTML = ''; el.appendChild(hero); el.appendChild(rowsWrap);
   await load();
-  scr.initial = $('.card', rows) || $('.f', rows);
-  scr.refresh = async () => { if (!APP.dirty) return; APP.dirty = false; const keepId = NAV.cur && NAV.cur.dataset ? NAV.cur.dataset.id : null; await load(); const k = keepId && $('.card[data-id="' + keepId + '"]', rows); NAV.focus(k || $('.card', rows)); };
-  scr.enter = () => { BG.dim(false); if (APP.dirty) scr.refresh(); };
+  scr.initial = spots.length ? sbtns.firstChild : ($('.card', rows) || $('.f', rows));
+  scr.refresh = async () => { if (!APP.dirty) return; APP.dirty = false; const keepId = NAV.cur && NAV.cur.dataset ? NAV.cur.dataset.id : null; const inSpot = NAV.cur && spot.contains(NAV.cur); await load(); const k = !inSpot && keepId && $('.card[data-id="' + keepId + '"]', rows); NAV.focus(k || sbtns.firstChild || $('.card', rows)); };
+  scr.enter = () => { BG.dim(false); if (APP.dirty) scr.refresh(); else if (spotMode) showSpot(si, true); };
+  scr.leave = () => clearTimeout(rotT);
 });
 
 // ---------- Bibliothek (Filme / Serien / beliebiger Ordner) ----------
@@ -204,6 +291,7 @@ function libraryPage(type) {
     if (!views.length && !arg) { el.innerHTML = '<div class="empty">Keine ' + (type === 'Movie' ? 'Film' : 'Serien') + '-Bibliothek gefunden.</div>'; return; }
     const st = Object.assign({ sort: 'DateCreated', filter: '', genre: '', view: views[0] ? views[0].Id : '' }, STORE.get('lib_' + type, {}));
     if (arg && arg.view) st.view = arg.view.Id;
+    if (arg && arg.genre) { st.genre = arg.genre; st.filter = ''; }
     if (!views.some(v => v.Id === st.view) && views[0]) st.view = views[0].Id;
     const head = h('div', 'libhead'); const title = (arg && arg.view) ? arg.view.Name : type === 'Movie' ? 'Filme' : 'Serien';
     head.innerHTML = '<h1>' + esc(title) + '</h1><span class="count"></span>';
@@ -289,6 +377,7 @@ ROUTER.reg('detail', async (scr, arg) => {
     if (pos) btns.appendChild(onOk(h('div', 'btn', ic('restart') + 'Von vorne'), () => APP.play(item, { fromStart: true })));
   }
   if (item.Type !== 'Series' || scr.nextEp) btns.appendChild(onOk(h('div', 'btn', ic('party') + 'Watch-Party'), () => { const t = item.Type === 'Series' ? scr.nextEp : item; PARTY.create(t, ((t.UserData || {}).PlaybackPositionTicks || 0) / 10000); }));
+  if (item.LocalTrailerCount || (item.RemoteTrailers || []).length) btns.appendChild(onOk(h('div', 'btn', ic('trailer') + 'Trailer'), () => APP.trailer(item)));
   const rateBtn = onOk(h('div', 'btn' + (mx && mx.mine ? ' on' : ''), ic(mx && mx.mine ? 'starf' : 'star') + '<span>' + (mx && mx.mine ? 'Deine ' + mx.mine + '/10' : 'Bewerten') + '</span>'), async () => { const r = await COMM.ratePrompt(item); if (r !== undefined) ROUTER.go('detail', { id: item.Id }, { replace: true }); });
   btns.appendChild(rateBtn);
   btns.appendChild(onOk(h('div', 'btn icon', ic('share')), () => COMM.recommend(item)));
@@ -429,6 +518,9 @@ ROUTER.reg('settings', async (scr) => {
   choice('Untertitel-Sprache', 'subLang', [['ger', 'Deutsch'], ['eng', 'Englisch']], 'sub');
   choice('Nächste Folge automatisch', 'autoNext', [[true, 'An (mit 15 s Countdown)'], [false, 'Aus']], 'next');
   choice('Intro automatisch überspringen', 'autoSkip', [[false, 'Aus (Knopf wird angezeigt)'], [true, 'An']], 'skip');
+  sect('Darstellung');
+  row('Farbthema', (THEME.list.find(t => t[0] === (s.theme || 'auto')) || THEME.list[0])[1] + ((s.theme || 'auto') === 'auto' ? ' · gerade: ' + THEME.names[THEME.seasonal()] : ''), async (e) => { const v = await UI.choose('Farbthema', THEME.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.theme || 'auto') })), 'Saisonal wechselt automatisch – z. B. Advent, Halloween, Frühling, Sommer, Tag der Deutschen Einheit.'); if (v) { s.theme = v; save(); THEME.apply(v); setVal(e, THEME.list.find(t => t[0] === v)[1]); } }, 'gear');
+  choice('Bildschirmschoner', 'saver', [[5, 'Nach 5 Minuten'], [3, 'Nach 3 Minuten'], [10, 'Nach 10 Minuten'], [20, 'Nach 20 Minuten'], [0, 'Aus (Fire-TV-eigener)']], 'tv');
   sect('Community');
   choice('Anderen zeigen, was ich schaue', 'showWatching', [[true, 'Ja'], [false, 'Nein']], 'user');
   row('Community-Server', s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden'), async (e) => { const v = await TEXT.ask('Adresse des Community-Servers', { value: s.community }); if (v) { s.community = v.trim(); save(); await COMM.start(); setVal(e, s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden')); } }, 'chat');

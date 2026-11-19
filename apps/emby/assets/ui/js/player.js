@@ -33,7 +33,7 @@ const PLAYER = {
     if (window.MUSIC) MUSIC.stop(true);
     if (PLAYER.active) await PLAYER.stop('switch');
     PLAYER.active = true; PLAYER.ended = false; PLAYER.ready = false; PLAYER.upNextShown = false; PLAYER.nextItem = null; PLAYER.fallback = false;
-    PLAYER.party = opts.party || null; PLAYER.pos = opts.startMs || 0; PLAYER.dur = (item.RunTimeTicks || 0) / 10000;
+    PLAYER.party = opts.party || null; PLAYER.isTrailer = !!opts.trailer; PLAYER.pos = opts.startMs || 0; PLAYER.dur = (item.RunTimeTicks || 0) / 10000;
     document.body.classList.add('playing');
     PLAYER.buildOsd(); PLAYER.showOsd(true);
     PLAYER.loading(true);
@@ -114,6 +114,7 @@ const PLAYER = {
         PLAYER.checkMarkers();
         if (Date.now() - PLAYER.lastReport > 10000 && PLAYER.ready) { PLAYER.lastReport = Date.now(); EMBY.report('progress', Object.assign(PLAYER.reportBody(), { EventName: 'timeupdate' })); }
         if (PLAYER.party) PARTY.localTick();
+        PLAYER.checkSleep();
         break;
       case 'ready':
         if (!PLAYER.ready) { PLAYER.ready = true; PLAYER.loading(false); if (!PLAYER.party) setTimeout(() => PLAYER.hideOsdSoon(), 400); if (PLAYER.party) PARTY.localReady(); }
@@ -169,7 +170,8 @@ const PLAYER = {
     clearTimeout(PLAYER.osdTimer); clearTimeout(PLAYER.scrubT); clearInterval(PLAYER.upNextT);
     if (reason !== 'switch') PLAYER.close();
     APP.dirty = true;
-    if (reason !== 'switch' && it && dur && (pos / dur > .85 || reason === 'ended') && (it.Type === 'Movie' || it.Type === 'Episode')) setTimeout(() => COMM.afterWatch(it), 400);
+    if (reason === 'user' || reason === 'error') { PLAYER.sleep = null; }
+    if (reason !== 'switch' && reason !== 'sleep' && !PLAYER.isTrailer && it && dur && (pos / dur > .85 || reason === 'ended') && (it.Type === 'Movie' || it.Type === 'Episode')) setTimeout(() => COMM.afterWatch(it), 400);
   },
   close() {
     document.body.classList.remove('playing');
@@ -180,6 +182,7 @@ const PLAYER = {
   onEnded() {
     if (PLAYER.ended) return; PLAYER.ended = true;
     if (PLAYER.party && !PARTY.isHost()) return;   // Gäste folgen dem Gastgeber
+    if (PLAYER.sleep && PLAYER.sleep.end) { PLAYER.sleep = null; UI.toast('Gute Nacht! 🌙', { icon: '💤' }); PLAYER.stop('sleep'); return; }
     if (PLAYER.nextItem && EMBY.settings().autoNext && !PLAYER.party) { PLAYER.playNext(); return; }
     PLAYER.stop('ended');
   },
@@ -251,7 +254,8 @@ const PLAYER = {
     add('sub', ic('sub') + '<span>' + esc(s ? langName(s.Language) || 'Untertitel' : 'Aus') + '</span>', () => PLAYER.chooseSub());
     if (PLAYER.nextItem && !PLAYER.party) add('next', ic('next') + '<span>Nächste Folge</span>', () => PLAYER.playNext());
     c.appendChild(h('div', 'spacer'));
-    if (!PLAYER.party) add('party', ic('party') + '<span>Watch-Party</span>', () => PARTY.startFromPlayer());
+    const sl = PLAYER.sleep; add('sleep', ic('moon') + (sl ? '<span>' + (sl.end ? 'Ende' : Math.max(1, Math.ceil((sl.at - Date.now()) / 60000)) + ' Min.') + '</span>' : ''), () => PLAYER.chooseSleep(), sl ? 'on' : '');
+    if (!PLAYER.party && !PLAYER.isTrailer) add('party', ic('party') + '<span>Watch-Party</span>', () => PARTY.startFromPlayer());
     else add('react', '<span>😂 Reagieren</span>', () => PARTY.reactBar());
     add('info', ic('info'), () => PLAYER.showInfo());
     if (keep) { const k = $('[data-k="' + keep + '"]', c); if (k && PLAYER.osdOn) NAV.focus(k); }
@@ -299,6 +303,23 @@ const PLAYER = {
       const wasPlaying = PLAYER.playing;
       await PLAYER.load(PLAYER.pos, { paused: !wasPlaying });
     });
+  },
+  chooseSleep() {
+    const sl = PLAYER.sleep;
+    UI.choose('Einschlaf-Timer', [{ label: 'Aus', value: 0, sel: !sl }, { label: '15 Minuten', value: 15 }, { label: '30 Minuten', value: 30 }, { label: '45 Minuten', value: 45 }, { label: '60 Minuten', value: 60 }, { label: '90 Minuten', value: 90 },
+      { label: PLAYER.item && PLAYER.item.Type === 'Episode' ? 'Am Ende dieser Folge' : 'Am Ende des Films', value: -1, sel: !!(sl && sl.end) }], 'Danach wird es leiser und die Wiedergabe stoppt.').then(v => {
+      if (v == null) return;
+      PLAYER.sleep = v === 0 ? null : v < 0 ? { end: true } : { at: Date.now() + v * 60000 };
+      if (v) UI.toast(v < 0 ? 'Stoppt am Ende' : 'Stoppt in ' + v + ' Minuten', { icon: '💤' });
+      PLAYER.renderControls();
+    });
+  },
+  checkSleep() {
+    const sl = PLAYER.sleep; if (!sl || !sl.at) return;
+    const left = sl.at - Date.now();
+    if (left <= 0) { PLAYER.sleep = null; ADAPTER.volume(1); UI.toast('Gute Nacht! 🌙', { icon: '💤' }); PLAYER.stop('sleep'); return; }
+    if (left < 10000) ADAPTER.volume(Math.max(0.05, left / 10000));
+    if (PLAYER.osdOn && Math.floor(left / 60000) !== PLAYER._sleepMin) { PLAYER._sleepMin = Math.floor(left / 60000); PLAYER.renderControls(); }
   },
   showInfo() {
     const i = PLAYER.info; if (!i) return; const st = i.src.MediaStreams || [];

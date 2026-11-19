@@ -91,7 +91,7 @@ public class MainActivity extends Activity {
             }
             @Override public void onIsPlayingChanged(boolean p) {
                 if (p && surface.getVisibility() == View.VISIBLE) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else if (!uiAwake) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 tick();
             }
             @Override public void onPlayerError(PlaybackException e) {
@@ -186,7 +186,7 @@ public class MainActivity extends Activity {
         if (player == null) return;
         player.stop(); player.clearMediaItems();
         surface.setVisibility(View.GONE);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (!uiAwake) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         h.removeCallbacks(ticker);
     }
 
@@ -222,7 +222,27 @@ public class MainActivity extends Activity {
     @Override protected void onDestroy() { Phone.stop(); if (player != null) { player.release(); player = null; } super.onDestroy(); }
 
     // ===================== Brücke zur Oberfläche =====================
+    boolean uiAwake = false;
     final class Bridge {
+        @JavascriptInterface public void keepAwake(final boolean on) { h.post(new Runnable() { public void run() {
+            uiAwake = on;
+            if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else if (player == null || !player.isPlaying()) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } }); }
+        @JavascriptInterface public boolean openUrl(String url) {
+            try {
+                android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url));
+                i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                String v = Uri.parse(url).getQueryParameter("v");
+                if (v != null) {
+                    for (String pkg : new String[]{"com.teamsmart.videomanager.tv", "com.liskovsoft.smarttubetv.beta", "com.liskovsoft.smarttubetv", "com.amazon.firetv.youtube", "com.google.android.youtube.tv", "com.google.android.youtube"}) {
+                        try { getPackageManager().getPackageInfo(pkg, 0); i.setPackage(pkg); startActivity(i); return true; } catch (Exception e) {}
+                    }
+                }
+                if (i.resolveActivity(getPackageManager()) == null) return false;
+                startActivity(i); return true;
+            } catch (Exception e) { return false; }
+        }
         @JavascriptInterface public String info() {
             try {
                 return new JSONObject().put("deviceId", U.deviceId(MainActivity.this)).put("deviceName", U.deviceName())

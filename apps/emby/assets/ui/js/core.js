@@ -53,6 +53,7 @@ const IC = {
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/>',
   trailer: '<rect x="2.5" y="5" width="15" height="14" rx="2"/><path d="m17.5 10 4-2.5v9l-4-2.5"/>',
   skip: '<path d="M5 4.5v15l9-7.5zM15 4.5v15l9-7.5z" fill="currentColor" stroke="none" transform="scale(.85) translate(1 2)"/>',
 };
@@ -211,6 +212,7 @@ const NAV = {
 // ---------- Tasten ----------
 window.KEY = function (k, repeat) {
   try {
+    if (window.SAVER) { if (SAVER.on) { SAVER.stop(); return; } SAVER.poke(); }
     if (k === 'left' || k === 'right' || k === 'up' || k === 'down') { const t = Date.now(); if (repeat && t - NAV.lastMove < 85) return; NAV.lastMove = t; }
     if (TEXT.active && TEXT.key(k)) return;
     const modals = $$('#layer .modal'); const m = modals[modals.length - 1];
@@ -243,7 +245,7 @@ const ROUTER = {
     const scr = { name, arg, el: h('div', 'page'), main: !!opts.root }; scr.el.setAttribute('data-mem', '');
     ROUTER.stack.push(scr); $('#pages').appendChild(scr.el);
     RAIL.mark(name);
-    scr.el.appendChild(h('div', 'loading', '<div class="spin"></div>'));
+    scr.el.appendChild(h('div', 'loading skel', '<div class="bar"></div><div class="line">' + '<div class="blk"></div>'.repeat(7) + '</div><div class="bar"></div><div class="line">' + '<div class="blk"></div>'.repeat(7) + '</div>'));
     try { await make(scr, arg); }
     catch (e) { console.error(e); scr.el.innerHTML = ''; scr.el.appendChild(h('div', 'empty', 'Das hat nicht geklappt: ' + esc(e.message || e))); }
     if (ROUTER.top() !== scr) return scr;
@@ -399,3 +401,25 @@ const PHONE = {
   got(data) { if (PHONE.waiting) { const w = PHONE.waiting; PHONE.waiting = null; w(data); } },
 };
 window.NET = NET; window.UI = UI; window.NAV = NAV; window.ROUTER = ROUTER;
+
+// ---------- Farbthema ----------
+const THEME = {
+  names: { midnox: 'midnox Violett', ozean: 'Ozean', glut: 'Glut', wald: 'Wald', advent: 'Advent', halloween: 'Halloween', fruehling: 'Frühling', sommer: 'Sommer', einheit: 'Tag der Deutschen Einheit' },
+  list: [['auto', 'Saisonal automatisch'], ['midnox', 'midnox Violett'], ['ozean', 'Ozean'], ['glut', 'Glut'], ['wald', 'Wald']],
+  seasonal(d) {
+    d = d || new Date(); const m = d.getMonth() + 1, day = d.getDate();
+    if (m === 10 && day === 3) return 'einheit';
+    if (m === 10 && day >= 20 || m === 11 && day === 1) return 'halloween';
+    if (m === 12 || m === 11 && day >= 28) return 'advent';
+    if (m >= 3 && m <= 5) return 'fruehling';
+    if (m >= 6 && m <= 8) return 'sommer';
+    return 'midnox';
+  },
+  apply(name) {
+    const t = name === 'auto' || !name ? THEME.seasonal() : name;
+    document.body.className = document.body.className.replace(/\bth-\S+/g, '').trim();
+    if (t !== 'midnox') document.body.classList.add('th-' + t);
+    return t;
+  },
+};
+window.THEME = THEME;

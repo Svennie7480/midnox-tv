@@ -3,6 +3,7 @@
 const APP = {
   dirty: false,
   async boot() {
+    THEME.apply(EMBY.settings().theme); SAVER.keepAwake(EMBY.settings().saver !== 0);
     try {
       if (await EMBY.restore()) { await APP.afterLogin(); return; }
     } catch (e) {
@@ -26,7 +27,7 @@ const APP = {
     await EMBY.loadViews();
     RAIL.build();
     EMBY.capabilities(); EMBY.openSocket();
-    COMM.start();
+    await Promise.race([COMM.start(), new Promise(r => setTimeout(r, 3000))]);
     await ROUTER.go('home', null, { root: true });
     setTimeout(() => { if (STORE.get('welcomed') !== EMBY.user.id) { STORE.set('welcomed', EMBY.user.id); UI.toast('Willkommen, ' + EMBY.user.name + '! ◀ öffnet das Menü, MENU zeigt Optionen zu einem Titel.', { icon: '👋', ms: 8000 }); } }, 800);
   },
@@ -62,6 +63,13 @@ const APP = {
     if (item.Type === 'Audio') return MUSIC.play([item], 0);
     const pos = o.fromStart ? 0 : ((item.UserData || {}).PlaybackPositionTicks || 0) / 10000;
     PLAYER.open(item, { startMs: pos, mediaSourceId: o.mediaSourceId });
+  },
+  async trailer(item) {
+    try {
+      if (item.LocalTrailerCount) { const t = await EMBY.get('/Users/' + EMBY.user.id + '/Items/' + item.Id + '/LocalTrailers'); if (t && t[0]) { PLAYER.open(t[0], { startMs: 0, trailer: true }); return; } }
+      const r = (item.RemoteTrailers || [])[0];
+      if (r && r.Url) { const ok = HAS_ANDROID && Android.openUrl ? Android.openUrl(r.Url) : (window.open(r.Url), true); if (!ok) UI.alert('Trailer', 'Für YouTube-Trailer brauchst du die YouTube-App oder SmartTube auf dem Fire TV.'); }
+    } catch (e) { UI.toast('Trailer nicht verfügbar', { icon: '🎬' }); }
   },
   async remotePlay(ids, cmd, ticks) {
     try {

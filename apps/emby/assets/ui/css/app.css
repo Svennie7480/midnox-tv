@@ -671,3 +671,4 @@ body.wrapmode #rail .f { visibility: hidden; }
 .wslide .lb b { font-size: 1.6rem; } .wslide .lb small { flex: 1; font-size: 1.15rem; color: var(--mut); }
 .wslide .lb span { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .wslide .btns { display: flex; gap: 1.2rem; margin-top: 3rem; }
+.modal.sharebox .qr .code, .sharebox .qr .code { width: 19rem; height: 19rem; }

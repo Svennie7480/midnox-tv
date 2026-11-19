@@ -26,6 +26,8 @@
  *   GET  ?a=mystats&year=                 eigenes Protokoll + Zähler (Bewertungen, Chat, Partys, Matches)
  *   POST ?a=ach {got:{id:{lv,t}}, sum}    freigeschaltete Errungenschaften + Jahres-Kurzfassung speichern
  *   GET  ?a=board&year=                   Rangliste/Übersicht aller für den Rückblick der Runde
+ *   POST ?a=share_new {kind,...}          Teilen-Karte (Errungenschaft/Rückblick) anlegen → Link + QR fürs Handy
+ *   GET  ?s=ID                            öffentliche Teilen-Seite (mit Vorschaubild für WhatsApp & Co.)
  *   GET  ?check                           Selbsttest im Browser
  */
 declare(strict_types=1);
@@ -38,6 +40,132 @@ const CHAT_KEEP = 600;         // so viele Chat-Nachrichten aufheben
 const PARTY_IDLE = 25;         // Mitglied gilt nach so vielen s ohne Abfrage als weg
 const ONLINE_WINDOW = 120;     // „online", wenn in den letzten s aktiv
 const LOG_MAX = 6000;          // Wiedergabe-Einträge pro Person und Jahr
+const SHARE_TTL = 86400 * 120; // Teilen-Karten bleiben 4 Monate
+const SHARE_PAGE = <<<'SHAREPAGE'
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0a14">
+<title>%TITLE%</title>
+<meta property="og:type" content="website"><meta property="og:site_name" content="midnox Emby">
+<meta property="og:title" content="%TITLE%"><meta property="og:description" content="%DESC%"><meta property="og:url" content="%URL%">
+%OGIMG%
+<style>
+* { box-sizing: border-box; margin: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: #0b0a14; color: #f4f4fb; font: 16px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+body::before { content: ''; position: fixed; inset: -20%; background: radial-gradient(40% 35% at 20% 10%, rgba(124,58,237,.35), transparent 70%), radial-gradient(35% 30% at 90% 30%, rgba(6,182,212,.18), transparent 70%); pointer-events: none; z-index: -1; }
+.wrap { max-width: 520px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 16px 28px; }
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.logo { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(120deg, #7c3aed, #3b5bf0 55%, #06b6d4); display: grid; place-items: center; font-weight: 900; }
+header b { font-size: 15px; } header small { display: block; color: #a3a6c2; font-size: 12px; }
+#card { width: 100%; aspect-ratio: 1080/1350; border-radius: 22px; display: block; box-shadow: 0 20px 60px rgba(0,0,0,.6); background: #17152a; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+button, a.b { font: inherit; font-weight: 800; font-size: 16px; border: 0; border-radius: 16px; padding: 15px; color: #fff; background: rgba(255,255,255,.08); text-align: center; text-decoration: none; cursor: pointer; }
+.pri { grid-column: 1 / -1; background: linear-gradient(120deg, #7c3aed, #3b5bf0 55%, #06b6d4) !important; font-size: 18px !important; box-shadow: 0 10px 30px rgba(59,91,240,.35); }
+.wa { background: #1fa855 !important; }
+.hint { color: #a3a6c2; font-size: 13px; text-align: center; margin-top: 14px; }
+</style></head>
+<body><div class="wrap">
+<header><div class="logo">m</div><div><b>midnox Emby</b><small>Teilen</small></div></header>
+<img id="card" alt="">
+<div class="btns">
+  <button class="pri" id="share">Teilen …</button>
+  <a class="b wa" id="wa" target="_blank" rel="noopener">WhatsApp</a>
+  <a class="b" id="dl" download="midnox.png">Bild speichern</a>
+  <button id="copy" style="grid-column:1/-1">Link kopieren</button>
+</div>
+<p class="hint" id="hint">Tipp: Für den WhatsApp-Status das Bild speichern und dort hochladen.</p>
+</div>
+<script>
+'use strict';
+const S = %DATA%; const API = '%API%'; const C = S.card;
+const LV = ['', 'BRONZE', 'SILBER', 'GOLD', 'PLATIN'];
+const LVC = [['#3a3654', '#1a1830', '#555'], ['#f3b37c', '#8a4b22', '#d08a4e'], ['#ffffff', '#8b93a8', '#c9d1e4'], ['#fff3a3', '#b8860b', '#facc15'], ['#c4b5fd', '#22d3ee', '#a5f3fc']];
+const W = 1080, H = 1350;
+const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d');
+const F = (w, s) => w + ' ' + s + 'px Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const grad = (x0, y0, x1, y1) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, '#8b5cf6'); g.addColorStop(.55, '#3b82f6'); g.addColorStop(1, '#06b6d4'); return g; };
+function blob(cx, cy, r, col) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }
+function rr(x0, y0, w, h, r) { x.beginPath(); x.moveTo(x0 + r, y0); x.arcTo(x0 + w, y0, x0 + w, y0 + h, r); x.arcTo(x0 + w, y0 + h, x0, y0 + h, r); x.arcTo(x0, y0 + h, x0, y0, r); x.arcTo(x0, y0, x0 + w, y0, r); x.closePath(); }
+function text(t, px, py, font, fill, align, maxW) { x.font = font; x.fillStyle = fill; x.textAlign = align || 'left'; x.textBaseline = 'alphabetic'; x.fillText(t, px, py, maxW); }
+function wrapText(t, px, py, font, fill, maxW, lh, align, maxLines) {
+  x.font = font; const words = String(t).split(/\s+/); const lines = []; let line = '';
+  for (const w of words) { const test = line ? line + ' ' + w : w; if (x.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test; }
+  if (line) lines.push(line); const L = lines.slice(0, maxLines || 3);
+  L.forEach((l, i) => text(l, px, py + i * lh, font, fill, align)); return L.length;
+}
+function medal(cx, cy, r, icon, lv) {
+  const c = LVC[lv] || LVC[0];
+  if (lv) { x.save(); x.shadowColor = c[2]; x.shadowBlur = r * .5; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fillStyle = c[2]; x.fill(); x.restore(); }
+  let g;
+  if (lv === 4) { g = x.createLinearGradient(cx - r, cy - r, cx + r, cy + r); g.addColorStop(0, '#a5f3fc'); g.addColorStop(.35, '#c4b5fd'); g.addColorStop(.7, '#f0abfc'); g.addColorStop(1, '#a5f3fc'); }
+  else { g = x.createRadialGradient(cx - r * .3, cy - r * .35, r * .1, cx, cy, r); g.addColorStop(0, c[0]); g.addColorStop(1, c[1]); }
+  x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fillStyle = g; x.fill();
+  x.lineWidth = r * .07; x.strokeStyle = lv === 4 ? '#fff' : c[2]; x.stroke();
+  x.beginPath(); x.arc(cx, cy, r * .8, 0, 7); x.lineWidth = r * .02; x.strokeStyle = 'rgba(255,255,255,.35)'; x.stroke();
+  x.font = Math.round(r * .95) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#000'; x.fillText(icon || '🏆', cx, cy + r * .05);
+}
+function frame() {
+  x.fillStyle = '#0b0a14'; x.fillRect(0, 0, W, H);
+  blob(150, 120, 700, 'rgba(124,58,237,.55)'); blob(1000, 500, 600, 'rgba(59,91,240,.35)'); blob(400, 1350, 700, 'rgba(6,182,212,.25)');
+  rr(70, 70, 76, 76, 22); x.fillStyle = grad(70, 70, 146, 146); x.fill(); text('m', 108, 125, F(900, 46), '#fff', 'center');
+  text('midnox', 168, 106, F(300, 34), '#fff'); x.font = F(300, 34); const mw = x.measureText('midnox ').width; text('Emby', 168 + mw, 106, F(800, 34), '#fff');
+  text((C.kind === 'wrapped' ? 'Jahresrückblick ' + C.year : 'Errungenschaften').toUpperCase(), 168, 140, F(700, 20), '#a5a8c8');
+  x.fillStyle = 'rgba(255,255,255,.12)'; x.fillRect(70, H - 130, W - 140, 2);
+  text(C.name, 70, H - 72, F(800, 36), '#fff'); text('midnox.de', W - 70, H - 72, F(600, 30), '#a5a8c8', 'right');
+}
+function kicker(t, y) { x.font = F(800, 26); const w = x.measureText(t).width + 40; const gx = (W - w) / 2; rr(gx - 22, y - 38, w + 44, 56, 28); x.fillStyle = 'rgba(255,255,255,.08)'; x.fill(); x.beginPath(); x.arc(gx + 4, y - 10, 9, 0, 7); x.fillStyle = grad(gx - 5, y, gx + 13, y); x.fill(); text(t, gx + 26, y, F(800, 26), '#d9dbf0'); }
+function drawAch() {
+  kicker('ERRUNGENSCHAFT FREIGESCHALTET', 300);
+  medal(W / 2, 560, 200, C.icon, C.lv);
+  text(LV[C.lv] || '', W / 2, 840, F(900, 34), (LVC[C.lv] || LVC[0])[2], 'center');
+  wrapText(C.title, W / 2, 940, F(900, 96), '#fff', W - 160, 100, 'center', 2);
+  wrapText(C.sub, W / 2, 1030, F(500, 40), '#c9cbe3', W - 200, 52, 'center', 2);
+  for (let i = 1; i <= 4; i++) { const cx = W / 2 + (i - 2.5) * 120; x.beginPath(); x.arc(cx, 1150, 16, 0, 7); x.fillStyle = i <= C.lv ? (LVC[i][2]) : 'rgba(255,255,255,.14)'; x.fill(); }
+}
+function drawBadges() {
+  kicker('MEINE ABZEICHEN', 270);
+  const t = C.medals.length + ' Abzeichen'; x.font = F(900, 92); const g = grad(W / 2 - 300, 0, W / 2 + 300, 0); text(t, W / 2, 400, F(900, 92), g, 'center');
+  text(C.pts + ' Punkte' + (C.persona ? ' · ' + C.personaE + ' ' + C.persona : ''), W / 2, 465, F(600, 36), '#c9cbe3', 'center');
+  const n = C.medals.length, cols = 4, r = 76; const rows = Math.ceil(n / cols);
+  C.medals.forEach((m, i) => { const row = Math.floor(i / cols), col = i % cols; const inRow = Math.min(cols, n - row * cols); const cx = W / 2 + (col - (inRow - 1) / 2) * 230; const cy = (rows > 2 ? 590 : 630) + row * (rows > 2 ? 240 : 260); medal(cx, cy, r, m.i, m.lv); text(m.n, cx, cy + r + 46, F(700, 24), '#e6e7f5', 'center', 210); });
+}
+function drawWrapped(poster) {
+  const g = grad(70, 0, 900, 0); text(String(C.year), 70, 430, F(900, 250), g);
+  wrapText(C.name + 's Jahr bei midnox', 70, 520, F(900, 60), '#fff', W - 140, 66, 'left', 2);
+  const st = C.stats.slice(0, 4);
+  st.forEach((s, i) => { const col = i % 2, row = Math.floor(i / 2); const bx = 70 + col * 480, by = 600 + row * 190; rr(bx, by, 460, 170, 28); x.fillStyle = 'rgba(255,255,255,.07)'; x.fill(); text(s.v, bx + 34, by + 100, F(900, 72), grad(bx, 0, bx + 400, 0)); text(s.l, bx + 34, by + 145, F(600, 28), '#b9bbd6'); });
+  const y0 = 1010;
+  if (C.posterName) {
+    if (poster) { x.save(); rr(70, y0, 120, 180, 16); x.clip(); x.drawImage(poster, 70, y0, 120, 180); x.restore(); }
+    const tx = poster ? 220 : 70;
+    text('SERIE DES JAHRES', tx, y0 + 40, F(800, 22), '#a78bfa'); wrapText(C.posterName, tx, y0 + 92, F(900, 46), '#fff', W - tx - 70, 50, 'left', 1);
+    if (C.persona) text(C.personaE + ' ' + C.persona + (C.sub ? ' · ' + C.sub : ''), tx, y0 + 150, F(600, 30), '#c9cbe3', 'left', W - tx - 70);
+  } else if (C.persona) { text(C.personaE + ' ' + C.persona, 70, y0 + 80, F(900, 56), '#fff'); }
+}
+function render(poster) {
+  frame();
+  if (C.kind === 'ach') drawAch(); else if (C.kind === 'badges') drawBadges(); else drawWrapped(poster);
+  const url = cv.toDataURL('image/png'); const im = document.getElementById('card'); im.src = url; document.getElementById('dl').href = url;
+  if (!S.png) cv.toBlob(b => { if (b) fetch(API + '?a=s_up&id=' + S.id, { method: 'POST', body: b }).catch(() => {}); }, 'image/png');
+}
+const shareText = C.kind === 'wrapped' ? 'Mein Jahr ' + C.year + ' bei midnox 🍿' : C.kind === 'badges' ? 'Meine midnox-Abzeichen 🏆' : 'Errungenschaft freigeschaltet: ' + C.icon + ' ' + C.title + ' (' + (LV[C.lv] || '').toLowerCase().replace(/^./, c => c.toUpperCase()) + ')';
+document.getElementById('wa').href = 'https://wa.me/?text=' + encodeURIComponent(shareText + '\n' + S.url);
+document.getElementById('share').onclick = () => {
+  cv.toBlob(async (b) => {
+    const file = b ? new File([b], 'midnox.png', { type: 'image/png' }) : null;
+    try {
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text: shareText + '\n' + S.url });
+      else if (navigator.share) await navigator.share({ title: 'midnox Emby', text: shareText, url: S.url });
+      else document.getElementById('copy').click();
+    } catch (e) {}
+  }, 'image/png');
+};
+document.getElementById('copy').onclick = async () => { try { await navigator.clipboard.writeText(S.url); document.getElementById('hint').textContent = 'Link kopiert ✓'; } catch (e) { prompt('Link kopieren:', S.url); } };
+if (C.kind === 'wrapped' && C.poster) { const p = new Image(); p.onload = () => render(p); p.onerror = () => render(null); p.src = API + '?a=s_img&id=' + S.id + '&item=' + encodeURIComponent(C.poster); }
+else (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(() => render(null));
+</script></body></html>
+SHAREPAGE;
 const MATCH_TTL = 14400;       // „Was gucken wir heute?“-Runden verfallen nach 4 h
 const MATCH_MAX = 60;          // höchstens so viele Titel pro Runde
 
@@ -180,7 +308,41 @@ if (isset($_GET['check'])) {
     exit;
 }
 
+function emby_img(string $id, string $tag = '', int $w = 600): void {
+    $url = rtrim(EMBY, '/'); if (!preg_match('~/emby$~i', $url)) $url .= '/emby';
+    $url .= '/Items/' . $id . '/Images/Primary?maxWidth=' . $w . '&quality=85' . ($tag !== '' ? '&tag=' . rawurlencode($tag) : '');
+    $c = curl_init($url); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_FOLLOWLOCATION => true]);
+    $img = curl_exec($c); $code = (int) curl_getinfo($c, CURLINFO_HTTP_CODE); $ct = (string) curl_getinfo($c, CURLINFO_CONTENT_TYPE); curl_close($c);
+    if ($code !== 200 || !$img) fail('img', 404);
+    header('Content-Type: ' . ($ct ?: 'image/jpeg')); header('Cache-Control: public, max-age=86400'); header_remove('Pragma'); echo $img; exit;
+}
+
+// ===== Teilen: öffentliche Seite + Bild, ohne Login (nur mit der zufälligen ID) =====
+function share_load(string $id): array { $id = preg_replace('/[^A-Za-z0-9]/', '', $id); if (strlen($id) < 8) return []; $r = load('share_' . $id); if (!$r || ($r['t'] ?? 0) < time() - SHARE_TTL) return []; return $r; }
+if (isset($_GET['s'])) {
+    $id = preg_replace('/[^A-Za-z0-9]/', '', (string) $_GET['s']); $r = share_load($id);
+    if (!$r) { http_response_code(404); header('Content-Type: text/html; charset=utf-8'); echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><body style="background:#0b0a14;color:#fff;font-family:system-ui;padding:40px">Diese Karte gibt es nicht mehr.</body>'; exit; }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $base = ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . preg_replace('~[^/]*$~', '', (string) ($_SERVER['SCRIPT_NAME'] ?? '/'));
+    $self = $base . '?s=' . $id; $png = file_exists("$DATA/sharepng_$id.png");
+    $h = function ($x) { return htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'); };
+    $page = str_replace(['%TITLE%', '%DESC%', '%URL%', '%OGIMG%', '%DATA%', '%API%'],
+        [$h($r['og_t'] ?? 'midnox Emby'), $h($r['og_d'] ?? ''), $h($self), $png ? '<meta property="og:image" content="' . $h($base . 'index.php?a=s_png&id=' . $id) . '"><meta property="og:image:width" content="1080"><meta property="og:image:height" content="1350"><meta name="twitter:card" content="summary_large_image">' : '',
+         json_encode(['id' => $id, 'png' => $png, 'url' => $self, 'card' => $r['card']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP), $h($base . 'index.php')], SHARE_PAGE);
+    header('Content-Type: text/html; charset=utf-8'); header('Cache-Control: no-cache'); echo $page; exit;
+}
 $a = (string) ($_GET['a'] ?? '');
+if ($a === 's_png' || $a === 's_img' || $a === 's_up') {
+    $id = preg_replace('/[^A-Za-z0-9]/', '', (string) ($_GET['id'] ?? '')); $r = share_load($id); if (!$r) fail('gone', 404);
+    if ($a === 's_png') { $f = "$DATA/sharepng_$id.png"; if (!file_exists($f)) fail('none', 404); header('Content-Type: image/png'); header('Cache-Control: public, max-age=604800'); readfile($f); exit; }
+    if ($a === 's_img') { $it = safe_id((string) ($_GET['item'] ?? '')); if (!in_array($it, $r['items'] ?? [], true)) fail('bad', 404); emby_img($it, '', 500); }
+    // s_up: das Handy lädt das gezeichnete Bild einmalig hoch (für die Link-Vorschau)
+    $f = "$DATA/sharepng_$id.png"; if (file_exists($f)) out(['ok' => true, 'had' => true]);
+    $raw = file_get_contents('php://input', false, null, 0, 3 * 1024 * 1024 + 10);
+    if (!$raw || strlen($raw) > 3 * 1024 * 1024 || substr($raw, 0, 8) !== "\x89PNG\r\n\x1a\n") fail('bad', 400, 'Kein PNG');
+    $sz = @getimagesizefromstring($raw); if (!$sz || $sz[0] !== 1080 || $sz[1] !== 1350) fail('bad', 400, 'Falsches Format');
+    file_put_contents($f, $raw, LOCK_EX); out(['ok' => true]);
+}
 if ($a === '') { header('Content-Type: text/plain; charset=utf-8'); echo "midnox Emby Community – ok\n"; exit; }
 
 // ===== „Was gucken wir heute?“ – Handy-Seite, ohne Emby-Login (nur mit Rundencode) =====
@@ -203,12 +365,7 @@ if (strpos($a, 'm_') === 0) {
         $r = load("match_$code"); $id = safe_id((string) ($_GET['id'] ?? ''));
         $ok = false; foreach ($r['items'] ?? [] as $it) if ($it['id'] === $id) { $ok = true; $tag = (string) ($it['tag'] ?? ''); }
         if (!$ok) fail('bad', 404);
-        $url = rtrim(EMBY, '/'); if (!preg_match('~/emby$~i', $url)) $url .= '/emby';
-        $url .= '/Items/' . $id . '/Images/Primary?maxWidth=600&quality=85' . ($tag !== '' ? '&tag=' . rawurlencode($tag) : '');
-        $c = curl_init($url); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_FOLLOWLOCATION => true]);
-        $img = curl_exec($c); $code2 = (int) curl_getinfo($c, CURLINFO_HTTP_CODE); $ct = (string) curl_getinfo($c, CURLINFO_CONTENT_TYPE); curl_close($c);
-        if ($code2 !== 200 || !$img) fail('img', 404);
-        header('Content-Type: ' . ($ct ?: 'image/jpeg')); header('Cache-Control: public, max-age=86400'); header_remove('Pragma'); echo $img; exit;
+        emby_img($id, $tag);
     }
     $res = store("match_$code", function (&$r) use ($a, $b, &$pid) {
         if (!$r || ($r['created'] ?? 0) < time() - MATCH_TTL) return ['err' => 'gone'];
@@ -421,6 +578,25 @@ case 'board': {
     }
     usort($list, function ($a, $b) { return $b['pts'] <=> $a['pts']; });
     out(['list' => $list]);
+}
+
+case 'share_new': {
+    $b = body(); rate_limit('share', $me['id'], 1);
+    $kind = in_array($b['kind'] ?? '', ['ach', 'badges', 'wrapped'], true) ? $b['kind'] : 'ach';
+    $c = (array) ($b['card'] ?? []);
+    $str = function ($v, $n) { return clean((string) $v, $n); };
+    $card = ['kind' => $kind, 'name' => $me['name'], 'year' => (int) ($c['year'] ?? date('Y')), 'title' => $str($c['title'] ?? '', 60), 'sub' => $str($c['sub'] ?? '', 120),
+        'icon' => $str($c['icon'] ?? '', 8), 'lv' => max(0, min(4, (int) ($c['lv'] ?? 0))), 'kicker' => $str($c['kicker'] ?? '', 50),
+        'stats' => [], 'medals' => [], 'poster' => '', 'posterName' => $str($c['posterName'] ?? '', 60), 'persona' => $str($c['persona'] ?? '', 40), 'personaE' => $str($c['personaE'] ?? '', 8), 'pts' => (int) ($c['pts'] ?? 0)];
+    foreach (array_slice((array) ($c['stats'] ?? []), 0, 6) as $x) if (is_array($x)) $card['stats'][] = ['v' => $str($x['v'] ?? '', 14), 'l' => $str($x['l'] ?? '', 30)];
+    foreach (array_slice((array) ($c['medals'] ?? []), 0, 12) as $x) if (is_array($x)) $card['medals'][] = ['i' => $str($x['i'] ?? '', 8), 'n' => $str($x['n'] ?? '', 24), 'lv' => max(1, min(4, (int) ($x['lv'] ?? 1)))];
+    $items = []; $p = safe_id((string) ($c['poster'] ?? '')); if ($p !== '') { $card['poster'] = $p; $items[] = $p; }
+    $id = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(9))), 0, 10);
+    $og_t = $kind === 'wrapped' ? $me['name'] . 's Jahr ' . $card['year'] . ' bei midnox' : ($kind === 'badges' ? $me['name'] . ' hat ' . count($card['medals']) . ' Abzeichen' : $me['name'] . ' hat „' . $card['title'] . '“ freigeschaltet');
+    $og_d = $kind === 'ach' ? ($card['sub'] . ' · ' . (['', 'Bronze', 'Silber', 'Gold', 'Platin'][$card['lv']] ?? '')) : $card['sub'];
+    store('share_' . $id, function (&$d) use ($card, $items, $me, $og_t, $og_d) { $d = ['t' => time(), 'uid' => $me['id'], 'card' => $card, 'items' => $items, 'og_t' => $og_t, 'og_d' => $og_d]; });
+    foreach (glob("$DATA/share_*.json") ?: [] as $f) if (filemtime($f) < time() - SHARE_TTL) { @unlink($f); @unlink(str_replace(['share_', '.json'], ['sharepng_', '.png'], $f)); }
+    out(['ok' => true, 'id' => $id]);
 }
 
 case 'match_new': {

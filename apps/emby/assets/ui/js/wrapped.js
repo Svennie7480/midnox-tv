@@ -6,6 +6,37 @@ const WD = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'
 const fmtDay = (k) => { if (!k) return ''; const d = new Date(k + 'T12:00:00'); return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' }); };
 const medal = (a, l, small) => '<div class="medal lv' + l + (small ? ' sm' : '') + '"><span>' + a.icon + '</span></div>';
 
+// ---------- Teilen (QR aufs Handy → WhatsApp & Co.) ----------
+const SHARE = {
+  base() { const u = COMM.url() || ''; return /\.php(\?.*)?$/i.test(u) ? u.replace(/[^/]*$/, '') : u.replace(/\/?$/, '/'); },
+  async open(kind, card) {
+    if (!COMM.ok) { UI.alert('Teilen', 'Dafür wird der Community-Server gebraucht.'); return; }
+    let r; try { r = await COMM.call('share_new', { kind, card }); } catch (e) { UI.alert('Teilen', e.message); return; }
+    const url = SHARE.base() + '?s=' + r.id;
+    return UI.modal((box, close) => {
+      box.classList.add('sharebox');
+      box.appendChild(h('h2', '', '📤 Aufs Handy holen & teilen'));
+      const q = h('div', 'qr'); q.innerHTML = '<div class="code">' + UI.qr(url) + '</div>';
+      q.appendChild(h('div', '', '<p>Scanne den Code mit dem Handy. Dort wartet deine Karte als Bild – teile sie per WhatsApp, im Status, auf Instagram oder speichere sie einfach.</p><p class="url" style="margin-top:1.4rem">' + esc(url.replace(/^https?:\/\//, '')) + '</p>'));
+      box.appendChild(q);
+      const b = h('div', 'btns'); b.appendChild(onOk(h('div', 'btn pri', 'Fertig'), () => close(true))); box.appendChild(b);
+    });
+  },
+  ach(a, l) { return SHARE.open('ach', { icon: a.icon, lv: l, title: a.name, sub: a.d.replace('{n}', fmtN(a.lv[l - 1])) }); },
+  badges() {
+    const y = STATS.calc(STATS.data.year);
+    const medals = Object.keys(STATS.got).map(k => ({ a: ACH.find(a => a.id === k), lv: STATS.got[k].lv })).filter(x => x.a).sort((p, q) => q.lv - p.lv).slice(0, 12).map(x => ({ i: x.a.icon, n: x.a.name, lv: x.lv }));
+    return SHARE.open('badges', { medals, pts: Object.values(STATS.got).reduce((a, g) => a + g.lv, 0), persona: y.persona.t, personaE: y.persona.e });
+  },
+  wrapped(year, s) {
+    const secs = s.movieSecs + s.epSecs;
+    const stats = [{ v: secs >= 3600 ? fmtN(secs / 3600) : fmtN(secs / 60), l: secs >= 3600 ? 'Stunden geschaut' : 'Minuten geschaut' }, { v: fmtN(s.movies), l: 'Filme' }, { v: fmtN(s.episodes), l: 'Folgen' }, s.binge > 1 ? { v: fmtN(s.binge), l: 'Folgen an einem Tag' } : { v: fmtN(Object.keys(STATS.got).length), l: 'Abzeichen' }];
+    const t = s.topSeries[0];
+    return SHARE.open('wrapped', { year, stats, poster: t ? t.id : '', posterName: t ? t.name : '', persona: s.persona.t, personaE: s.persona.e, sub: s.genres[0] ? 'liebt ' + s.genres[0].g : '' });
+  },
+};
+window.SHARE = SHARE;
+
 // ---------- Mein midnox ----------
 ROUTER.reg('me', async (scr) => {
   BG.set(null); BG.dim(true);
@@ -26,6 +57,7 @@ ROUTER.reg('me', async (scr) => {
   const bs = h('div', 'btns');
   const wb = onOk(h('div', 'btn pri f wrapbtn', '✨ Dein Rückblick ' + D.year + (new Date().getMonth() < 11 ? ' (bisher)' : '')), () => ROUTER.go('wrapped', { year: D.year }));
   bs.appendChild(wb);
+  if (Object.keys(STATS.got).length) bs.appendChild(onOk(h('div', 'btn f', '📤 Abzeichen teilen'), () => SHARE.badges()));
   if (new Date().getMonth() < 2 && D.myPrev) bs.appendChild(onOk(h('div', 'btn f', 'Rückblick ' + (D.year - 1)), () => ROUTER.go('wrapped', { year: D.year - 1 })));
   head.appendChild(bs); rows.appendChild(head);
   // Errungenschaften
@@ -38,7 +70,8 @@ ROUTER.reg('me', async (scr) => {
     const nxt = a.lv[l] || null; const base = l ? a.lv[l - 1] : 0;
     const pct = nxt ? Math.max(3, Math.min(100, (v - base) / (nxt - base) * 100)) : 100;
     const c = h('div', 'ach f lv' + l, medal(a, l) + '<div class="tx"><b>' + esc(a.name) + '</b><small>' + (l ? LEVELS[l - 1] : 'Noch gesperrt') + '</small><div class="bar"><i style="width:' + pct + '%"></i></div><div class="nx">' + (nxt ? esc(a.d.replace('{n}', fmtN(v) + ' / ' + fmtN(nxt))) : 'Höchste Stufe erreicht! ' + esc(a.d.replace('{n}', fmtN(v)))) + '</div></div>');
-    c._ok = () => UI.alert(a.icon + ' ' + a.name, a.lv.map((x, i) => (i < l ? '✅ ' : '◻️ ') + LEVELS[i] + ': ' + a.d.replace('{n}', fmtN(x))).join('\n') + '\n\nAktuell: ' + fmtN(v));
+    const levels = () => UI.alert(a.icon + ' ' + a.name, a.lv.map((x, i) => (i < l ? '✅ ' : '◻️ ') + LEVELS[i] + ': ' + a.d.replace('{n}', fmtN(x))).join('\n') + '\n\nAktuell: ' + fmtN(v));
+    c._ok = () => { if (!l) { levels(); return; } UI.choose(a.icon + ' ' + a.name + ' · ' + LEVELS[l - 1], [{ label: '📤 Teilen (WhatsApp & Co.)', value: 's' }, { label: 'Alle Stufen ansehen', value: 'l' }]).then(x => { if (x === 's') SHARE.ach(a, l); if (x === 'l') levels(); }); };
     grid.appendChild(c);
   }
   rows.appendChild(ar);
@@ -122,7 +155,7 @@ ROUTER.reg('wrapped', async (scr, arg) => {
     const tot = L.reduce((a, p) => a + (+p.sum.hours || 0), 0);
     if (L.length > 1) add('s-group', '<div class="kick">Eure Runde ' + year + '</div><h1>Zusammen ' + count(tot) + ' Stunden.</h1><div class="lb">' + L.slice(0, 6).map((p, i) => '<div class="' + (p.me ? 'me' : '') + '"><em>' + (['🥇', '🥈', '🥉'][i] || i + 1) + '</em><b>' + esc(p.name) + '</b><small>' + esc(p.sum.persona || '') + (p.sum.topSeries ? ' · ' + esc(p.sum.topSeries) : '') + '</small><span>' + fmtN(p.sum.hours) + ' Std.</span></div>').join('') + '</div>');
   }
-  add('s-outro', '<div class="big">🍿</div><h1>Danke fürs Gucken, ' + esc(name) + '!</h1><p>Auf ein neues Jahr mit großen Filmen, langen Serienabenden und vielen Matches.</p><div class="btns"><div class="btn f again">Nochmal ansehen</div><div class="btn pri f done">Fertig</div></div>');
+  add('s-outro', '<div class="big">🍿</div><h1>Danke fürs Gucken, ' + esc(name) + '!</h1><p>Auf ein neues Jahr mit großen Filmen, langen Serienabenden und vielen Matches.</p><div class="btns"><div class="btn f again">Nochmal ansehen</div><div class="btn f share">📤 Rückblick teilen</div><div class="btn pri f done">Fertig</div></div>');
 
   // --- Folien-Steuerung ---
   const prog = h('div', 'wprog', slides.map(() => '<i><b></b></i>').join(''));
@@ -142,14 +175,15 @@ ROUTER.reg('wrapped', async (scr, arg) => {
     for (const c of $$('.cnt', d)) { const to = +c.dataset.n || 0; const t0 = performance.now(); const step = (now) => { const k = Math.min(1, (now - t0) / 1400); c.textContent = fmtN(to * (1 - Math.pow(1 - k, 3))); if (k < 1 && c.isConnected) requestAnimationFrame(step); }; requestAnimationFrame(step); }
     clearTimeout(t);
     const btns = $$('.btn', d);
-    if (btns.length) { onOk(btns[0], () => show(0)); onOk(btns[1], () => done()); NAV.focus(btns[1]); }
+    if (btns.length) { onOk($('.again', d), () => show(0)); onOk($('.share', d), () => SHARE.wrapped(year, s)); onOk($('.done', d), () => done()); NAV.focus($('.share', d)); }
     else { NAV.focus(stageFocus); t = setTimeout(() => show(i + 1), DUR); }
   };
   const stageFocus = h('div', 'f wfocus'); el.appendChild(stageFocus); stageFocus._ok = () => show(i + 1);
   const done = () => { clearTimeout(t); ROUTER.back(); };
   scr.key = (k) => {
+    if ((k === 'left' || k === 'right') && NAV.cur && NAV.cur.classList.contains('btn') && stage.contains(NAV.cur)) { const bs = $$('.btn', stage); const j = bs.indexOf(NAV.cur) + (k === 'right' ? 1 : -1); if (j >= 0 && j < bs.length) { NAV.focus(bs[j]); return true; } if (k === 'right') return true; }
     if (k === 'right' || k === 'ff') { if (i < slides.length - 1) show(i + 1); return true; }
-    if (k === 'left' || k === 'rew') { if (NAV.cur && NAV.cur.classList.contains('again')) return false; show(i - 1); return true; }
+    if (k === 'left' || k === 'rew') { show(i - 1); return true; }
     if (k === 'playpause' || k === 'pause') { if (t) { clearTimeout(t); t = 0; UI.toast('Angehalten – ▶ für weiter', { icon: '⏸' }); } else show(i); return true; }
     return false;
   };

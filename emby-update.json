@@ -1,6 +1,6 @@
 {
- "versionCode": 2,
- "versionName": "1.1",
+ "versionCode": 3,
+ "versionName": "1.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neue Startseite mit drehendem Spotlight, neue Reihen (Meine Liste, „Weil du … geschaut hast“, Neu in der Community, Genres), eigener Bildschirmschoner mit Uhr, Trailer-Knopf, Einschlaf-Timer im Player, Farbthemen inkl. saisonaler Wechsel (Advent, Halloween …), weichere Übergänge und Lade-Animationen."
+ "notes": "Neu: „Was gucken wir heute?“ – alle wischen auf dem Handy durch Vorschläge, bei einem Match gibt es Konfetti und direkt die Watch-Party. Dazu Vorschaubilder beim Spulen (Emby-BIF) und leise Titelmusik auf Detailseiten. Server-Update nötig: index.php und match.html neu hochladen."
 }

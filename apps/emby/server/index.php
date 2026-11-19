@@ -20,6 +20,8 @@
  *   POST ?a=party_state {id,playing,pos}  Abspielstand setzen (Gastgeber oder alle, wenn freigegeben)
  *   GET  ?a=party&id=..&since=..&ready=..&buf=..&pos=..   Zustand abholen (≈1× pro Sekunde)
  *   POST ?a=party_react {id,e}            Emoji-Reaktion
+ *   POST ?a=match_new {items,tv}         „Was gucken wir heute?“-Runde anlegen (Code für die Handys)
+ *   GET/POST ?a=m_* (ohne Emby-Login, mit Code) Handy-Seite match.html: beitreten, abstimmen, Stand
  *   GET  ?check                           Selbsttest im Browser
  */
 declare(strict_types=1);
@@ -31,6 +33,8 @@ const TOKEN_TTL = 43200;       // so lange (s) gilt eine erfolgreiche Token-Prü
 const CHAT_KEEP = 600;         // so viele Chat-Nachrichten aufheben
 const PARTY_IDLE = 25;         // Mitglied gilt nach so vielen s ohne Abfrage als weg
 const ONLINE_WINDOW = 120;     // „online", wenn in den letzten s aktiv
+const MATCH_TTL = 14400;       // „Was gucken wir heute?“-Runden verfallen nach 4 h
+const MATCH_MAX = 60;          // höchstens so viele Titel pro Runde
 
 $DATA = __DIR__ . '/data';
 if (!is_dir($DATA)) { @mkdir($DATA, 0775, true); }
@@ -168,6 +172,70 @@ if (isset($_GET['check'])) {
 
 $a = (string) ($_GET['a'] ?? '');
 if ($a === '') { header('Content-Type: text/plain; charset=utf-8'); echo "midnox Emby Community – ok\n"; exit; }
+
+// ===== „Was gucken wir heute?“ – Handy-Seite, ohne Emby-Login (nur mit Rundencode) =====
+function match_code(): string { $c = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) ($_GET['c'] ?? body()['c'] ?? '')) ?? ''); return substr($c, 0, 6); }
+function match_view(array $r, string $pid): array {
+    $t = time(); $players = []; $n = count($r['items']);
+    foreach ($r['players'] as $id => $p) $players[] = ['id' => $id, 'name' => $p['name'], 'n' => count($p['votes']), 'tv' => !empty($p['tv']), 'on' => ($p['last'] ?? 0) > $t - 20, 'me' => $id === $pid];
+    $likes = []; foreach ($r['players'] as $p) foreach ($p['votes'] as $id => $v) if ($v) $likes[$id] = ($likes[$id] ?? 0) + 1;
+    $np = count($r['players']); $matches = [];
+    if ($np > 0) foreach ($r['items'] as $it) if (($likes[$it['id']] ?? 0) >= $np) $matches[] = $it['id'];
+    $v = ['code' => $r['code'], 'host' => $r['hostName'], 'state' => $r['state'], 'total' => $n, 'players' => $players, 'likes' => (object) $likes, 'matches' => $matches, 'ver' => $r['ver']];
+    if ($pid !== '' && isset($r['players'][$pid])) { $v['votes'] = (object) $r['players'][$pid]['votes']; if ($r['state'] !== 'lobby') $v['items'] = $r['items']; }
+    return $v;
+}
+if (strpos($a, 'm_') === 0) {
+    $code = match_code(); if (strlen($code) < 4) fail('code', 400, 'Code fehlt');
+    $b = body(); $pid = safe_id((string) ($b['p'] ?? $_GET['p'] ?? ''));
+    if (!file_exists("$DATA/match_$code.json")) fail('gone', 404, 'Diese Runde gibt es nicht (mehr).');
+    if ($a === 'm_img') {   // Poster über diesen Server durchreichen (https, Emby muss nicht direkt erreichbar sein)
+        $r = load("match_$code"); $id = safe_id((string) ($_GET['id'] ?? ''));
+        $ok = false; foreach ($r['items'] ?? [] as $it) if ($it['id'] === $id) { $ok = true; $tag = (string) ($it['tag'] ?? ''); }
+        if (!$ok) fail('bad', 404);
+        $url = rtrim(EMBY, '/'); if (!preg_match('~/emby$~i', $url)) $url .= '/emby';
+        $url .= '/Items/' . $id . '/Images/Primary?maxWidth=600&quality=85' . ($tag !== '' ? '&tag=' . rawurlencode($tag) : '');
+        $c = curl_init($url); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_FOLLOWLOCATION => true]);
+        $img = curl_exec($c); $code2 = (int) curl_getinfo($c, CURLINFO_HTTP_CODE); $ct = (string) curl_getinfo($c, CURLINFO_CONTENT_TYPE); curl_close($c);
+        if ($code2 !== 200 || !$img) fail('img', 404);
+        header('Content-Type: ' . ($ct ?: 'image/jpeg')); header('Cache-Control: public, max-age=86400'); header_remove('Pragma'); echo $img; exit;
+    }
+    $res = store("match_$code", function (&$r) use ($a, $b, &$pid) {
+        if (!$r || ($r['created'] ?? 0) < time() - MATCH_TTL) return ['err' => 'gone'];
+        $t = time();
+        if ($a === 'm_join') {
+            $name = clean((string) ($b['name'] ?? ''), 24); if ($name === '') return ['err' => 'name'];
+            if ($pid === '' || !isset($r['players'][$pid])) {
+                if (count($r['players']) >= 12) return ['err' => 'full'];
+                foreach ($r['players'] as $p) if (mb_strtolower($p['name']) === mb_strtolower($name)) $name .= ' ' . (count($r['players']) + 1);
+                $pid = substr(bin2hex(random_bytes(8)), 0, 12);
+                $r['players'][$pid] = ['name' => $name, 'votes' => [], 'last' => $t, 'joined' => $t];
+            } else $r['players'][$pid]['name'] = $name;
+            $r['ver']++;
+        } elseif (($a === 'm_vote' || $a === 'm_leave') && !isset($r['players'][$pid])) return ['err' => 'who'];
+        if (isset($r['players'][$pid])) $r['players'][$pid]['last'] = $t;
+        if ($a === 'm_vote') {
+            if ($r['state'] !== 'vote') return ['err' => 'state'];
+            $id = safe_id((string) ($b['id'] ?? '')); $ok = false; foreach ($r['items'] as $it) if ($it['id'] === $id) $ok = true;
+            if (!$ok) return ['err' => 'bad'];
+            if (!empty($b['undo'])) unset($r['players'][$pid]['votes'][$id]); else $r['players'][$pid]['votes'][$id] = empty($b['v']) ? 0 : 1;
+            $r['ver']++;
+        }
+        if ($a === 'm_leave') { unset($r['players'][$pid]); $r['ver']++; }
+        if ($a === 'm_ctl') {   // nur der Fernseher (hat den Gastgeber-Schlüssel)
+            if (!hash_equals((string) $r['key'], (string) ($b['key'] ?? ''))) return ['err' => 'host'];
+            $st = (string) ($b['state'] ?? ''); if (in_array($st, ['lobby', 'vote', 'done'], true)) { $r['state'] = $st; $r['ver']++; }
+            if (!empty($b['kick'])) { unset($r['players'][safe_id((string) $b['kick'])]); $r['ver']++; }
+        }
+        return ['ok' => true];
+    });
+    if (!empty($res['err'])) {
+        $msg = ['gone' => 'Diese Runde ist vorbei.', 'name' => 'Bitte gib einen Namen ein.', 'full' => 'Die Runde ist voll.', 'who' => 'Bitte neu beitreten.', 'state' => 'Abstimmung läuft gerade nicht.', 'host' => 'Nur der Fernseher darf das.', 'bad' => 'Unbekannter Titel.'][$res['err']] ?? 'Fehler';
+        fail($res['err'], $res['err'] === 'gone' ? 404 : 400, $msg);
+    }
+    $r = load("match_$code"); $v = match_view($r, $pid); $v['p'] = $pid; out($v);
+}
+
 $me = me();
 
 switch ($a) {
@@ -296,6 +364,27 @@ case 'online': {
 }
 
 // ===== Watch-Party =====
+case 'match_new': {
+    $b = body(); rate_limit('match', $me['id'], 5);
+    $items = [];
+    foreach ((array) ($b['items'] ?? []) as $it) {
+        if (!is_array($it)) continue; $id = safe_id((string) ($it['id'] ?? '')); if ($id === '') continue;
+        $items[] = ['id' => $id, 'name' => clean((string) ($it['name'] ?? ''), 120), 'year' => (int) ($it['year'] ?? 0), 'type' => clean((string) ($it['type'] ?? ''), 12),
+            'ov' => clean((string) ($it['ov'] ?? ''), 600), 'genres' => clean((string) ($it['genres'] ?? ''), 80), 'rating' => round((float) ($it['rating'] ?? 0), 1),
+            'min' => (int) ($it['min'] ?? 0), 'fsk' => clean((string) ($it['fsk'] ?? ''), 10), 'tag' => clean((string) ($it['tag'] ?? ''), 64)];
+        if (count($items) >= MATCH_MAX) break;
+    }
+    if (count($items) < 3) fail('bad', 400, 'Zu wenige Titel');
+    foreach (glob("$DATA/match_*.json") ?: [] as $f) if (filemtime($f) < time() - MATCH_TTL) @unlink($f);
+    $abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    do { $code = ''; for ($i = 0; $i < 4; $i++) $code .= $abc[random_int(0, strlen($abc) - 1)]; } while (file_exists("$DATA/match_$code.json"));
+    $key = bin2hex(random_bytes(10)); $pid = '';
+    $r = ['code' => $code, 'key' => $key, 'host' => $me['id'], 'hostName' => $me['name'], 'created' => time(), 'state' => 'lobby', 'ver' => 1, 'items' => $items, 'players' => []];
+    if (!empty($b['tv'])) { $pid = 'tv' . substr(bin2hex(random_bytes(5)), 0, 8); $r['players'][$pid] = ['name' => clean((string) ($b['tvName'] ?? $me['name']), 24), 'tv' => true, 'votes' => [], 'last' => time(), 'joined' => time()]; }
+    store("match_$code", function (&$d) use ($r) { $d = $r; });
+    out(['ok' => true, 'code' => $code, 'key' => $key, 'p' => $pid, 'view' => match_view($r, $pid)]);
+}
+
 case 'party_new': {
     $b = body(); $item = safe_id((string) ($b['item'] ?? '')); if ($item === '') fail('bad', 400, 'Titel fehlt');
     rate_limit('party', $me['id'], 3);

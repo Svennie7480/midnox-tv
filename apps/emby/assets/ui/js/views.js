@@ -130,6 +130,31 @@ ROUTER.reg('login', async (scr, srv) => {
   const back = h('div', 'btns'); back.style.marginTop = '3rem'; back.appendChild(onOk(h('div', 'btn', 'Anderer Server'), () => ROUTER.go('connect', null, { root: true }))); p.appendChild(back);
 });
 
+// ---------- Titelmusik auf Detailseiten ----------
+const THEMESONG = {
+  a: null, id: null, t: 0, f: 0,
+  async play(item) {
+    clearTimeout(THEMESONG.t);
+    if (EMBY.settings().themeSongs === false || (window.MUSIC && MUSIC.active) || PLAYER.active || !item) return;
+    const sid = item.Id; if (THEMESONG.id === sid && THEMESONG.a) return;
+    THEMESONG.stop(); THEMESONG.id = sid;
+    try {
+      const r = await EMBY.get('/Items/' + sid + '/ThemeSongs', { UserId: EMBY.user.id, InheritFromParent: true });
+      const s = (r.Items || [])[0]; if (!s || THEMESONG.id !== sid || PLAYER.active) return;
+      const a = new Audio(EMBY.root + '/emby/Audio/' + s.Id + '/stream?static=true&api_key=' + EMBY.token);
+      a.volume = 0; THEMESONG.a = a; a.play().catch(() => {});
+      const tgt = 0.35; clearInterval(THEMESONG.f); THEMESONG.f = setInterval(() => { if (THEMESONG.a !== a) return; a.volume = Math.min(tgt, a.volume + 0.02); if (a.volume >= tgt) clearInterval(THEMESONG.f); }, 100);
+    } catch (e) {}
+  },
+  stopSoon() { clearTimeout(THEMESONG.t); THEMESONG.t = setTimeout(() => THEMESONG.stop(true), 250); },
+  stop(fade) {
+    clearTimeout(THEMESONG.t); clearInterval(THEMESONG.f); const a = THEMESONG.a; THEMESONG.a = null; THEMESONG.id = null; if (!a) return;
+    if (!fade) { a.pause(); return; }
+    const iv = setInterval(() => { a.volume = Math.max(0, a.volume - 0.03); if (a.volume <= 0.01) { clearInterval(iv); a.pause(); } }, 60);
+  },
+};
+window.THEMESONG = THEMESONG;
+
 // ---------- Startseite ----------
 const GENRE_COLORS = [['#7c3aed', '#3b5bf0'], ['#f43f5e', '#f97316'], ['#0ea5e9', '#14b8a6'], ['#10b981', '#84cc16'], ['#ec4899', '#a855f7'], ['#f59e0b', '#ef4444'], ['#6366f1', '#06b6d4'], ['#64748b', '#334155']];
 ROUTER.reg('home', async (scr) => {
@@ -430,7 +455,9 @@ ROUTER.reg('detail', async (scr, arg) => {
   try { const sim = await EMBY.similar(item.Id); if ((sim.Items || []).length) { const r = V.row('Ähnliches', sim.Items, 'poster', { cap: true }); sc.appendChild(r); COMM.decorate(r); } } catch (e) {}
   scr.initial = scr.initial || $('.btn', btns);
   scr.refresh = async () => { if (APP.dirty) { APP.dirty = false; const f = NAV.cur && NAV.cur.dataset ? NAV.cur.dataset.id : null; await ROUTER.go('detail', { id: arg.id }, { replace: true }); if (f) { const c = $('.card[data-id="' + f + '"]', ROUTER.top().el); if (c) NAV.focus(c); } } };
-  scr.enter = () => { BG.set(EMBY.backdrop(item)); BG.dim(false); };
+  scr.enter = () => { BG.set(EMBY.backdrop(item)); BG.dim(false); THEMESONG.play(item); };
+  scr.leave = () => THEMESONG.stopSoon();
+  THEMESONG.play(item);
 });
 
 ROUTER.reg('person', async (scr, arg) => {
@@ -520,6 +547,8 @@ ROUTER.reg('settings', async (scr) => {
   choice('Intro automatisch überspringen', 'autoSkip', [[false, 'Aus (Knopf wird angezeigt)'], [true, 'An']], 'skip');
   sect('Darstellung');
   row('Farbthema', (THEME.list.find(t => t[0] === (s.theme || 'auto')) || THEME.list[0])[1] + ((s.theme || 'auto') === 'auto' ? ' · gerade: ' + THEME.names[THEME.seasonal()] : ''), async (e) => { const v = await UI.choose('Farbthema', THEME.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.theme || 'auto') })), 'Saisonal wechselt automatisch – z. B. Advent, Halloween, Frühling, Sommer, Tag der Deutschen Einheit.'); if (v) { s.theme = v; save(); THEME.apply(v); setVal(e, THEME.list.find(t => t[0] === v)[1]); } }, 'gear');
+  choice('Titelmusik auf Detailseiten', 'themeSongs', [[true, 'An (leise im Hintergrund)'], [false, 'Aus']], 'music');
+  choice('Vorschaubilder beim Spulen', 'trick', [[true, 'An (wenn Emby sie erzeugt hat)'], [false, 'Aus']], 'tv');
   choice('Bildschirmschoner', 'saver', [[5, 'Nach 5 Minuten'], [3, 'Nach 3 Minuten'], [10, 'Nach 10 Minuten'], [20, 'Nach 20 Minuten'], [0, 'Aus (Fire-TV-eigener)']], 'tv');
   sect('Community');
   choice('Anderen zeigen, was ich schaue', 'showWatching', [[true, 'Ja'], [false, 'Nein']], 'user');

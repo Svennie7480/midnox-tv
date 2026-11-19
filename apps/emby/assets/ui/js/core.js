@@ -36,6 +36,7 @@ const IC = {
   heart: '<path d="M12 20.5s-8-4.6-8-10.4A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 3.1c0 5.8-8 10.4-8 10.4z"/>',
   heartf: '<path d="M12 20.5s-8-4.6-8-10.4A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 3.1c0 5.8-8 10.4-8 10.4z" fill="currentColor"/>',
   check: '<path d="m4.5 12.5 5 5 10-11"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
   star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
   starf: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" fill="currentColor"/>',
   party: '<path d="M4 20 9 5l10 10z"/><path d="M14 4c1-1 3-1 3 1M19 9c1-1 3 0 2 2M17 2v1M22 6h-1"/>',
@@ -274,7 +275,7 @@ const ROUTER = {
 
 // ---------- Navigationsleiste ----------
 const RAIL = {
-  items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
+  items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['match', 'Was gucken?', 'heart'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
   build() {
     const r = $('#rail'); r.innerHTML = '<div class="logo">m</div><div class="lt">midnox <b>Emby</b></div>';
     for (const [id, label, icon] of RAIL.items) {

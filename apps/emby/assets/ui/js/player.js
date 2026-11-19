@@ -23,12 +23,42 @@ const ADAPTER = HAS_ANDROID ? {
   track() {}, speed(r) { ADAPTER.rate = r; }, volume() {},
 };
 
+/** Spul-Vorschaubilder aus Embys BIF-Datei (Roku-Format). */
+const TRICK = {
+  id: null, ts: null, urls: null, cache: {},
+  reset() { TRICK.id = null; TRICK.ts = null; TRICK.cache = {}; if (TRICK.urls) TRICK.urls.forEach(u => URL.revokeObjectURL(u)); TRICK.urls = null; try { if (HAS_ANDROID && Android.bifClear) Android.bifClear(); } catch (e) {} },
+  load(item, msId) {
+    TRICK.reset(); if (!item || EMBY.settings().trick === false) return;
+    const id = item.Id; TRICK.id = id;
+    const url = EMBY.root + '/emby/Videos/' + id + '/index.bif?Width=320' + (msId ? '&MediaSourceId=' + msId : '') + '&api_key=' + EMBY.token;
+    if (HAS_ANDROID) { if (Android.bifLoad) Android.bifLoad(url, id); return; }
+    const x = new XMLHttpRequest(); x.open('GET', url); x.responseType = 'arraybuffer';
+    x.onload = () => { if (x.status === 200 && TRICK.id === id) TRICK.parse(x.response, id); }; x.send();
+  },
+  parse(buf, id) {
+    const v = new DataView(buf); if (buf.byteLength < 72 || v.getUint32(0) !== 0x89424946) return;
+    const n = v.getUint32(12, true); let m = v.getUint32(16, true) || 1000; if (!n || 64 + (n + 1) * 8 > buf.byteLength) return;
+    const ts = [], urls = [];
+    for (let i = 0; i < n; i++) { ts.push(v.getUint32(64 + i * 8, true) * m); const a = v.getUint32(68 + i * 8, true), b = v.getUint32(76 + i * 8, true); urls.push(URL.createObjectURL(new Blob([buf.slice(a, b)], { type: 'image/jpeg' }))); }
+    TRICK.ts = ts; TRICK.urls = urls;
+  },
+  frame(ms) {
+    const ts = TRICK.ts; if (!ts || !ts.length) return null;
+    let lo = 0, hi = ts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ts[mid] <= ms) lo = mid; else hi = mid - 1; }
+    if (TRICK.urls) return TRICK.urls[lo];
+    if (!TRICK.cache[lo]) { try { const b = Android.bifFrame(lo); if (!b) return null; TRICK.cache[lo] = 'data:image/jpeg;base64,' + b; } catch (e) { return null; } }
+    return TRICK.cache[lo];
+  },
+};
+window.TRICK = TRICK;
+
 const PLAYER = {
   active: false, item: null, info: null, pos: 0, dur: 0, buf: 0, playing: false, state: 1, ready: false,
   audioIndex: null, subIndex: -1, tracks: [], osdOn: false, osdTimer: 0, scrub: null, lastReport: 0, nextItem: null, upNextShown: false,
   party: null, ended: false,
 
   async open(item, opts) {
+    if (window.THEMESONG) THEMESONG.stop();
     opts = opts || {};
     if (window.MUSIC) MUSIC.stop(true);
     if (PLAYER.active) await PLAYER.stop('switch');
@@ -60,6 +90,7 @@ const PLAYER = {
     const info = await EMBY.playbackInfo(it, { startMs, audioIndex: PLAYER.audioIndex, subIndex: PLAYER.subIndex == null ? undefined : PLAYER.subIndex, mediaSourceId: PLAYER.mediaSourceId, forceTranscode: PLAYER.fallback });
     if (PLAYER.info && PLAYER.info.method === 'Transcode' && PLAYER.info.playSessionId !== info.playSessionId) EMBY.stopEncoding(PLAYER.info.playSessionId);
     PLAYER.info = info; PLAYER.mediaSourceId = info.src.Id;
+    if (!TRICK.id || TRICK.id !== it.Id) TRICK.load(it, info.src.Id);
     const streams = info.src.MediaStreams || [];
     if (PLAYER.audioIndex == null) PLAYER.audioIndex = info.src.DefaultAudioStreamIndex != null ? info.src.DefaultAudioStreamIndex : ((streams.find(x => x.Type === 'Audio') || {}).Index);
     if (PLAYER.subIndex == null) PLAYER.subIndex = PLAYER.pickDefaultSub(info.src);
@@ -119,6 +150,7 @@ const PLAYER = {
       case 'ready':
         if (!PLAYER.ready) { PLAYER.ready = true; PLAYER.loading(false); if (!PLAYER.party) setTimeout(() => PLAYER.hideOsdSoon(), 400); if (PLAYER.party) PARTY.localReady(); }
         break;
+      case 'bif': if (e.id === TRICK.id) TRICK.ts = e.ts; break;
       case 'tracks': PLAYER.tracks = e.list || []; PLAYER.applyAudioTrack(); break;
       case 'cues': { const sEl = $('#subs'); sEl.innerHTML = e.text ? '<span>' + esc(e.text).replace(/&lt;\/?(i|b|u)&gt;/g, '') + '</span>' : ''; break; }
       case 'ended': PLAYER.onEnded(); break;
@@ -166,7 +198,7 @@ const PLAYER = {
     if (info) { EMBY.report('stop', Object.assign(PLAYER.reportBody(), { PositionTicks: Math.round(pos * 10000) })); if (info.method === 'Transcode') EMBY.stopEncoding(info.playSessionId); }
     if (PLAYER.party && reason !== 'switch') PARTY.leave();
     ADAPTER.stop();
-    PLAYER.active = false; PLAYER.info = null; PLAYER.mediaSourceId = null; PLAYER.tracks = [];
+    TRICK.reset(); PLAYER.active = false; PLAYER.info = null; PLAYER.mediaSourceId = null; PLAYER.tracks = [];
     clearTimeout(PLAYER.osdTimer); clearTimeout(PLAYER.scrubT); clearInterval(PLAYER.upNextT);
     if (reason !== 'switch') PLAYER.close();
     APP.dirty = true;
@@ -228,7 +260,7 @@ const PLAYER = {
     const o = $('#osd'); o.className = ''; o.innerHTML =
       '<div class="scrim"></div><div class="head"><div><div class="t1"></div><div class="t2"></div></div><div class="clock"></div></div>' +
       '<div class="big-state"></div><div class="buffer hidden"><div class="spin"></div></div>' +
-      '<div class="foot"><div class="seek f"><div class="b"></div><div class="p"></div><div class="k"></div><div class="tip"></div></div><div class="times"><span class="tp">0:00</span><span class="tr"></span></div><div class="ctrl"></div></div>';
+      '<div class="foot"><div class="seek f"><div class="b"></div><div class="p"></div><div class="k"></div><div class="thumb"><img><div class="tip"></div></div></div><div class="times"><span class="tp">0:00</span><span class="tr"></span></div><div class="ctrl"></div></div>';
     const seek = $('.seek', o);
     seek._focus = () => {}; seek._ok = () => PLAYER.toggle();
     PLAYER.seekEl = seek;
@@ -267,7 +299,8 @@ const PLAYER = {
     $('.p', PLAYER.seekEl).style.width = (PLAYER.pos / dur * 100) + '%';
     $('.b', PLAYER.seekEl).style.width = Math.min(100, PLAYER.buf / dur * 100) + '%';
     $('.k', PLAYER.seekEl).style.left = pct + '%';
-    const tip = $('.tip', PLAYER.seekEl); tip.style.left = pct + '%'; tip.textContent = fmtTime(pos);
+    const th = $('.thumb', PLAYER.seekEl); $('.tip', th).textContent = fmtTime(pos);
+    const fu = PLAYER.scrub != null ? TRICK.frame(pos) : null; th.classList.toggle('has', !!fu); th.style.left = (fu ? Math.max(11, Math.min(89, pct)) : pct) + '%'; if (fu) { const im = $('img', th); if (im.getAttribute('src') !== fu) im.src = fu; }
     PLAYER.seekEl.classList.toggle('scrub', PLAYER.scrub != null);
     $('.tp', o).textContent = fmtTime(PLAYER.pos);
     $('.tr', o).textContent = PLAYER.dur ? '−' + fmtTime(PLAYER.dur - PLAYER.pos) : '';
@@ -359,7 +392,7 @@ const PLAYER = {
     const step = big ? 30000 : (repeat > 24 ? 120000 : repeat > 10 ? 60000 : repeat > 3 ? 30000 : 10000);
     PLAYER.scrub = Math.max(0, Math.min(PLAYER.dur - 1000, (PLAYER.scrub != null ? PLAYER.scrub : PLAYER.pos) + dir * step));
     PLAYER.renderTime();
-    clearTimeout(PLAYER.scrubT); PLAYER.scrubT = setTimeout(() => PLAYER.commitScrub(), 900);
+    clearTimeout(PLAYER.scrubT); PLAYER.scrubT = setTimeout(() => PLAYER.commitScrub(), TRICK.ts ? 1600 : 900);
   },
   commitScrub() { clearTimeout(PLAYER.scrubT); if (PLAYER.scrub == null) return; const t = PLAYER.scrub; PLAYER.scrub = null; PLAYER.seekTo(t, true); PLAYER.hideOsdSoon(); },
 };

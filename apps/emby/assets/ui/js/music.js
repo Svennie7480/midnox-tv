@@ -3,6 +3,7 @@
 const MUSIC = {
   active: false, queue: [], idx: 0, playing: false, pos: 0, dur: 0, info: null, lastReport: 0, shuffled: false,
   async play(list, idx, shuffle) {
+    if (window.THEMESONG) THEMESONG.stop();
     if (PLAYER.active) await PLAYER.stop('user');
     list = list.filter(x => x.Type === 'Audio'); if (!list.length) return;
     if (shuffle) { list = list.slice(); for (let i = list.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [list[i], list[j]] = [list[j], list[i]]; } idx = 0; }

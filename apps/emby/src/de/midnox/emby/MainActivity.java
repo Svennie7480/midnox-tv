@@ -223,12 +223,41 @@ public class MainActivity extends Activity {
 
     // ===================== Brücke zur Oberfläche =====================
     boolean uiAwake = false;
+    volatile byte[] bifData; volatile int[] bifOff; volatile String bifId = "";
+    static int le(byte[] b, int o) { return (b[o] & 0xff) | (b[o + 1] & 0xff) << 8 | (b[o + 2] & 0xff) << 16 | (b[o + 3] & 0xff) << 24; }
     final class Bridge {
         @JavascriptInterface public void keepAwake(final boolean on) { h.post(new Runnable() { public void run() {
             uiAwake = on;
             if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             else if (player == null || !player.isPlaying()) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         } }); }
+        @JavascriptInterface public void bifLoad(final String url, final String id) {
+            bifId = id; bifData = null; bifOff = null;
+            new Thread(new Runnable() { public void run() {
+                try {
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection(); c.setConnectTimeout(8000); c.setReadTimeout(20000);
+                    if (c.getResponseCode() != 200) return;
+                    InputStream in = c.getInputStream(); ByteArrayOutputStream bo = new ByteArrayOutputStream(); byte[] buf = new byte[65536]; int n;
+                    while ((n = in.read(buf)) > 0) { bo.write(buf, 0, n); if (bo.size() > 60 * 1024 * 1024) { in.close(); return; } }
+                    in.close(); byte[] b = bo.toByteArray();
+                    if (b.length < 72 || (b[0] & 0xff) != 0x89 || b[1] != 'B' || b[2] != 'I' || b[3] != 'F') return;
+                    int count = le(b, 12), mult = le(b, 16); if (mult == 0) mult = 1000; if (count <= 0 || 64 + (count + 1) * 8 > b.length) return;
+                    int[] off = new int[count + 1]; StringBuilder ts = new StringBuilder();
+                    for (int i = 0; i <= count; i++) { off[i] = le(b, 64 + i * 8 + 4); if (i < count) { if (i > 0) ts.append(','); ts.append((long) (le(b, 64 + i * 8) & 0xffffffffL) * mult); } }
+                    if (!id.equals(bifId)) return;
+                    bifData = b; bifOff = off;
+                    final String msg = "{\"e\":\"bif\",\"id\":" + JSONObject.quote(id) + ",\"ts\":[" + ts + "]}";
+                    h.post(new Runnable() { public void run() { send(msg); } });
+                } catch (Exception e) {}
+            } }).start();
+        }
+        @JavascriptInterface public String bifFrame(int i) {
+            byte[] b = bifData; int[] o = bifOff;
+            if (b == null || o == null || i < 0 || i >= o.length - 1) return "";
+            int s = o[i], e = o[i + 1]; if (s < 0 || e > b.length || e <= s) return "";
+            return android.util.Base64.encodeToString(b, s, e - s, android.util.Base64.NO_WRAP);
+        }
+        @JavascriptInterface public void bifClear() { bifId = ""; bifData = null; bifOff = null; }
         @JavascriptInterface public boolean openUrl(String url) {
             try {
                 android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url));

@@ -366,8 +366,11 @@ input.tvinput { position: fixed; left: -100rem; top: 0; opacity: 0; width: 10px;
 .seek .mk { position: absolute; top: -.2rem; bottom: -.2rem; width: .3rem; background: var(--gold); border-radius: .2rem; }
 .seek.focused { height: .8rem; }
 .seek.focused .k { transform: translate(-50%, -50%) scale(1); }
-.seek .tip { position: absolute; bottom: 2rem; transform: translateX(-50%); font-size: 1.4rem; font-weight: 800; background: #fff; color: #0b0a14; padding: .3rem .8rem; border-radius: .6rem; font-variant-numeric: tabular-nums; display: none; }
-.seek.scrub .tip { display: block; }
+.seek .thumb { position: absolute; bottom: 2rem; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; gap: .6rem; pointer-events: none; }
+.seek.scrub .thumb { display: flex; }
+.seek .thumb img { display: none; width: 24rem; aspect-ratio: 16/9; object-fit: cover; border-radius: 1rem; border: .2rem solid #fff; box-shadow: 0 1.2rem 3rem rgba(0,0,0,.6); background: #000; }
+.seek .thumb.has img { display: block; }
+.seek .tip { font-size: 1.4rem; font-weight: 800; background: #fff; color: #0b0a14; padding: .3rem .8rem; border-radius: .6rem; font-variant-numeric: tabular-nums; }
 .times { display: flex; justify-content: space-between; margin-top: .9rem; font-size: 1.25rem; font-weight: 600; color: #d6d8ea; font-variant-numeric: tabular-nums; }
 .ctrl { display: flex; gap: 1rem; align-items: center; margin-top: 1.6rem; }
 .ctrl .spacer { flex: 1; }
@@ -470,3 +473,74 @@ body.th-einheit { --c1: #111111; --c2: #dc2626; --c3: #facc15; --g1: 120,120,120
 #saver .svlogo { position: absolute; left: 5rem; top: 4rem; font-size: 1.6rem; font-weight: 300; opacity: .7; }
 #saver .svlogo b { font-weight: 800; }
 body[class*="th-"] { --grad: linear-gradient(120deg, var(--c1), var(--c2) 55%, var(--c3)); }
+
+/* ---------- Was gucken wir heute? ---------- */
+.mx .kicker { display: flex; align-items: center; gap: .7rem; font-size: 1.15rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: #c9cbe3; }
+.mx .kicker i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--grad); }
+.mx h1 { font-size: 4.6rem; font-weight: 850; letter-spacing: -.035em; line-height: 1.02; margin: 1rem 0 1.2rem; }
+.mx h1 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mx p { font-size: 1.5rem; color: #c3c5dc; line-height: 1.5; max-width: 52rem; }
+.mx .btns { display: flex; gap: 1.2rem; margin-top: 2.4rem; }
+.mx-setup { position: absolute; left: 12rem; top: 5rem; right: 6rem; }
+.mx-form { margin-top: 2.6rem; display: flex; flex-direction: column; gap: 1.3rem; }
+.mx-line { display: flex; align-items: center; gap: 2rem; }
+.mx-line label { width: 12rem; font-size: 1.3rem; font-weight: 700; color: var(--mut); }
+.mx-line .chips { display: flex; gap: .9rem; }
+.mx-go { margin-top: 3rem; height: 4.6rem; padding: 0 2.6rem; font-size: 1.6rem; border-radius: 2.3rem; }
+.mx-lobby { position: absolute; left: 12rem; right: 6rem; top: 0; bottom: 0; display: flex; align-items: center; gap: 6rem; }
+.mx-qr { flex: none; width: 30rem; padding: 2.2rem; border-radius: 2.6rem; background: #fff; color: #0b0a14; text-align: center; box-shadow: 0 2rem 6rem rgba(var(--g1),.35); }
+.mx-qr .code svg { width: 100%; height: auto; display: block; }
+.mx-qr .cd { font-size: 4.2rem; font-weight: 900; letter-spacing: .12em; margin-top: 1rem; font-variant-numeric: tabular-nums; }
+.mx-qr small { display: block; font-size: 1.1rem; color: #555; margin-top: .3rem; word-break: break-all; }
+.mx-side { flex: 1; min-width: 0; }
+.mx-players { display: flex; flex-direction: column; gap: .9rem; margin-top: 2rem; max-height: 22rem; overflow: hidden; }
+.mx-pl { display: flex; align-items: center; gap: 1.1rem; padding: .8rem 1.2rem .8rem .8rem; border-radius: 1.4rem; background: rgba(255,255,255,.06); border: .1rem solid var(--line); animation: swapin .4s var(--ease); }
+.mx-pl.off { opacity: .45; }
+.mx-pl .av { width: 3.4rem; height: 3.4rem; font-size: 1.2rem; flex: none; }
+.mx-pl .tvav { display: grid; place-items: center; background: rgba(255,255,255,.12); border-radius: 50%; font-size: 1.6rem; }
+.mx-pl .nm { flex: 1; min-width: 0; }
+.mx-pl b { font-size: 1.35rem; } .mx-pl small { display: block; font-size: 1.05rem; color: var(--mut); }
+.mx-pl .bar { height: .6rem; border-radius: .3rem; background: rgba(255,255,255,.12); overflow: hidden; margin-top: .5rem; }
+.mx-pl .bar i { display: block; height: 100%; background: var(--grad); transition: width .5s var(--ease); }
+.mx-pl .ct { font-size: 1.15rem; font-weight: 800; color: var(--mut); font-variant-numeric: tabular-nums; }
+.mx-empty { color: var(--mut); font-size: 1.3rem; padding: .6rem 0; }
+.mx-vote { position: absolute; left: 12rem; right: 4rem; top: 4rem; bottom: 4rem; display: flex; gap: 4rem; }
+.mx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.mx-card { display: flex; gap: 3rem; align-items: flex-end; transition: transform .26s ease-in, opacity .26s; }
+.mx-card.goyes { transform: translateX(14rem) rotate(4deg); opacity: 0; }
+.mx-card.gono { transform: translateX(-14rem) rotate(-4deg); opacity: 0; }
+.mx-card .pst { flex: none; width: 21rem; aspect-ratio: 2/3; border-radius: 1.6rem; background: var(--card2) center/cover; box-shadow: 0 2rem 5rem rgba(0,0,0,.6); }
+.mx-card .tx { min-width: 0; padding-bottom: .4rem; }
+.mx-card h1 { font-size: 4rem; }
+.mx-card .genres { color: var(--mut); font-size: 1.25rem; margin-top: .6rem; }
+.mx-card .ov { font-size: 1.35rem; color: #cfd1e6; line-height: 1.5; margin-top: 1rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; max-width: 50rem; }
+.mx-yn { display: flex; gap: 1.2rem; margin-top: 2.6rem; }
+.mx-yn .btn { height: 4.6rem; padding: 0 2.4rem; font-size: 1.6rem; border-radius: 2.3rem; }
+.mx-yn .btn b { font-size: 2rem; }
+.mx-no b { color: var(--red); } .mx-no.focused b { color: var(--red); }
+.mx-hint { margin-top: 1.4rem; font-size: 1.15rem; color: var(--mut); }
+.mx-side2 { flex: none; width: 27rem; padding: 2rem; border-radius: 2rem; background: rgba(12,10,26,.72); border: .1rem solid var(--line); backdrop-filter: blur(20px); overflow: hidden; }
+.mx-side2 h3 { font-size: 1.1rem; letter-spacing: .2em; text-transform: uppercase; color: var(--mut); margin: 0 0 .2rem; }
+.mx-side2 h3 + .mx-players { margin-top: 1rem; margin-bottom: 2rem; max-height: 19rem; }
+.mx-side2 .mx-pl { padding: .5rem .9rem .5rem .5rem; } .mx-side2 .mx-pl .av { width: 2.8rem; height: 2.8rem; }
+.mx-hits { display: flex; flex-direction: column; gap: .8rem; margin-top: 1rem; }
+.mx-hit { display: flex; align-items: center; gap: 1rem; font-size: 1.2rem; }
+.mx-hit .p { width: 3.4rem; height: 5.1rem; border-radius: .5rem; background: var(--card2) center/cover; flex: none; }
+.mx-hit b { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 19rem; }
+.mx-hit small { color: var(--mut); } .mx-hit.all small { color: var(--hl); font-weight: 700; }
+.mx-watch { text-align: left; }
+.mx-watch .pulse { width: 8rem; height: 8rem; border-radius: 50%; background: var(--grad); display: grid; place-items: center; font-size: 3.6rem; animation: mxpulse 1.6s ease-in-out infinite; }
+@keyframes mxpulse { 50% { transform: scale(1.08); box-shadow: 0 0 0 1.6rem rgba(var(--g1),.15); } }
+.mx-result { position: absolute; inset: 0; }
+.mx-rhead { position: absolute; left: 12rem; top: 4rem; right: 6rem; }
+.mx-result .rows { position: absolute; left: 0; right: 0; top: 0; }
+.mx-result .row:first-child { margin-top: 0; }
+.card .mx-badge { position: absolute; top: .7rem; right: .7rem; padding: .3rem .8rem; border-radius: 1rem; background: rgba(10,8,22,.82); font-size: 1.1rem; font-weight: 800; }
+.card.hit .mx-badge { background: var(--grad); }
+#mxparty { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(8,6,20,.82); backdrop-filter: blur(10px); animation: swapin .35s var(--ease); overflow: hidden; }
+#mxparty .p { width: 20rem; aspect-ratio: 2/3; border-radius: 1.8rem; background: var(--card2) center/cover; box-shadow: 0 0 0 .4rem #fff, 0 2rem 6rem rgba(var(--g1),.6); animation: mxpop .7s cubic-bezier(.2,1.4,.4,1); }
+@keyframes mxpop { from { transform: scale(.4) rotate(-12deg); } }
+#mxparty h2 { font-size: 6rem; font-weight: 900; letter-spacing: -.04em; margin-top: 2.4rem; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#mxparty .who { font-size: 1.6rem; color: #d4d6ea; margin-top: .4rem; }
+#mxparty .conf { position: absolute; top: -2rem; width: 1rem; height: 1.6rem; border-radius: .3rem; animation: mxfall linear forwards; }
+@keyframes mxfall { to { transform: translateY(110vh) rotate(720deg); } }

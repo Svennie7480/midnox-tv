@@ -3,7 +3,7 @@
 const APP = {
   dirty: false,
   async boot() {
-    THEME.apply(EMBY.settings().theme); SAVER.keepAwake(EMBY.settings().saver !== 0);
+    THEME.apply(EMBY.settings().theme); GLASS.apply(EMBY.settings().glass); SAVER.keepAwake(EMBY.settings().saver !== 0);
     try {
       if (await EMBY.restore()) { await APP.afterLogin(); return; }
     } catch (e) {

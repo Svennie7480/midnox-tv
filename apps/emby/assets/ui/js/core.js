@@ -424,3 +424,7 @@ const THEME = {
   },
 };
 window.THEME = THEME;
+/** Glass-Optik: full (mit Unschärfe), lite (ohne Unschärfe), off (klassisch). */
+const GLASS = { list: [['full', 'An – Glas mit Unschärfe'], ['lite', 'Sparsam – ohne Unschärfe (ältere Sticks)'], ['off', 'Aus – klassisch dunkel']],
+  apply(v) { v = v || 'full'; document.body.classList.toggle('glass', v !== 'off'); document.body.classList.toggle('glass-lite', v === 'lite'); } };
+window.GLASS = GLASS;

@@ -22,6 +22,10 @@
  *   POST ?a=party_react {id,e}            Emoji-Reaktion
  *   POST ?a=match_new {items,tv}         „Was gucken wir heute?“-Runde anlegen (Code für die Handys)
  *   GET/POST ?a=m_* (ohne Emby-Login, mit Code) Handy-Seite match.html: beitreten, abstimmen, Stand
+ *   POST ?a=log {id,type,secs,...}        Wiedergabe protokollieren (für Rückblick & Errungenschaften)
+ *   GET  ?a=mystats&year=                 eigenes Protokoll + Zähler (Bewertungen, Chat, Partys, Matches)
+ *   POST ?a=ach {got:{id:{lv,t}}, sum}    freigeschaltete Errungenschaften + Jahres-Kurzfassung speichern
+ *   GET  ?a=board&year=                   Rangliste/Übersicht aller für den Rückblick der Runde
  *   GET  ?check                           Selbsttest im Browser
  */
 declare(strict_types=1);
@@ -33,6 +37,7 @@ const TOKEN_TTL = 43200;       // so lange (s) gilt eine erfolgreiche Token-Prü
 const CHAT_KEEP = 600;         // so viele Chat-Nachrichten aufheben
 const PARTY_IDLE = 25;         // Mitglied gilt nach so vielen s ohne Abfrage als weg
 const ONLINE_WINDOW = 120;     // „online", wenn in den letzten s aktiv
+const LOG_MAX = 6000;          // Wiedergabe-Einträge pro Person und Jahr
 const MATCH_TTL = 14400;       // „Was gucken wir heute?“-Runden verfallen nach 4 h
 const MATCH_MAX = 60;          // höchstens so viele Titel pro Runde
 
@@ -95,6 +100,11 @@ function emby_get(string $path, string $token, int $timeout = 8): array {
 }
 
 /** Wer steckt hinter dem Token? Ergebnis wird zwischengespeichert. */
+/** Zähler pro Person: gesamt und pro Jahr (Watch-Partys, Matches …). */
+function bump(string $uid, string $key, int $n = 1): void {
+    $y = date('Y');
+    store('cnt_' . $uid, function (&$d) use ($key, $n, $y) { $d['all'][$key] = ($d['all'][$key] ?? 0) + $n; $d[$y][$key] = ($d[$y][$key] ?? 0) + $n; });
+}
 function me(): array {
     $tok = (string) ($_SERVER['HTTP_X_EMBY_TOKEN'] ?? '');
     $uid = safe_id((string) ($_SERVER['HTTP_X_EMBY_USER'] ?? ''));
@@ -364,6 +374,55 @@ case 'online': {
 }
 
 // ===== Watch-Party =====
+case 'log': {
+    $b = body(); $id = safe_id((string) ($b['id'] ?? '')); $secs = (int) ($b['secs'] ?? 0);
+    if ($id === '' || $secs < 20 || $secs > 6 * 3600) out(['ok' => false]);
+    rate_limit('log', $me['id'], 2);
+    $t = time(); $y = date('Y', $t);
+    $e = ['t' => $t, 'id' => $id, 'k' => substr(preg_replace('/[^A-Za-z]/', '', (string) ($b['type'] ?? '')), 0, 12), 's' => $secs,
+        'n' => clean((string) ($b['name'] ?? ''), 80), 'sr' => safe_id((string) ($b['series'] ?? '')), 'sn' => clean((string) ($b['seriesName'] ?? ''), 80),
+        'g' => array_slice(array_map(function ($g) { return clean((string) $g, 30); }, (array) ($b['genres'] ?? [])), 0, 4),
+        'y' => (int) ($b['year'] ?? 0), 'd' => empty($b['done']) ? 0 : 1, 'p' => empty($b['party']) ? 0 : 1, 'h' => (int) ($b['hour'] ?? -1), 'w' => (int) ($b['wd'] ?? -1), 'day' => substr(preg_replace('/[^0-9-]/', '', (string) ($b['day'] ?? '')), 0, 10)];
+    store('log_' . $me['id'] . '_' . $y, function (&$d) use ($e) { $d[] = $e; if (count($d) > LOG_MAX) $d = array_slice($d, -LOG_MAX); });
+    out(['ok' => true]);
+}
+
+case 'mystats': {
+    $y = (string) (int) ($_GET['year'] ?? date('Y'));
+    $cnt = load('cnt_' . $me['id']);
+    $rat = 0; $rat_y = 0; $best = null;
+    foreach (load('ratings') as $id => $it) if (isset($it['by'][$me['id']])) { $x = $it['by'][$me['id']]; $rat++; if (date('Y', $x['t']) === $y) { $rat_y++; if (!$best || $x['s'] > $best['s'] || ($x['s'] === $best['s'] && $x['t'] > $best['t'])) $best = ['id' => $id, 's' => $x['s'], 'c' => $x['c'], 't' => $x['t'], 'name' => $it['meta']['name'] ?? '']; } }
+    $chat = 0; $chat_y = 0; $recs = 0;
+    foreach (load('chat') as $m) if (($m['uid'] ?? '') === $me['id'] && empty($m['del'])) { $chat++; if (date('Y', $m['t']) === $y) $chat_y++; if (!empty($m['item'])) $recs++; }
+    $ach = load('ach_' . $me['id']);
+    out(['log' => load('log_' . $me['id'] . '_' . $y), 'cnt' => ['all' => (object) ($cnt['all'] ?? []), 'year' => (object) ($cnt[$y] ?? [])],
+        'ratings' => ['all' => $rat, 'year' => $rat_y, 'best' => $best], 'chat' => ['all' => $chat, 'year' => $chat_y, 'recs' => $recs], 'got' => (object) ($ach['got'] ?? [])]);
+}
+
+case 'ach': {
+    $b = body(); rate_limit('ach', $me['id'], 3);
+    $got = []; foreach ((array) ($b['got'] ?? []) as $k => $v) { $k = preg_replace('/[^a-z0-9_]/', '', (string) $k); if ($k !== '' && is_array($v)) $got[$k] = ['lv' => max(1, min(4, (int) ($v['lv'] ?? 1))), 't' => (int) ($v['t'] ?? time())]; }
+    $sum = []; foreach ((array) ($b['sum'] ?? []) as $k => $v) { $k = preg_replace('/[^a-zA-Z0-9_]/', '', (string) $k); if ($k !== '' && count($sum) < 24) $sum[$k] = is_numeric($v) ? round((float) $v, 1) : clean((string) $v, 60); }
+    $y = (string) (int) ($b['year'] ?? date('Y'));
+    store('ach_' . $me['id'], function (&$d) use ($got, $sum, $y, $me) {
+        foreach ($got as $k => $v) if (!isset($d['got'][$k]) || $d['got'][$k]['lv'] < $v['lv']) $d['got'][$k] = $v;
+        if ($sum) $d['sum'][$y] = $sum; $d['name'] = $me['name']; $d['t'] = time();
+    });
+    out(['ok' => true]);
+}
+
+case 'board': {
+    $y = (string) (int) ($_GET['year'] ?? date('Y')); $list = [];
+    global $DATA;
+    foreach (glob("$DATA/ach_*.json") ?: [] as $f) {
+        $d = json_decode((string) @file_get_contents($f), true); if (!is_array($d)) continue;
+        $uid = substr(basename($f, '.json'), 4); $pts = 0; foreach ($d['got'] ?? [] as $g) $pts += $g['lv'];
+        $list[] = ['uid' => $uid, 'name' => $d['name'] ?? '?', 'me' => $uid === $me['id'], 'n' => count($d['got'] ?? []), 'pts' => $pts, 'sum' => (object) ($d['sum'][$y] ?? [])];
+    }
+    usort($list, function ($a, $b) { return $b['pts'] <=> $a['pts']; });
+    out(['list' => $list]);
+}
+
 case 'match_new': {
     $b = body(); rate_limit('match', $me['id'], 5);
     $items = [];
@@ -382,6 +441,7 @@ case 'match_new': {
     $r = ['code' => $code, 'key' => $key, 'host' => $me['id'], 'hostName' => $me['name'], 'created' => time(), 'state' => 'lobby', 'ver' => 1, 'items' => $items, 'players' => []];
     if (!empty($b['tv'])) { $pid = 'tv' . substr(bin2hex(random_bytes(5)), 0, 8); $r['players'][$pid] = ['name' => clean((string) ($b['tvName'] ?? $me['name']), 24), 'tv' => true, 'votes' => [], 'last' => time(), 'joined' => time()]; }
     store("match_$code", function (&$d) use ($r) { $d = $r; });
+    bump($me['id'], 'match_host');
     out(['ok' => true, 'code' => $code, 'key' => $key, 'p' => $pid, 'view' => match_view($r, $pid)]);
 }
 
@@ -394,6 +454,7 @@ case 'party_new': {
         'state' => ['playing' => false, 'pos' => max(0.0, (float) ($b['pos'] ?? 0)), 'at' => now_ms(), 'by' => $me['name']],
         'members' => [$me['id'] => ['name' => $me['name'], 'last' => time(), 'ready' => false, 'buf' => false, 'pos' => 0]], 'react' => [], 'seq' => 0];
     store('party_' . $id, function (&$d) use ($r) { $d = $r; });
+    bump($me['id'], 'party_host');
     out(['ok' => true, 'party' => party_view($r, $me['id'], 0)]);
 }
 
@@ -401,6 +462,7 @@ case 'party_join': case 'party_leave': case 'party_state': case 'party_react': c
     $b = body(); $id = safe_id((string) ($b['id'] ?? ''));
     global $DATA; if ($id === '' || !file_exists("$DATA/party_$id.json")) fail('gone', 404, 'Diese Watch-Party ist vorbei');
     if ($a === 'party_react') rate_limit('react', $me['id'], 0.4);
+    if ($a === 'party_join') { $pr = load('party_' . $id); if (!isset($pr['members'][$me['id']])) bump($me['id'], 'party_join'); }
     $res = store('party_' . $id, function (&$r) use ($a, $b, $me) {
         if (!$r) return null;
         $t = time();

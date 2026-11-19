@@ -17,12 +17,12 @@ const MUSIC = {
     try {
       MUSIC.info = await EMBY.playbackInfo(it, {});
       ADAPTER.play({ url: MUSIC.info.url, video: false, startMs: 0, durMs: MUSIC.dur || 60000 });
-      MUSIC.report('start');
+      MUSIC.report('start'); WLOG.begin(it);
     } catch (e) { UI.toast('Titel nicht abspielbar: ' + e.message, { icon: '⚠️' }); MUSIC.next(); return; }
     MUSIC.renderMini(); MUSIC.renderNow();
   },
   ev(e) {
-    if (e.e === 'tick') { MUSIC.pos = e.pos; if (e.dur > 0) MUSIC.dur = e.dur; if (MUSIC.playing !== e.playing) { MUSIC.playing = e.playing; MUSIC.renderMini(); MUSIC.renderNow(); } MUSIC.progress(); if (Date.now() - MUSIC.lastReport > 10000) { MUSIC.lastReport = Date.now(); MUSIC.report('progress'); } }
+    if (e.e === 'tick') { WLOG.tick(e.playing); MUSIC.pos = e.pos; if (e.dur > 0) MUSIC.dur = e.dur; if (MUSIC.playing !== e.playing) { MUSIC.playing = e.playing; MUSIC.renderMini(); MUSIC.renderNow(); } MUSIC.progress(); if (Date.now() - MUSIC.lastReport > 10000) { MUSIC.lastReport = Date.now(); MUSIC.report('progress'); } }
     else if (e.e === 'ended') MUSIC.next(true);
     else if (e.e === 'error') { UI.toast('Titel übersprungen (nicht abspielbar)', { icon: '⚠️' }); MUSIC.next(true); }
   },
@@ -31,7 +31,7 @@ const MUSIC = {
   toggle() { if (!MUSIC.active) return; if (MUSIC.playing) ADAPTER.pause(); else ADAPTER.resume(); },
   next(auto) { if (MUSIC.idx < MUSIC.queue.length - 1) { MUSIC.idx++; MUSIC.start(); } else if (auto) MUSIC.stop(); },
   prev() { if (MUSIC.pos > 4000 || MUSIC.idx === 0) { ADAPTER.seek(0); return; } MUSIC.idx--; MUSIC.start(); },
-  stop(silent) { if (!MUSIC.active) return; MUSIC.report('stop'); if (MUSIC.info && MUSIC.info.method === 'Transcode') EMBY.stopEncoding(MUSIC.info.playSessionId); if (!silent) ADAPTER.stop(); MUSIC.active = false; MUSIC.info = null; MUSIC.playing = false; $('#mini').classList.add('off'); MUSIC.renderNow(); },
+  stop(silent) { if (!MUSIC.active) return; MUSIC.report('stop'); WLOG.flush(true); if (MUSIC.info && MUSIC.info.method === 'Transcode') EMBY.stopEncoding(MUSIC.info.playSessionId); if (!silent) ADAPTER.stop(); MUSIC.active = false; MUSIC.info = null; MUSIC.playing = false; $('#mini').classList.add('off'); MUSIC.renderNow(); },
   mediaKey(k) { if (!MUSIC.active) return false; if (k === 'playpause' || k === 'play' || k === 'pause') MUSIC.toggle(); else if (k === 'next') MUSIC.next(); else if (k === 'prev') MUSIC.prev(); else if (k === 'stop') MUSIC.stop(); return true; },
   remote(d) { const c = d.Command; if (c === 'PlayPause' || c === 'Pause' || c === 'Unpause') MUSIC.toggle(); else if (c === 'NextTrack') MUSIC.next(); else if (c === 'PreviousTrack') MUSIC.prev(); else if (c === 'Stop') MUSIC.stop(); else if (c === 'Seek') ADAPTER.seek((d.SeekPositionTicks || 0) / 10000); },
   cur() { return MUSIC.queue[MUSIC.idx]; },

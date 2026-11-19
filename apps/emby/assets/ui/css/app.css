@@ -544,3 +544,130 @@ body[class*="th-"] { --grad: linear-gradient(120deg, var(--c1), var(--c2) 55%, v
 #mxparty .who { font-size: 1.6rem; color: #d4d6ea; margin-top: .4rem; }
 #mxparty .conf { position: absolute; top: -2rem; width: 1rem; height: 1.6rem; border-radius: .3rem; animation: mxfall linear forwards; }
 @keyframes mxfall { to { transform: translateY(110vh) rotate(720deg); } }
+
+/* ---------- Medaillen & Errungenschaften ---------- */
+.medal { position: relative; width: 6rem; height: 6rem; flex: none; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, #3a3654, #1a1830); box-shadow: inset 0 0 0 .3rem rgba(255,255,255,.08); filter: grayscale(1); opacity: .45; }
+.medal span { font-size: 2.8rem; filter: drop-shadow(0 .2rem .4rem rgba(0,0,0,.4)); }
+.medal.sm { width: 4rem; height: 4rem; } .medal.sm span { font-size: 1.9rem; }
+.medal.lv1, .medal.lv2, .medal.lv3, .medal.lv4 { filter: none; opacity: 1; }
+.medal.lv1 { background: radial-gradient(circle at 35% 30%, #f3b37c, #8a4b22); box-shadow: 0 0 0 .3rem #d08a4e, 0 .8rem 2rem rgba(208,138,78,.35); }
+.medal.lv2 { background: radial-gradient(circle at 35% 30%, #ffffff, #8b93a8); box-shadow: 0 0 0 .3rem #c9d1e4, 0 .8rem 2rem rgba(201,209,228,.35); }
+.medal.lv3 { background: radial-gradient(circle at 35% 30%, #fff3a3, #b8860b); box-shadow: 0 0 0 .3rem #facc15, 0 .8rem 2.4rem rgba(250,204,21,.45); }
+.medal.lv4 { background: conic-gradient(from 0deg, #a5f3fc, #c4b5fd, #f0abfc, #a5f3fc); box-shadow: 0 0 0 .3rem #fff, 0 0 3rem rgba(165,243,252,.6); animation: medspin 6s linear infinite; }
+.medal.lv4 span { animation: medspin 6s linear infinite reverse; }
+@keyframes medspin { to { transform: rotate(360deg); } }
+.mepage .rows { position: absolute; left: 3rem; right: 4rem; top: 0; }
+.mepage .mehead, .mepage .achgrid { padding-left: 9rem; }
+.mehead { padding-top: 4rem; }
+.mehead .who { display: flex; align-items: center; gap: 2rem; }
+.mehead .who > .av { width: 9rem; height: 9rem; font-size: 3.2rem; box-shadow: 0 0 0 .4rem rgba(var(--g1),.5); }
+.mehead .kicker { display: flex; align-items: center; gap: .7rem; font-size: 1.1rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: #c9cbe3; }
+.mehead .kicker i { width: .7rem; height: .7rem; border-radius: 50%; background: var(--grad); }
+.mehead h1 { font-size: 4.4rem; font-weight: 850; letter-spacing: -.035em; margin: .4rem 0; }
+.mehead p { font-size: 1.45rem; color: #c3c5dc; }
+.mehead .tiles { display: flex; gap: 1.2rem; margin-top: 2.4rem; }
+.mehead .tile { flex: 1; padding: 1.4rem 1.6rem; border-radius: 1.6rem; background: rgba(255,255,255,.05); border: .1rem solid var(--line); }
+.mehead .tile b { display: block; font-size: 3.2rem; font-weight: 850; letter-spacing: -.03em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mehead .tile small { font-size: 1.15rem; color: var(--mut); }
+.mehead .btns { display: flex; gap: 1.2rem; margin-top: 2rem; }
+.achgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; padding-right: 2rem; }
+.ach { display: flex; gap: 1.4rem; align-items: center; padding: 1.2rem 1.4rem; border-radius: 1.8rem; background: rgba(255,255,255,.045); border: .1rem solid var(--line); transition: transform .2s var(--ease), background .2s; }
+.ach.focused { transform: scale(1.03); background: rgba(255,255,255,.1); box-shadow: 0 0 0 .25rem #fff; }
+.ach .tx { min-width: 0; flex: 1; }
+.ach b { font-size: 1.45rem; } .ach small { display: block; font-size: 1.05rem; color: var(--mut); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-top: .1rem; }
+.ach.lv1 small { color: #e2a571; } .ach.lv2 small { color: #dfe5f2; } .ach.lv3 small { color: #facc15; } .ach.lv4 small { color: #a5f3fc; }
+.ach .bar { height: .5rem; border-radius: .3rem; background: rgba(255,255,255,.1); overflow: hidden; margin: .7rem 0 .4rem; }
+.ach .bar i { display: block; height: 100%; background: var(--grad); }
+.ach .nx { font-size: 1.05rem; color: #b9bbd3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.rank { width: 30rem; height: 9rem; display: flex; align-items: center; gap: 1.2rem; padding: 1.2rem 1.4rem; background: rgba(255,255,255,.05); border: .1rem solid var(--line); }
+.card.rank.me { border-color: rgba(var(--g1),.8); background: rgba(var(--g1),.15); }
+.card.rank .pl { font-size: 2.2rem; width: 3.4rem; text-align: center; font-weight: 800; }
+.card.rank .av { width: 4.4rem; height: 4.4rem; flex: none; }
+.card.rank b { font-size: 1.4rem; } .card.rank small { display: block; font-size: 1.05rem; color: var(--mut); }
+#rail .me.focused .av { box-shadow: 0 0 0 .3rem #fff; }
+/* Freischalt-Einblendung */
+.achpop { position: fixed; left: 50%; top: 3rem; z-index: 99; transform: translateX(-50%); display: flex; align-items: center; gap: 1.6rem; padding: 1.4rem 2.6rem 1.4rem 1.4rem; border-radius: 4rem; background: rgba(14,12,30,.94); border: .1rem solid rgba(255,255,255,.14); box-shadow: 0 2rem 5rem rgba(0,0,0,.6), 0 0 0 .1rem rgba(var(--g1),.4); animation: achin .7s cubic-bezier(.2,1.4,.4,1); transition: opacity .45s, transform .45s; }
+.achpop.out { opacity: 0; transform: translate(-50%, -2rem); }
+@keyframes achin { from { opacity: 0; transform: translate(-50%, -3rem) scale(.8); } }
+.achpop .medal { animation: achmed 1s cubic-bezier(.2,1.6,.4,1) .15s backwards; }
+@keyframes achmed { from { transform: scale(0) rotate(-120deg); } }
+.achpop small { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--hl); }
+.achpop b { display: block; font-size: 2rem; font-weight: 850; margin: .1rem 0; }
+.achpop div div { font-size: 1.25rem; color: #c3c5dc; }
+.card.wrapcard { width: 46rem; height: 13rem; display: flex; align-items: center; gap: 2rem; padding: 2rem; background: linear-gradient(120deg, rgba(var(--g1),.9), rgba(var(--g2),.85) 55%, rgba(var(--g3),.85)); }
+.card.wrapcard.alt { width: 34rem; background: linear-gradient(120deg, #3a2a0a, #7a5a12); }
+.card.wrapcard .yr { font-size: 4.2rem; font-weight: 900; letter-spacing: -.04em; }
+.card.wrapcard b { display: block; font-size: 1.8rem; font-weight: 850; } .card.wrapcard small { font-size: 1.15rem; color: rgba(255,255,255,.85); line-height: 1.4; }
+
+/* ---------- Rückblick ---------- */
+body.wrapmode #rail { opacity: 0; pointer-events: none; }
+body.wrapmode #rail .f { visibility: hidden; }
+.wrapped { position: fixed !important; inset: 0; z-index: 30; background: #07060f; overflow: hidden; padding: 0 !important; }
+.wrapped .wload { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 2rem; align-items: center; justify-content: center; font-size: 1.6rem; color: var(--mut); }
+.wrapped .wload .spin { width: 5rem; height: 5rem; border-radius: 50%; border: .5rem solid rgba(255,255,255,.1); border-top-color: var(--c1); animation: medspin 1s linear infinite; }
+.wbg { position: absolute; inset: -4%; background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s; filter: saturate(1.2); }
+.wbg.on { opacity: .42; animation: svkb 12s linear forwards; }
+.wrapped::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,6,15,.95) 0%, rgba(7,6,15,.6) 55%, rgba(7,6,15,.3)), linear-gradient(0deg, rgba(7,6,15,.8), transparent 40%); pointer-events: none; }
+.wblobs i { position: absolute; width: 50rem; height: 50rem; border-radius: 50%; filter: blur(8rem); opacity: .45; animation: blob 14s ease-in-out infinite alternate; }
+.wblobs i:nth-child(1) { background: var(--c1); left: -10rem; top: -15rem; }
+.wblobs i:nth-child(2) { background: var(--c2); right: -12rem; top: 10rem; animation-delay: -5s; }
+.wblobs i:nth-child(3) { background: var(--c3); left: 30rem; bottom: -25rem; animation-delay: -9s; opacity: .3; }
+@keyframes blob { to { transform: translate(8rem, 5rem) scale(1.2); } }
+.wrapped[data-slide="s-intro"] .wblobs i, .wrapped[data-slide="s-persona"] .wblobs i, .wrapped[data-slide="s-outro"] .wblobs i { opacity: .7; }
+.wprog { position: absolute; left: 5rem; right: 5rem; top: 2.4rem; z-index: 3; display: flex; gap: .6rem; }
+.wprog i { flex: 1; height: .45rem; border-radius: .3rem; background: rgba(255,255,255,.18); overflow: hidden; }
+.wprog i b { display: block; height: 100%; width: 0; background: #fff; }
+.wprog i.full b { width: 100%; } .wprog i.run b { animation: wrun 9s linear forwards; }
+@keyframes wrun { to { width: 100%; } }
+.wstage { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; padding: 0 9rem; }
+.wfocus { position: absolute; width: 1px; height: 1px; left: 0; bottom: 0; opacity: 0; }
+.wslide { max-width: 80rem; }
+.wslide > * { animation: wup .8s var(--ease) backwards; }
+.wslide > *:nth-child(2) { animation-delay: .12s; } .wslide > *:nth-child(3) { animation-delay: .28s; } .wslide > *:nth-child(4) { animation-delay: .45s; } .wslide > *:nth-child(5) { animation-delay: .6s; }
+@keyframes wup { from { opacity: 0; transform: translateY(2.4rem); } }
+.wslide .kick { font-size: 1.3rem; font-weight: 800; letter-spacing: .26em; text-transform: uppercase; color: var(--hl); margin-bottom: 1.2rem; }
+.wslide h1 { font-size: 5.4rem; font-weight: 900; line-height: 1.04; letter-spacing: -.04em; }
+.wslide h1 span, .wslide .big { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wslide h1 .cnt { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; font-variant-numeric: tabular-nums; }
+.wslide p { font-size: 1.8rem; color: #d3d5ea; margin-top: 1.8rem; line-height: 1.45; max-width: 64rem; }
+.wslide p b { color: #fff; }
+.wslide .big { font-size: 14rem; font-weight: 900; letter-spacing: -.06em; line-height: .9; }
+.wslide .big.yr { font-size: 18rem; }
+.wslide .hint { margin-top: 3rem; font-size: 1.2rem; color: var(--mut); letter-spacing: .1em; }
+.wslide .split { display: flex; gap: 4rem; margin-top: 3rem; }
+.wslide .split b { display: block; font-size: 5rem; font-weight: 900; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.wslide .split small { font-size: 1.4rem; color: var(--mut); }
+.wslide .hero2 .logo { max-width: 46rem; max-height: 14rem; display: block; margin-bottom: 1rem; }
+.wslide .podium, .wslide .posters, .wslide .medals { display: flex; gap: 1.6rem; margin-top: 3rem; }
+.wslide .podium > div { width: 13rem; } .wslide .podium i { display: block; aspect-ratio: 2/3; border-radius: 1rem; background: var(--card2) center/cover; margin-bottom: .8rem; }
+.wslide .podium b { display: block; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .wslide .podium small { color: var(--mut); font-size: 1.05rem; }
+.wslide .posters i { position: relative; width: 12rem; aspect-ratio: 2/3; border-radius: 1.2rem; background: var(--card2) center/cover; box-shadow: 0 1.4rem 3rem rgba(0,0,0,.5); animation: wpost .7s cubic-bezier(.2,1.3,.4,1) backwards; }
+.wslide .posters i:nth-child(2) { animation-delay: .1s; } .wslide .posters i:nth-child(3) { animation-delay: .2s; } .wslide .posters i:nth-child(4) { animation-delay: .3s; } .wslide .posters i:nth-child(5) { animation-delay: .4s; } .wslide .posters i:nth-child(6) { animation-delay: .5s; }
+@keyframes wpost { from { opacity: 0; transform: translateY(3rem) rotate(-6deg); } }
+.wslide .posters b { position: absolute; left: 0; right: 0; bottom: -2.2rem; font-size: 1.05rem; font-weight: 600; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wslide .bars { margin-top: 3rem; display: flex; flex-direction: column; gap: 1.1rem; width: 60rem; }
+.wslide .br { display: flex; align-items: center; gap: 1.6rem; font-size: 1.5rem; font-weight: 700; }
+.wslide .br span { width: 16rem; text-align: right; color: #d3d5ea; }
+.wslide .br i { height: 2.6rem; border-radius: 1.3rem; background: var(--grad); width: var(--w); animation: wbar 1.2s var(--ease) backwards; animation-delay: var(--d); }
+@keyframes wbar { from { width: 0; } }
+.wslide .clock { display: flex; align-items: flex-end; gap: .5rem; height: 16rem; margin-top: 3rem; width: 66rem; }
+.wslide .clock i { position: relative; flex: 1; height: max(var(--h), 2%); border-radius: .5rem .5rem .2rem .2rem; background: rgba(255,255,255,.18); animation: wclk 1s var(--ease) backwards; animation-delay: var(--d); transform-origin: bottom; }
+.wslide .clock i.pk { background: var(--grad); box-shadow: 0 0 2rem rgba(var(--g1),.6); }
+.wslide .clock em { position: absolute; bottom: -2.2rem; left: 0; font-style: normal; font-size: 1.05rem; color: var(--mut); }
+@keyframes wclk { from { transform: scaleY(0); } }
+.wslide .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; margin-top: 3rem; }
+.wslide .grid4 > div { padding: 1.8rem; border-radius: 1.8rem; background: rgba(255,255,255,.07); border: .1rem solid var(--line); backdrop-filter: blur(10px); }
+.wslide .grid4 span { font-size: 2.6rem; } .wslide .grid4 b { display: block; font-size: 4rem; font-weight: 900; margin-top: .4rem; } .wslide .grid4 small { font-size: 1.2rem; color: var(--mut); }
+.wslide .pe { font-size: 12rem; line-height: 1; margin-bottom: 1rem; animation: wpe 1s cubic-bezier(.2,1.5,.4,1) backwards; }
+@keyframes wpe { from { transform: scale(0) rotate(-30deg); } }
+.wslide .medals { flex-wrap: wrap; gap: 2rem 2.6rem; max-width: 76rem; }
+.wslide .medals > div { width: 11rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+.wslide .medals .medal { width: 7.5rem; height: 7.5rem; } .wslide .medals .medal span { font-size: 3.4rem; }
+.wslide .medals b { font-size: 1.2rem; } .wslide .medals small { font-size: 1rem; color: var(--mut); text-transform: uppercase; letter-spacing: .1em; }
+.wslide .lb { margin-top: 2.6rem; display: flex; flex-direction: column; gap: .9rem; width: 66rem; }
+.wslide .lb > div { display: flex; align-items: center; gap: 1.4rem; padding: 1.1rem 1.6rem; border-radius: 1.4rem; background: rgba(255,255,255,.06); border: .1rem solid var(--line); animation: wup .7s var(--ease) backwards; }
+.wslide .lb > div.me { border-color: rgba(var(--g1),.9); background: rgba(var(--g1),.18); }
+.wslide .lb em { font-style: normal; font-size: 2rem; width: 3rem; text-align: center; font-weight: 800; }
+.wslide .lb b { font-size: 1.6rem; } .wslide .lb small { flex: 1; font-size: 1.15rem; color: var(--mut); }
+.wslide .lb span { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.wslide .btns { display: flex; gap: 1.2rem; margin-top: 3rem; }

@@ -29,6 +29,7 @@ const APP = {
     EMBY.capabilities(); EMBY.openSocket();
     await Promise.race([COMM.start(), new Promise(r => setTimeout(r, 3000))]);
     await ROUTER.go('home', null, { root: true });
+    setTimeout(() => { if (window.STATS) STATS.check().catch(() => {}); }, 8000);
     setTimeout(() => { if (STORE.get('welcomed') !== EMBY.user.id) { STORE.set('welcomed', EMBY.user.id); UI.toast('Willkommen, ' + EMBY.user.name + '! ◀ öffnet das Menü, MENU zeigt Optionen zu einem Titel.', { icon: '👋', ms: 8000 }); } }, 800);
   },
   async logout(silent) {

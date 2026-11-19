@@ -1,6 +1,6 @@
 {
- "versionCode": 3,
- "versionName": "1.2",
+ "versionCode": 4,
+ "versionName": "1.3",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neu: „Was gucken wir heute?“ – alle wischen auf dem Handy durch Vorschläge, bei einem Match gibt es Konfetti und direkt die Watch-Party. Dazu Vorschaubilder beim Spulen (Emby-BIF) und leise Titelmusik auf Detailseiten. Server-Update nötig: index.php und match.html neu hochladen."
+ "notes": "Neu: Errungenschaften in Bronze, Silber, Gold und Platin (Filmstunden, Binge, Nachteule, Watch-Partys …) mit Rangliste der Runde – und dein Jahresrückblick 2026 als Story mit Lieblingsserie, Genres, Uhrzeiten und Gucker-Typ. Über dein Profilbild im Menü. Server-Update nötig: index.php neu hochladen."
 }

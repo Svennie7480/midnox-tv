@@ -241,6 +241,16 @@ ROUTER.reg('home', async (scr) => {
     if ((resume.Items || []).length) rows.appendChild(V.row('Weiterschauen', resume.Items, 'land', { focus }));
     const nx = (next.Items || []).filter(i => !resumeIds.has(i.Id));
     if (nx.length) rows.appendChild(V.row('Nächste Folgen', nx, 'land', { focus }));
+    const mo = new Date().getMonth(), dd = new Date().getDate();
+    if (mo === 11 || (mo === 0 && dd <= 20)) {
+      const wy = mo === 11 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+      const wr = h('div', 'row'); wr.setAttribute('data-mem', ''); wr.setAttribute('data-vsi', ''); wr.appendChild(h('h2', '', '✨ Dein Jahr ' + wy)); const tr = h('div', 'track'); wr.appendChild(tr);
+      const c = h('div', 'card wrapcard f', '<div class="yr">' + wy + '</div><div><b>Dein midnox-Rückblick</b><small>Stunden, Lieblingsserie, Gucker-Typ, Errungenschaften – und wie die Runde geschaut hat.</small></div>');
+      c._ok = () => ROUTER.go('wrapped', { year: wy }); c._focus = () => focus(null); tr.appendChild(c);
+      const c2 = h('div', 'card wrapcard alt f', '<div class="yr">🏆</div><div><b>Errungenschaften</b><small>Deine Abzeichen und die Rangliste der Runde.</small></div>');
+      c2._ok = () => ROUTER.go('me', null, { root: true }); c2._focus = () => focus(null); tr.appendChild(c2);
+      rows.appendChild(wr);
+    }
     if (COMM.parties && COMM.parties.length) {
       const pr = h('div', 'row'); pr.setAttribute('data-mem', ''); pr.setAttribute('data-vsi', ''); pr.appendChild(h('h2', '', '🍿 Watch-Partys jetzt')); const tr = h('div', 'track'); pr.appendChild(tr);
       for (const p of COMM.parties) { const c = h('div', 'party-card f'); c.style.width = '40rem'; const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im); c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || '') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei</small><small>OK = beitreten</small>')); c._ok = () => PARTY.join(p); c._focus = () => focus(null); tr.appendChild(c); }

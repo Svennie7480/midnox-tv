@@ -91,6 +91,7 @@ const PLAYER = {
     if (PLAYER.info && PLAYER.info.method === 'Transcode' && PLAYER.info.playSessionId !== info.playSessionId) EMBY.stopEncoding(PLAYER.info.playSessionId);
     PLAYER.info = info; PLAYER.mediaSourceId = info.src.Id;
     if (!TRICK.id || TRICK.id !== it.Id) TRICK.load(it, info.src.Id);
+    if (!PLAYER.isTrailer) WLOG.begin(it, { party: !!PLAYER.party });
     const streams = info.src.MediaStreams || [];
     if (PLAYER.audioIndex == null) PLAYER.audioIndex = info.src.DefaultAudioStreamIndex != null ? info.src.DefaultAudioStreamIndex : ((streams.find(x => x.Type === 'Audio') || {}).Index);
     if (PLAYER.subIndex == null) PLAYER.subIndex = PLAYER.pickDefaultSub(info.src);
@@ -146,6 +147,7 @@ const PLAYER = {
         if (Date.now() - PLAYER.lastReport > 10000 && PLAYER.ready) { PLAYER.lastReport = Date.now(); EMBY.report('progress', Object.assign(PLAYER.reportBody(), { EventName: 'timeupdate' })); }
         if (PLAYER.party) PARTY.localTick();
         PLAYER.checkSleep();
+        WLOG.tick(e.playing);
         break;
       case 'ready':
         if (!PLAYER.ready) { PLAYER.ready = true; PLAYER.loading(false); if (!PLAYER.party) setTimeout(() => PLAYER.hideOsdSoon(), 400); if (PLAYER.party) PARTY.localReady(); }
@@ -198,6 +200,7 @@ const PLAYER = {
     if (info) { EMBY.report('stop', Object.assign(PLAYER.reportBody(), { PositionTicks: Math.round(pos * 10000) })); if (info.method === 'Transcode') EMBY.stopEncoding(info.playSessionId); }
     if (PLAYER.party && reason !== 'switch') PARTY.leave();
     ADAPTER.stop();
+    if (!PLAYER.isTrailer) WLOG.flush(!!(dur && pos / dur > .85) || reason === 'ended');
     TRICK.reset(); PLAYER.active = false; PLAYER.info = null; PLAYER.mediaSourceId = null; PLAYER.tracks = [];
     clearTimeout(PLAYER.osdTimer); clearTimeout(PLAYER.scrubT); clearInterval(PLAYER.upNextT);
     if (reason !== 'switch') PLAYER.close();

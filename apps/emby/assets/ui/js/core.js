@@ -284,7 +284,7 @@ const RAIL = {
       onOk(el, () => { if (ROUTER.top() && ROUTER.top().name === id && ROUTER.stack.length === 1) { ROUTER.backFromRail(); return; } ROUTER.go(id, null, { root: true }); });
       r.appendChild(el);
     }
-    const me = h('div', 'me'); me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); r.appendChild(me);
+    const me = h('div', 'me'); me.dataset.id = 'me'; me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); onOk(me, () => ROUTER.go('me', null, { root: true })); r.appendChild(me);
     r.classList.remove('hidden');
   },
   mark(name) { $$('#rail .ri').forEach(e => e.classList.toggle('cur', e.dataset.id === name || (ROUTER.stack[0] && ROUTER.stack[0].name === e.dataset.id))); },

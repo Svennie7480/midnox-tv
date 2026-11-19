@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.emby" android:versionCode="6" android:versionName="1.4">
+    package="de.midnox.emby" android:versionCode="7" android:versionName="2.0">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
@@ -9,7 +9,7 @@
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-feature android:name="android.software.leanback" android:required="false"/>
   <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
-  <application android:label="midnox Emby" android:icon="@drawable/icon" android:banner="@drawable/banner"
+  <application android:label="midnox Media" android:icon="@drawable/icon" android:banner="@drawable/banner"
       android:allowBackup="false" android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:theme="@style/Midnox" android:largeHeap="true">
     <activity android:name=".MainActivity" android:screenOrientation="landscape" android:launchMode="singleTask"
         android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout" android:windowSoftInputMode="stateHidden|adjustNothing">

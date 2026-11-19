@@ -1,6 +1,6 @@
 {
- "versionCode": 6,
- "versionName": "1.4",
+ "versionCode": 7,
+ "versionName": "2.0",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neue Glass-Optik im Apple-Stil: schwebende Glas-Menüleiste, Glas-Knöpfe, Dialoge und Player-Leiste mit Unschärfe, Lichtkanten und Glanz auf Karten. Unter Einstellungen → Darstellung: An, Sparsam (ohne Unschärfe, für ältere Sticks) oder Aus."
+ "notes": "midnox Emby heißt jetzt midnox Media und kann auch Jellyfin! Neu: „Wer guckt?“-Profilauswahl über mehrere Server mit PIN, Kinderprofil mit Altersfreigabe und Eltern-PIN, Anti-Spoiler für ungesehene Folgen und „Schaust du noch?“. Bei Jellyfin: Spul-Vorschaubilder und Intro/Abspann über Medien-Segmente. Server-Update nötig: index.php neu hochladen."
 }

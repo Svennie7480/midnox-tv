@@ -1,12 +1,15 @@
-// midnox Emby – Seiten: Einrichtung, Start, Bibliotheken, Details, Suche, Einstellungen.
+// midnox Media – Seiten: Einrichtung, Start, Bibliotheken, Details, Suche, Einstellungen.
 'use strict';
 const V = {
   /** Karte für einen Titel. kind: poster | land | square | circle */
+  /** Anti-Spoiler: ungesehene Folgen ohne Bild-Details und Beschreibung. */
+  spoil(item) { if (!item || item.Type !== 'Episode' || !EMBY.settings().spoiler) return false; const u = item.UserData || {}; return !u.Played && !(u.PlaybackPositionTicks > 0); },
   card(item, kind, o) {
     o = o || {};
     const c = h('div', 'card f ' + (kind || 'poster')); c.dataset.id = item.Id;
     if (item.Type === 'Movie' || item.Type === 'Series') c.dataset.rid = item.Id;
     const im = h('div', 'im'); c.appendChild(im);
+    if (V.spoil(item)) c.classList.add('spoil');
     const src = kind === 'land' ? EMBY.land(item, 560) : kind === 'circle' ? EMBY.img(item, 'Primary', 260) : EMBY.img(item, 'Primary', kind === 'square' ? 360 : 320);
     if (src) { const img = new Image(); img.loading = 'lazy'; img.decoding = 'async'; img.onload = () => img.classList.add('ok'); img.onerror = () => img.remove(); img.src = src; im.appendChild(img); }
     im.appendChild(h('div', 'ph', esc(item.Name)));
@@ -16,7 +19,7 @@ const V = {
     else if (item.Type === 'Series' && ud.UnplayedItemCount) c.appendChild(h('div', 'tag', String(ud.UnplayedItemCount)));
     if (o.cap !== false && (kind === 'land' || kind === 'square' || kind === 'circle' || o.cap)) {
       let t = item.Name, s = '';
-      if (item.Type === 'Episode') { t = item.SeriesName || item.Name; s = 'S' + (item.ParentIndexNumber || '?') + ' F' + (item.IndexNumber || '?') + ' · ' + item.Name; }
+      if (item.Type === 'Episode') { t = item.SeriesName || item.Name; s = 'S' + (item.ParentIndexNumber || '?') + ' F' + (item.IndexNumber || '?') + (V.spoil(item) ? '' : ' · ' + item.Name); }
       else if (item.Type === 'MusicAlbum') s = item.AlbumArtist || (item.Artists || [])[0] || '';
       else if (item.Type === 'Person' || o.role) s = o.role || item.Role || '';
       else if (item.ProductionYear) s = String(item.ProductionYear);
@@ -67,20 +70,21 @@ const V = {
 };
 
 // ---------- Einrichtung: Server ----------
-ROUTER.reg('connect', async (scr) => {
+ROUTER.reg('connect', async (scr, arg) => {
   scr.noRail = true; $('#rail').classList.add('hidden'); BG.set(null); BG.dim(false);
   const el = scr.el; el.style.paddingLeft = '0'; el.innerHTML = '';
   const w = h('div', 'welcome'); el.appendChild(w);
-  w.appendChild(h('div', 'brand', '<div class="big">midnox<br><b class="grad-text">Emby</b></div><p>Deine Filme, Serien und Musik – mit Community-Bewertungen, Empfehlungs-Chat und Watch-Partys zum gemeinsamen Schauen.</p>'));
+  w.appendChild(h('div', 'brand', '<div class="big">midnox<br><b class="grad-text">Media</b></div><p>Deine Filme, Serien und Musik von Emby oder Jellyfin – mit Community-Bewertungen, Empfehlungs-Chat und Watch-Partys zum gemeinsamen Schauen.</p>'));
   const p = h('div', 'panel2'); w.appendChild(p);
   p.appendChild(h('h2', '', 'Mit welchem Server verbinden?'));
   const list = h('div', ''); p.appendChild(list);
   const srvEl = (title, sub, icon, fn) => { const e = h('div', 'srv f', '<div class="ic">' + ic(icon) + '</div><div><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></div>'); e._ok = fn; list.appendChild(e); return e; };
   const pick = async (srv) => { EMBY.use(srv); ROUTER.go('login', srv); };
-  for (const s of EMBY.servers()) srvEl(s.name, s.url + ' · gespeichert', 'server', () => pick(s));
+  if (arg && arg.add && PROFILES.list().length) srvEl('Zurück zu den Profilen', 'Wer guckt?', 'back', () => ROUTER.go('who', null, { root: true }));
+  for (const s of EMBY.servers()) srvEl(s.name, (s.kind === 'jellyfin' ? 'Jellyfin' : 'Emby') + ' · ' + s.url + ' · gespeichert', 'server', () => pick(s));
   const found = h('div', ''); list.appendChild(found);
-  srvEl('Adresse eingeben', 'z. B. 192.168.178.20 oder emby.meinedomain.de', 'keyboard', async () => {
-    const a = await TEXT.ask('Adresse deines Emby-Servers', { placeholder: 'IP-Adresse oder Domain', sub: 'Port 8096 wird automatisch ergänzt, https geht auch.' });
+  srvEl('Adresse eingeben', 'z. B. 192.168.178.20 oder media.meinedomain.de', 'keyboard', async () => {
+    const a = await TEXT.ask('Adresse deines Emby- oder Jellyfin-Servers', { placeholder: 'IP-Adresse oder Domain', sub: 'Port 8096 wird automatisch ergänzt, https geht auch.' });
     if (!a) return; await connectTo(a);
   });
   if (HAS_ANDROID) srvEl('Mit dem Handy einrichten', 'QR-Code scannen, Adresse und Login bequem am Handy tippen', 'phone', async () => {
@@ -122,7 +126,7 @@ ROUTER.reg('login', async (scr, srv) => {
     c.appendChild(h('div', 'n', esc(x.Name))); c._ok = () => doLogin(x.Name, x.HasPassword !== false && x.HasConfiguredPassword !== false); u.appendChild(c);
   }
   const other = h('div', 'ucard f'); const a = avatar('+'); a.innerHTML = ic('plus', ' style="width:4rem;height:4rem"'); a.style.background = 'rgba(255,255,255,.08)'; other.appendChild(a); other.appendChild(h('div', 'n', 'Anderer Name'));
-  other._ok = async () => { const n = await TEXT.ask('Benutzername', { placeholder: 'Dein Emby-Name' }); if (n) doLogin(n, true); };
+  other._ok = async () => { const n = await TEXT.ask('Benutzername', { placeholder: 'Dein Benutzername' }); if (n) doLogin(n, true); };
   u.appendChild(other);
   if (HAS_ANDROID) { const ph = h('div', 'ucard f'); const a2 = avatar('📱'); a2.innerHTML = ic('phone', ' style="width:4rem;height:4rem"'); a2.style.background = 'rgba(255,255,255,.08)'; ph.appendChild(a2); ph.appendChild(h('div', 'n', 'Per Handy'));
     ph._ok = async () => { const d = await PHONE.ask({ mode: 'login', server: srv.url }); if (d && d.user) { try { await EMBY.login(d.user, d.pw || ''); APP.afterLogin(); } catch (e) { UI.alert('Anmeldung fehlgeschlagen', e.status === 401 ? 'Benutzername oder Passwort stimmt nicht.' : e.message); } } };
@@ -141,7 +145,7 @@ const THEMESONG = {
     try {
       const r = await EMBY.get('/Items/' + sid + '/ThemeSongs', { UserId: EMBY.user.id, InheritFromParent: true });
       const s = (r.Items || [])[0]; if (!s || THEMESONG.id !== sid || PLAYER.active) return;
-      const a = new Audio(EMBY.root + '/emby/Audio/' + s.Id + '/stream?static=true&api_key=' + EMBY.token);
+      const a = new Audio(EMBY.api + '/Audio/' + s.Id + '/stream?static=true&' + EMBY.tq());
       a.volume = 0; THEMESONG.a = a; a.play().catch(() => {});
       const tgt = 0.35; clearInterval(THEMESONG.f); THEMESONG.f = setInterval(() => { if (THEMESONG.a !== a) return; a.volume = Math.min(tgt, a.volume + 0.02); if (a.volume >= tgt) clearInterval(THEMESONG.f); }, 100);
     } catch (e) {}
@@ -171,7 +175,7 @@ ROUTER.reg('home', async (scr) => {
     const kicker = kickerOverride || (it.Type === 'Episode' ? 'Folge' : it.Type === 'Series' ? 'Serie' : it.Type === 'MusicAlbum' ? 'Album' : it.Type === 'Movie' ? 'Film' : '');
     const title = it.Type === 'Episode' ? (it.SeriesName || it.Name) : it.Name;
     info.innerHTML = (kicker ? '<div class="kicker"><i></i>' + kicker + '</div>' : '') + (logo ? '<img class="logoimg" src="' + logo + '" onerror="this.outerHTML=\'<h1>' + esc(title).replace(/'/g, '') + '</h1>\'">' : '<h1>' + esc(title) + '</h1>')
-      + V.meta(it, { mx: COMM.cache[it.Id] || (it.SeriesId ? COMM.cache[it.SeriesId] : null) }) + (it.Overview ? '<div class="ov">' + esc(it.Type === 'Episode' ? it.Name + ' – ' + it.Overview : it.Overview) + '</div>' : '');
+      + V.meta(it, { mx: COMM.cache[it.Id] || (it.SeriesId ? COMM.cache[it.SeriesId] : null) }) + (V.spoil(it) ? '<div class="ov">S' + (it.ParentIndexNumber || '?') + ' F' + (it.IndexNumber || '?') + ' · 🙈 ohne Spoiler</div>' : it.Overview ? '<div class="ov">' + esc(it.Type === 'Episode' ? it.Name + ' – ' + it.Overview : it.Overview) + '</div>' : '');
     info.classList.remove('swap'); void info.offsetWidth; info.classList.add('swap');
     BG.set(EMBY.backdrop(it) || (it.Type === 'MusicAlbum' ? EMBY.img(it, 'Primary', 1200) : ''));
   };
@@ -217,7 +221,7 @@ ROUTER.reg('home', async (scr) => {
   };
   rows._onScroll = (row) => { let after = false; for (const r of rows.children) { if (r === row) after = true; r.classList.toggle('gone', !after); } };
   const actCard = (a) => {
-    const c = h('div', 'card act f'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + a.id + '/Images/Primary?maxWidth=200")'; c.appendChild(p);
+    const c = h('div', 'card act f'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.api + '/Items/' + a.id + '/Images/Primary?maxWidth=200")'; c.appendChild(p);
     const t = h('div', 'tx'); const w = h('div', 'who'); w.appendChild(avatar(a.name)); w.appendChild(h('span', '', esc(a.name) + (a.stars ? ' <b class="st">★ ' + a.stars + '</b>' : ' <b class="st">empfiehlt</b>')));
     t.appendChild(w); t.appendChild(h('div', 'ti', esc(a.title))); t.appendChild(h('div', 'cm', esc(a.text || (a.stars ? STAR_WORDS[a.stars] : '')) + ' · ' + ago(a.t)));
     c.appendChild(t); c._ok = () => APP.openId(a.id);
@@ -253,7 +257,7 @@ ROUTER.reg('home', async (scr) => {
     }
     if (COMM.parties && COMM.parties.length) {
       const pr = h('div', 'row'); pr.setAttribute('data-mem', ''); pr.setAttribute('data-vsi', ''); pr.appendChild(h('h2', '', '🍿 Watch-Partys jetzt')); const tr = h('div', 'track'); pr.appendChild(tr);
-      for (const p of COMM.parties) { const c = h('div', 'party-card f'); c.style.width = '40rem'; const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im); c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || '') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei</small><small>OK = beitreten</small>')); c._ok = () => PARTY.join(p); c._focus = () => focus(null); tr.appendChild(c); }
+      for (const p of COMM.parties) { const c = h('div', 'party-card f'); c.style.width = '40rem'; const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.api + '/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im); c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || '') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei</small><small>OK = beitreten</small>')); c._ok = () => PARTY.join(p); c._focus = () => focus(null); tr.appendChild(c); }
       rows.appendChild(pr);
     }
     if ((favs.Items || []).length) rows.appendChild(V.row('Meine Liste', favs.Items, 'poster', { focus, small: 'deine Favoriten' }));
@@ -306,7 +310,7 @@ ROUTER.reg('home', async (scr) => {
       c._ok = () => APP.openLibrary(v); c._menu = null; lt.appendChild(c);
     }
     rows.appendChild(lr);
-    if (!rows.querySelector('.card')) rows.appendChild(h('div', 'empty', 'Noch nichts da. Füge in Emby Bibliotheken hinzu.'));
+    if (!rows.querySelector('.card')) rows.appendChild(h('div', 'empty', 'Noch nichts da. Füge auf deinem Server Bibliotheken hinzu.'));
     COMM.decorate(rows);
     if (spots.length) showSpot(0); else spot.classList.add('hidden');
   };
@@ -433,7 +437,7 @@ ROUTER.reg('detail', async (scr, arg) => {
       $$('.chip', sbar).forEach(c => c.classList.toggle('sel', c.dataset.id === s.Id));
       const eps = ((await EMBY.episodes(item.Id, s.Id)).Items || []); tr.innerHTML = ''; tr.style.transform = '';
       for (const ep of eps) {
-        const c = V.card(ep, 'land', { cap: false, ok: () => APP.play(ep), focus: (e) => { epinfo.innerHTML = '<h3>' + (e.IndexNumber ? e.IndexNumber + '. ' : '') + esc(e.Name) + '</h3>' + V.meta(e) + '<p>' + esc(e.Overview || '') + '</p>'; } });
+        const c = V.card(ep, 'land', { cap: false, ok: () => APP.play(ep), focus: (e) => { epinfo.innerHTML = V.spoil(e) ? '<h3>' + (e.IndexNumber ? 'Folge ' + e.IndexNumber : 'Folge') + '</h3>' + V.meta(e) + '<p class="spoiltx">🙈 Titel und Beschreibung versteckt (Anti-Spoiler)</p>' : '<h3>' + (e.IndexNumber ? e.IndexNumber + '. ' : '') + esc(e.Name) + '</h3>' + V.meta(e) + '<p>' + esc(e.Overview || '') + '</p>'; } });
         c.classList.add('ep'); c.appendChild(h('div', 'num', 'F' + (ep.IndexNumber || '?'))); tr.appendChild(c);
       }
       const want = focusId && $('.card[data-id="' + focusId + '"]', tr);
@@ -558,8 +562,10 @@ ROUTER.reg('settings', async (scr) => {
   sect('Darstellung');
   row('Farbthema', (THEME.list.find(t => t[0] === (s.theme || 'auto')) || THEME.list[0])[1] + ((s.theme || 'auto') === 'auto' ? ' · gerade: ' + THEME.names[THEME.seasonal()] : ''), async (e) => { const v = await UI.choose('Farbthema', THEME.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.theme || 'auto') })), 'Saisonal wechselt automatisch – z. B. Advent, Halloween, Frühling, Sommer, Tag der Deutschen Einheit.'); if (v) { s.theme = v; save(); THEME.apply(v); setVal(e, THEME.list.find(t => t[0] === v)[1]); } }, 'gear');
   row('Glas-Effekte', (GLASS.list.find(t => t[0] === (s.glass || 'full')) || GLASS.list[0])[1], async (e) => { const v = await UI.choose('Glas-Effekte', GLASS.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.glass || 'full') })), 'Wenn es auf deinem Gerät ruckelt, nimm „Sparsam“ – der Look bleibt, nur die Unschärfe fällt weg.'); if (v) { s.glass = v; save(); GLASS.apply(v); setVal(e, GLASS.list.find(t => t[0] === v)[1]); } }, 'tv');
+  choice('Anti-Spoiler', 'spoiler', [[false, 'Aus'], [true, 'An – ungesehene Folgen ohne Bild-Details und Beschreibung']], 'eye');
+  choice('Schaust du noch?', 'still', [[3, 'Nach 3 Folgen ohne Tastendruck fragen'], [2, 'Nach 2 Folgen'], [5, 'Nach 5 Folgen'], [0, 'Nie fragen']], 'moon');
   choice('Titelmusik auf Detailseiten', 'themeSongs', [[true, 'An (leise im Hintergrund)'], [false, 'Aus']], 'music');
-  choice('Vorschaubilder beim Spulen', 'trick', [[true, 'An (wenn Emby sie erzeugt hat)'], [false, 'Aus']], 'tv');
+  choice('Vorschaubilder beim Spulen', 'trick', [[true, 'An (wenn der Server sie erzeugt hat)'], [false, 'Aus']], 'tv');
   choice('Bildschirmschoner', 'saver', [[5, 'Nach 5 Minuten'], [3, 'Nach 3 Minuten'], [10, 'Nach 10 Minuten'], [20, 'Nach 20 Minuten'], [0, 'Aus (Fire-TV-eigener)']], 'tv');
   sect('Community');
   choice('Anderen zeigen, was ich schaue', 'showWatching', [[true, 'Ja'], [false, 'Nein']], 'user');
@@ -567,9 +573,11 @@ ROUTER.reg('settings', async (scr) => {
   sect('Konto');
   row('Angemeldet als ' + EMBY.user.name + (EMBY.user.admin ? ' (Administrator)' : ''), EMBY.server.name + ' · ' + EMBY.server.url, () => {}, 'user');
   row('Benutzer wechseln', 'Anderes Profil auf diesem Server', () => { EMBY.closeSocket(); ROUTER.go('login', EMBY.server, { root: true }); $('#rail').classList.add('hidden'); }, 'user');
-  row('Server wechseln', 'Mit einem anderen Emby-Server verbinden', () => { EMBY.closeSocket(); $('#rail').classList.add('hidden'); ROUTER.go('connect', null, { root: true }); }, 'server');
-  row('Abmelden', 'Meldet dieses Gerät bei Emby ab', async () => { if (await UI.confirm('Abmelden?', 'Danach musst du dich neu anmelden.', 'Abmelden')) APP.logout(); }, 'logout');
+  row('Profil wechseln', 'Wer guckt? – alle Profile auf diesem Gerät', () => PROFILES.leave(), 'user');
+  choice('Beim Start Profil wählen', 'askProfile', [[true, 'Ja, wenn es mehrere Profile gibt'], [false, 'Nein, zuletzt genutztes öffnen']], 'user');
+  row('Server wechseln', 'Mit einem anderen Emby- oder Jellyfin-Server verbinden', () => { EMBY.closeSocket(); $('#rail').classList.add('hidden'); ROUTER.go('connect', null, { root: true }); }, 'server');
+  row('Abmelden', 'Meldet dieses Gerät beim Server ab', async () => { if (await UI.confirm('Abmelden?', 'Danach musst du dich neu anmelden.', 'Abmelden')) APP.logout(); }, 'logout');
   sect('Über');
-  row('midnox Emby ' + DEVICE.version, 'Nach Updates suchen', () => { if (HAS_ANDROID) { Android.checkUpdate(); UI.toast('Suche nach Updates …', { icon: '⏳' }); } }, 'info');
+  row('midnox Media ' + DEVICE.version, 'Nach Updates suchen', () => { if (HAS_ANDROID) { Android.checkUpdate(); UI.toast('Suche nach Updates …', { icon: '⏳' }); } }, 'info');
   scr.leave = () => BG.dim(false); scr.enter = () => BG.dim(true);
 });

@@ -51,6 +51,8 @@ const IC = {
   keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
   bell: '<path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',
   trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>',
@@ -261,7 +263,7 @@ const ROUTER = {
     if (ROUTER.stack.length <= 1) {
       if (cur && cur.name !== 'home' && ROUTER.routes.home && EMBY.user) { ROUTER.go('home', null, { root: true }); return; }
       if (!$('#rail').contains(NAV.cur) && cur && !cur.noRail && !$('#rail').classList.contains('hidden')) { RAIL.enter(); return; }
-      UI.confirm('midnox Emby beenden?', '', 'Beenden').then(ok => { if (ok) { if (HAS_ANDROID) Android.exit(); } });
+      UI.confirm('midnox Media beenden?', '', 'Beenden').then(ok => { if (ok) { if (HAS_ANDROID) Android.exit(); } });
       return;
     }
     ROUTER.drop(1);
@@ -277,14 +279,15 @@ const ROUTER = {
 const RAIL = {
   items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['match', 'Was gucken?', 'heart'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
   build() {
-    const r = $('#rail'); r.innerHTML = '<div class="logo">m</div><div class="lt">midnox <b>Emby</b></div>';
-    for (const [id, label, icon] of RAIL.items) {
+    const r = $('#rail'); r.innerHTML = '<div class="logo">m</div><div class="lt">midnox <b>' + (KIDS.on ? 'Kids' : 'Media') + '</b></div>';
+    const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']] : RAIL.items;
+    for (const [id, label, icon] of items) {
       if (id === 'music' && !EMBY.hasMusic) continue;
       const el = h('div', 'ri', ic(icon) + '<span>' + label + '</span>'); el.dataset.id = id;
       onOk(el, () => { if (ROUTER.top() && ROUTER.top().name === id && ROUTER.stack.length === 1) { ROUTER.backFromRail(); return; } ROUTER.go(id, null, { root: true }); });
       r.appendChild(el);
     }
-    const me = h('div', 'me'); me.dataset.id = 'me'; me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); onOk(me, () => ROUTER.go('me', null, { root: true })); r.appendChild(me);
+    const me = h('div', 'me'); me.dataset.id = 'me'; me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); onOk(me, () => KIDS.on ? PROFILES.leave() : ROUTER.go('me', null, { root: true })); r.appendChild(me);
     r.classList.remove('hidden');
   },
   mark(name) { $$('#rail .ri').forEach(e => e.classList.toggle('cur', e.dataset.id === name || (ROUTER.stack[0] && ROUTER.stack[0].name === e.dataset.id))); },

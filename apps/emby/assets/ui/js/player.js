@@ -23,18 +23,32 @@ const ADAPTER = HAS_ANDROID ? {
   track() {}, speed(r) { ADAPTER.rate = r; }, volume() {},
 };
 
-/** Spul-Vorschaubilder aus Embys BIF-Datei (Roku-Format). */
+/** Spul-Vorschaubilder: Emby liefert eine BIF-Datei (Roku-Format), Jellyfin Bilderkacheln (Trickplay). */
 const TRICK = {
-  id: null, ts: null, urls: null, cache: {},
-  reset() { TRICK.id = null; TRICK.ts = null; TRICK.cache = {}; if (TRICK.urls) TRICK.urls.forEach(u => URL.revokeObjectURL(u)); TRICK.urls = null; try { if (HAS_ANDROID && Android.bifClear) Android.bifClear(); } catch (e) {} },
+  id: null, ts: null, urls: null, cache: {}, jfi: null,
+  reset() { TRICK.id = null; TRICK.ts = null; TRICK.jfi = null; TRICK.cache = {}; if (TRICK.urls) TRICK.urls.forEach(u => URL.revokeObjectURL(u)); TRICK.urls = null; try { if (HAS_ANDROID && Android.bifClear) Android.bifClear(); } catch (e) {} },
   load(item, msId) {
     TRICK.reset(); if (!item || EMBY.settings().trick === false) return;
     const id = item.Id; TRICK.id = id;
-    const url = EMBY.root + '/emby/Videos/' + id + '/index.bif?Width=320' + (msId ? '&MediaSourceId=' + msId : '') + '&api_key=' + EMBY.token;
+    if (EMBY.jf) { TRICK.loadJf(item, msId); return; }
+    const url = EMBY.api + '/Videos/' + id + '/index.bif?Width=320' + (msId ? '&MediaSourceId=' + msId : '') + '&' + EMBY.tq();
     if (HAS_ANDROID) { if (Android.bifLoad) Android.bifLoad(url, id); return; }
     const x = new XMLHttpRequest(); x.open('GET', url); x.responseType = 'arraybuffer';
     x.onload = () => { if (x.status === 200 && TRICK.id === id) TRICK.parse(x.response, id); }; x.send();
   },
+  async loadJf(item, msId) {
+    let tp = item.Trickplay;
+    if (!tp) { try { tp = (await EMBY.item(item.Id)).Trickplay; } catch (e) {} }
+    if (!tp || TRICK.id !== item.Id) return;
+    const bySrc = tp[msId] || tp[Object.keys(tp)[0]]; if (!bySrc) return;
+    const widths = Object.keys(bySrc).map(Number).sort((a, b) => Math.abs(a - 320) - Math.abs(b - 320));
+    const w = widths[0]; const i = bySrc[w]; if (!i || !i.ThumbnailCount) return;
+    TRICK.jfi = { id: item.Id, ms: msId, w, cols: i.TileWidth || 10, rows: i.TileHeight || 10, n: i.ThumbnailCount, iv: i.Interval || 10000, ar: (i.Width && i.Height) ? i.Width / i.Height : 16 / 9 };
+    TRICK.ts = true;
+    // erste Kachel vorladen
+    const im = new Image(); im.src = TRICK.tile(0);
+  },
+  tile(k) { const j = TRICK.jfi; return EMBY.api + '/Videos/' + j.id + '/Trickplay/' + j.w + '/' + k + '.jpg?' + (j.ms ? 'MediaSourceId=' + j.ms + '&' : '') + EMBY.tq(); },
   parse(buf, id) {
     const v = new DataView(buf); if (buf.byteLength < 72 || v.getUint32(0) !== 0x89424946) return;
     const n = v.getUint32(12, true); let m = v.getUint32(16, true) || 1000; if (!n || 64 + (n + 1) * 8 > buf.byteLength) return;
@@ -43,6 +57,11 @@ const TRICK = {
     TRICK.ts = ts; TRICK.urls = urls;
   },
   frame(ms) {
+    const j = TRICK.jfi;
+    if (j) {
+      const n = Math.max(0, Math.min(j.n - 1, Math.floor(ms / j.iv))); const per = j.cols * j.rows; const k = Math.floor(n / per), r = n % per;
+      return { url: TRICK.tile(k), pos: (j.cols > 1 ? (r % j.cols) / (j.cols - 1) * 100 : 0) + '% ' + (j.rows > 1 ? Math.floor(r / j.cols) / (j.rows - 1) * 100 : 0) + '%', size: j.cols * 100 + '% ' + j.rows * 100 + '%' };
+    }
     const ts = TRICK.ts; if (!ts || !ts.length) return null;
     let lo = 0, hi = ts.length - 1; while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ts[mid] <= ms) lo = mid; else hi = mid - 1; }
     if (TRICK.urls) return TRICK.urls[lo];
@@ -91,6 +110,16 @@ const PLAYER = {
     if (PLAYER.info && PLAYER.info.method === 'Transcode' && PLAYER.info.playSessionId !== info.playSessionId) EMBY.stopEncoding(PLAYER.info.playSessionId);
     PLAYER.info = info; PLAYER.mediaSourceId = info.src.Id;
     if (!TRICK.id || TRICK.id !== it.Id) TRICK.load(it, info.src.Id);
+    if (EMBY.jf && !it._seg) {   // Jellyfin-Segmente als Intro-/Abspann-Marken
+      it._seg = true;
+      EMBY.segments(it.Id).then(seg => {
+        if (!seg.length) return; const ch = it.Chapters = (it.Chapters || []).filter(c => !c.MarkerType);
+        for (const x of seg) {
+          if (x.type === 'Intro') ch.push({ MarkerType: 'IntroStart', StartPositionTicks: x.start * 10000 }, { MarkerType: 'IntroEnd', StartPositionTicks: x.end * 10000 });
+          if (x.type === 'Outro' && !ch.some(c => c.MarkerType === 'CreditsStart')) ch.push({ MarkerType: 'CreditsStart', StartPositionTicks: x.start * 10000 });
+        }
+      });
+    }
     if (!PLAYER.isTrailer) WLOG.begin(it, { party: !!PLAYER.party });
     const streams = info.src.MediaStreams || [];
     if (PLAYER.audioIndex == null) PLAYER.audioIndex = info.src.DefaultAudioStreamIndex != null ? info.src.DefaultAudioStreamIndex : ((streams.find(x => x.Type === 'Audio') || {}).Index);
@@ -218,8 +247,32 @@ const PLAYER = {
     if (PLAYER.ended) return; PLAYER.ended = true;
     if (PLAYER.party && !PARTY.isHost()) return;   // Gäste folgen dem Gastgeber
     if (PLAYER.sleep && PLAYER.sleep.end) { PLAYER.sleep = null; UI.toast('Gute Nacht! 🌙', { icon: '💤' }); PLAYER.stop('sleep'); return; }
-    if (PLAYER.nextItem && EMBY.settings().autoNext && !PLAYER.party) { PLAYER.playNext(); return; }
+    if (PLAYER.nextItem && EMBY.settings().autoNext && !PLAYER.party) { PLAYER.autoNext(); return; }
     PLAYER.stop('ended');
+  },
+  /** Automatisch zur nächsten Folge – nach einigen Folgen ohne Tastendruck erst nachfragen. */
+  autoNext() {
+    const v = EMBY.settings().still; const lim = v === undefined ? 3 : +v;
+    if (window.SAVER && SAVER.last > (PLAYER._chainT || 0)) PLAYER._chain = 0;   // seit dem letzten Wechsel wurde eine Taste gedrückt
+    PLAYER._chain = (PLAYER._chain || 0) + 1; PLAYER._chainT = Date.now();
+    if (lim && PLAYER._chain > lim) { PLAYER._chain = 0; PLAYER.askStill(); return; }
+    PLAYER.playNext();
+  },
+  askStill() {
+    if (PLAYER.playing) ADAPTER.pause();
+    let t = 0;
+    const p = UI.modal((box, close) => {
+      box.classList.add('stillbox');
+      box.appendChild(h('div', 'still-ic', '🛋️'));
+      box.appendChild(h('h2', '', 'Schaust du noch?'));
+      box.appendChild(h('p', '', 'Es liefen ' + ((+EMBY.settings().still || 3) + ' Folgen') + ' hintereinander ohne Tastendruck. Als Nächstes: ' + esc((PLAYER.nextItem && (PLAYER.nextItem.SeriesName ? 'S' + PLAYER.nextItem.ParentIndexNumber + ' F' + PLAYER.nextItem.IndexNumber : PLAYER.nextItem.Name)) || '')));
+      const b = h('div', 'btns');
+      b.appendChild(onOk(h('div', 'btn pri', ic('play') + 'Weiter gucken'), () => close(true)));
+      b.appendChild(onOk(h('div', 'btn', 'Aufhören'), () => close(false)));
+      box.appendChild(b);
+      t = setTimeout(() => close(false), 90000);
+    });
+    p.then(v => { clearTimeout(t); if (v) PLAYER.playNext(); else PLAYER.stop('user'); });
   },
   async playNext() {
     const n = PLAYER.nextItem; if (!n) return;
@@ -248,14 +301,14 @@ const PLAYER = {
   },
   showUpNext() {
     PLAYER.upNextShown = true; const n = PLAYER.nextItem; const auto = EMBY.settings().autoNext;
-    const box = h('div', 'upnext');
+    const box = h('div', 'upnext' + (V.spoil(n) ? ' spoil' : ''));
     const im = h('div', 'im'); im.style.backgroundImage = 'url("' + EMBY.land(n, 400) + '")'; const bar = h('i'); im.appendChild(bar); box.appendChild(im);
-    const t = h('div', '', '<small>Als Nächstes</small><b>S' + (n.ParentIndexNumber || '?') + ' · F' + (n.IndexNumber || '?') + ' ' + esc(n.Name) + '</b>');
+    const t = h('div', '', '<small>Als Nächstes</small><b>S' + (n.ParentIndexNumber || '?') + ' · F' + (n.IndexNumber || '?') + (V.spoil(n) ? '' : ' ' + esc(n.Name)) + '</b>');
     const b = h('div', 'btns'); const go = onOk(h('div', 'btn pri', ic('play') + 'Jetzt'), () => PLAYER.playNext());
     const no = onOk(h('div', 'btn', 'Abspann'), () => { clearInterval(PLAYER.upNextT); box.remove(); NAV.cur = null; });
     b.appendChild(go); b.appendChild(no); t.appendChild(b); box.appendChild(t);
     $('#osd').appendChild(box); NAV.focus(go);
-    if (auto) { let left = 15; bar.style.width = '0%'; PLAYER.upNextT = setInterval(() => { left -= .25; bar.style.width = ((15 - left) / 15 * 100) + '%'; if (left <= 0) { clearInterval(PLAYER.upNextT); PLAYER.playNext(); } }, 250); }
+    if (auto) { let left = 15; bar.style.width = '0%'; PLAYER.upNextT = setInterval(() => { left -= .25; bar.style.width = ((15 - left) / 15 * 100) + '%'; if (left <= 0) { clearInterval(PLAYER.upNextT); PLAYER.autoNext(); } }, 250); }
   },
 
   // ---------- Bedienoberfläche ----------
@@ -263,7 +316,7 @@ const PLAYER = {
     const o = $('#osd'); o.className = ''; o.innerHTML =
       '<div class="scrim"></div><div class="head"><div><div class="t1"></div><div class="t2"></div></div><div class="clock"></div></div>' +
       '<div class="big-state"></div><div class="buffer hidden"><div class="spin"></div></div>' +
-      '<div class="foot"><div class="seek f"><div class="b"></div><div class="p"></div><div class="k"></div><div class="thumb"><img><div class="tip"></div></div></div><div class="times"><span class="tp">0:00</span><span class="tr"></span></div><div class="ctrl"></div></div>';
+      '<div class="foot"><div class="seek f"><div class="b"></div><div class="p"></div><div class="k"></div><div class="thumb"><div class="ti"></div><div class="tip"></div></div></div><div class="times"><span class="tp">0:00</span><span class="tr"></span></div><div class="ctrl"></div></div>';
     const seek = $('.seek', o);
     seek._focus = () => {}; seek._ok = () => PLAYER.toggle();
     PLAYER.seekEl = seek;
@@ -303,7 +356,8 @@ const PLAYER = {
     $('.b', PLAYER.seekEl).style.width = Math.min(100, PLAYER.buf / dur * 100) + '%';
     $('.k', PLAYER.seekEl).style.left = pct + '%';
     const th = $('.thumb', PLAYER.seekEl); $('.tip', th).textContent = fmtTime(pos);
-    const fu = PLAYER.scrub != null ? TRICK.frame(pos) : null; th.classList.toggle('has', !!fu); th.style.left = (fu ? Math.max(11, Math.min(89, pct)) : pct) + '%'; if (fu) { const im = $('img', th); if (im.getAttribute('src') !== fu) im.src = fu; }
+    const fu = PLAYER.scrub != null ? TRICK.frame(pos) : null; th.classList.toggle('has', !!fu); th.style.left = (fu ? Math.max(11, Math.min(89, pct)) : pct) + '%';
+    if (fu) { const ti = $('.ti', th); const f = typeof fu === 'string' ? { url: fu, pos: 'center', size: 'cover' } : fu; const bg = 'url("' + f.url + '")'; if (ti._bg !== bg) { ti.style.backgroundImage = bg; ti._bg = bg; } ti.style.backgroundPosition = f.pos; ti.style.backgroundSize = f.size; }
     PLAYER.seekEl.classList.toggle('scrub', PLAYER.scrub != null);
     $('.tp', o).textContent = fmtTime(PLAYER.pos);
     $('.tr', o).textContent = PLAYER.dur ? '−' + fmtTime(PLAYER.dur - PLAYER.pos) : '';

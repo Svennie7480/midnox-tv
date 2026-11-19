@@ -34,7 +34,7 @@ declare(strict_types=1);
 error_reporting(0);
 
 // ===== Einstellungen =====
-const EMBY = '__EMBY_URL__';   // Adresse deines Emby-Servers, wie er aus dem Internet erreichbar ist, z. B. https://emby.meinedomain.de
+const EMBY = '__EMBY_URL__';   // Adresse deines Emby- ODER Jellyfin-Servers (wird automatisch erkannt), wie er aus dem Internet erreichbar ist, z. B. https://emby.meinedomain.de
 const TOKEN_TTL = 43200;       // so lange (s) gilt eine erfolgreiche Token-Prüfung
 const CHAT_KEEP = 600;         // so viele Chat-Nachrichten aufheben
 const PARTY_IDLE = 25;         // Mitglied gilt nach so vielen s ohne Abfrage als weg
@@ -209,11 +209,23 @@ function load(string $name): array {
     $d = json_decode((string) $raw, true); return is_array($d) ? $d : [];
 }
 
+/** Emby oder Jellyfin? Einmal am Server nachfragen und eine Stunde merken. */
+function is_jf(): bool {
+    static $jf = null; if ($jf !== null) return $jf;
+    $c = load('serverkind'); if (($c['until'] ?? 0) > time()) return $jf = !empty($c['jf']);
+    $root = preg_replace('~/emby/?$~i', '', rtrim(EMBY, '/'));
+    $raw = @file_get_contents($root . '/System/Info/Public', false, stream_context_create(['http' => ['timeout' => 6, 'ignore_errors' => true]]));
+    $info = json_decode((string) $raw, true);
+    $jf = is_array($info) && stripos((string) ($info['ProductName'] ?? ''), 'jellyfin') !== false;
+    if (is_array($info)) store('serverkind', function (&$d) use ($jf) { $d = ['jf' => $jf, 'until' => time() + 3600]; });
+    return $jf;
+}
+function emby_base(): string { $u = preg_replace('~/emby/?$~i', '', rtrim(EMBY, '/')); return is_jf() ? $u : $u . '/emby'; }
 function emby_get(string $path, string $token, int $timeout = 8): array {
-    $url = rtrim(EMBY, '/');
-    if (!preg_match('~/emby$~i', $url)) $url .= '/emby';
-    $url .= $path;
-    $hdr = "X-Emby-Token: $token\r\nAccept: application/json\r\nX-Emby-Authorization: Emby Client=\"midnox-community\", Device=\"server\", DeviceId=\"midnox-community\", Version=\"1.0\"\r\n";
+    $url = emby_base() . $path;
+    $hdr = is_jf()
+        ? "Accept: application/json\r\nAuthorization: MediaBrowser Client=\"midnox-community\", Device=\"server\", DeviceId=\"midnox-community\", Version=\"1.0\", Token=\"$token\"\r\n"
+        : "X-Emby-Token: $token\r\nAccept: application/json\r\nX-Emby-Authorization: Emby Client=\"midnox-community\", Device=\"server\", DeviceId=\"midnox-community\", Version=\"1.0\"\r\n";
     if (function_exists('curl_init')) {
         $c = curl_init($url);
         curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => $timeout, CURLOPT_CONNECTTIMEOUT => 5,
@@ -242,6 +254,15 @@ function me(): array {
     $key = hash('sha256', $tok . '|' . $uid);
     $cache = load('tokens');
     if (isset($cache[$key]) && $cache[$key]['until'] > time()) return touch_user($cache[$key]['u']);
+    if (is_jf()) {   // Jellyfin kennt /Users/Me – direkter Abgleich
+        [$code, $x] = emby_get('/Users/Me', $tok);
+        if ($code === 401) fail('auth', 401, 'Jellyfin-Anmeldung abgelaufen');
+        if ($code === 0) fail('emby', 502, 'Community-Server erreicht deinen Jellyfin-Server nicht');
+        if ($code !== 200 || ($x['Id'] ?? '') !== $uid) fail('auth', 403, 'Token passt nicht zu diesem Konto');
+        $u = ['id' => $uid, 'name' => (string) $x['Name'], 'admin' => !empty($x['Policy']['IsAdministrator'])];
+        store('tokens', function (&$d) use ($key, $u) { $t = time(); foreach ($d as $k => $v) if (($v['until'] ?? 0) < $t) unset($d[$k]); $d[$key] = ['u' => $u, 'until' => $t + TOKEN_TTL]; });
+        return touch_user($u);
+    }
     // Admin-Token? Dann darf es die Nutzerliste sehen.
     [$code, $users] = emby_get('/Users', $tok);
     if ($code === 401) fail('auth', 401, 'Emby-Anmeldung abgelaufen');
@@ -309,8 +330,7 @@ if (isset($_GET['check'])) {
 }
 
 function emby_img(string $id, string $tag = '', int $w = 600): void {
-    $url = rtrim(EMBY, '/'); if (!preg_match('~/emby$~i', $url)) $url .= '/emby';
-    $url .= '/Items/' . $id . '/Images/Primary?maxWidth=' . $w . '&quality=85' . ($tag !== '' ? '&tag=' . rawurlencode($tag) : '');
+    $url = emby_base() . '/Items/' . $id . '/Images/Primary?maxWidth=' . $w . '&quality=85' . ($tag !== '' ? '&tag=' . rawurlencode($tag) : '');
     $c = curl_init($url); curl_setopt_array($c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_FOLLOWLOCATION => true]);
     $img = curl_exec($c); $code = (int) curl_getinfo($c, CURLINFO_HTTP_CODE); $ct = (string) curl_getinfo($c, CURLINFO_CONTENT_TYPE); curl_close($c);
     if ($code !== 200 || !$img) fail('img', 404);

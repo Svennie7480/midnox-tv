@@ -341,7 +341,7 @@ const COMM_TABS = {
       e.appendChild(avatar(m.name));
       const b = h('div', 'bub'); b.innerHTML = '<div class="nm">' + esc(m.name) + (m.admin ? '<span class="adm">ADMIN</span>' : '') + '<time>' + ago(m.t) + '</time></div><div class="tx">' + (m.del ? 'Nachricht gelöscht' : esc(m.text)) + '</div>';
       if (m.item && !m.del) {
-        const r = h('div', 'rec'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + m.item.id + '/Images/Primary?maxWidth=200")';
+        const r = h('div', 'rec'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.api + '/Items/' + m.item.id + '/Images/Primary?maxWidth=200")';
         r.appendChild(p); r.appendChild(h('div', '', '<b>' + esc(m.item.name) + '</b><small>' + esc([m.item.type === 'Series' ? 'Serie' : m.item.type === 'Movie' ? 'Film' : m.item.type, m.item.year || ''].filter(Boolean).join(' · ')) + '</small><span class="go">OK = ansehen</span>'));
         b.appendChild(r);
         onOk(e, () => APP.openId(m.item.id));
@@ -371,7 +371,7 @@ const COMM_TABS = {
     if (!r.top.length) { body.innerHTML = '<div class="empty" style="padding:2rem 0">Noch keine Bewertungen. Starte den Bewertungsmodus und leg los!</div>'; return; }
     const g = h('div', 'toplist'); g.setAttribute('data-vs', 'keep'); g.setAttribute('data-mem', '');
     r.top.slice(0, 30).forEach((t, i) => {
-      const e = h('div', 'topi'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + t.id + '/Images/Primary?maxWidth=220")';
+      const e = h('div', 'topi'); const p = h('div', 'p'); p.style.backgroundImage = 'url("' + EMBY.api + '/Items/' + t.id + '/Images/Primary?maxWidth=220")';
       e.appendChild(h('div', 'rk' + (i < 3 ? ' grad-text' : ''), String(i + 1))); e.appendChild(p);
       e.appendChild(h('div', '', '<b>' + esc(t.meta.name) + '</b><small>' + esc([t.meta.type === 'Series' ? 'Serie' : 'Film', t.meta.year || ''].filter(Boolean).join(' · ')) + ' · ' + t.n + ' Stimme' + (t.n === 1 ? '' : 'n') + (t.mine ? ' · du: ' + t.mine : '') + '</small>'));
       e.appendChild(h('div', 'sc grad-text', t.avg.toFixed(1)));
@@ -419,7 +419,7 @@ const COMM_TABS = {
     const list = COMM.parties || [];
     if (!list.length) body.appendChild(h('div', 'panel', '<h3>Gerade keine Watch-Party</h3><div style="font-size:1.3rem;line-height:1.55;color:#c9cbe0">Öffne einen Film oder eine Folge und wähle <b>Watch-Party</b>. Alle anderen bekommen eine Einladung und schauen synchron mit – Pause und Spulen gelten für alle, dazu Emoji-Reaktionen.</div>'));
     for (const p of list) {
-      const c = h('div', 'party-card'); const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.root + '/emby/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im);
+      const c = h('div', 'party-card'); const im = h('div', 'p'); im.style.backgroundImage = 'url("' + EMBY.api + '/Items/' + p.item + '/Images/Primary?maxWidth=220")'; c.appendChild(im);
       c.appendChild(h('div', '', '<b>' + esc((p.meta && p.meta.name) || 'Titel') + '</b><small>👑 ' + esc(p.host) + ' · ' + p.n + ' dabei: ' + esc(p.names.join(', ')) + '</small><small>OK = beitreten</small>'));
       onOk(c, () => PARTY.join(p)); body.appendChild(c);
     }

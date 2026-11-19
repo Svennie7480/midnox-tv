@@ -57,6 +57,7 @@ ROUTER.reg('me', async (scr) => {
   const bs = h('div', 'btns');
   const wb = onOk(h('div', 'btn pri f wrapbtn', '✨ Dein Rückblick ' + D.year + (new Date().getMonth() < 11 ? ' (bisher)' : '')), () => ROUTER.go('wrapped', { year: D.year }));
   bs.appendChild(wb);
+  bs.appendChild(onOk(h('div', 'btn f', '👥 Profil wechseln'), () => PROFILES.leave()));
   if (Object.keys(STATS.got).length) bs.appendChild(onOk(h('div', 'btn f', '📤 Abzeichen teilen'), () => SHARE.badges()));
   if (new Date().getMonth() < 2 && D.myPrev) bs.appendChild(onOk(h('div', 'btn f', 'Rückblick ' + (D.year - 1)), () => ROUTER.go('wrapped', { year: D.year - 1 })));
   head.appendChild(bs); rows.appendChild(head);

@@ -198,6 +198,7 @@ const NAV = {
         const s = Math.max(0, pri) + ort * 3;
         if (s < bs) { bs = s; best = e; }
       } else {
+        if (inRail !== rail.contains(e)) continue;   // hoch/runter: im Menü bleiben bzw. nicht ins Menü springen
         pri = dir === 'down' ? q.top - r.bottom : r.top - q.bottom;
         if ((dir === 'down' ? y - cy : cy - y) <= 2) continue;
         ort = Math.abs(x - cx); overlap = q.right > r.left + 2 && q.left < r.right - 2;
@@ -228,7 +229,7 @@ window.KEY = function (k, repeat) {
     if (['up', 'down', 'left', 'right'].includes(k)) { if (!NAV.move(k) && k === 'left' && s && !s.noRail) RAIL.enter(); return; }
     if (k === 'ok') { if (NAV.cur && NAV.cur._ok) NAV.cur._ok(); return; }
     if (k === 'menu') { if (window.COMM && COMM.menuAction && COMM.menuAction()) return; if (NAV.cur && NAV.cur._menu) { NAV.cur._menu(); return; } return; }
-    if (k === 'back') { if ($('#rail').contains(NAV.cur)) { ROUTER.backFromRail(); return; } ROUTER.back(); return; }
+    if (k === 'back') { if ($('#rail').contains(NAV.cur) && ROUTER.stack.length > 1) { ROUTER.backFromRail(); return; } ROUTER.back(); return; }   // im Menü auf der Startebene: Zurück = Beenden-Frage
     if (k === 'playpause' || k === 'play' || k === 'pause' || k === 'next' || k === 'prev' || k === 'stop') { if (window.MUSIC && MUSIC.mediaKey(k)) return; }
     if (k === 'search') { ROUTER.go('search'); return; }
   } catch (e) { console.error('KEY', e); }

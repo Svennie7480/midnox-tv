@@ -12,14 +12,14 @@ NARRATOR = os.environ.get("ELEVEN_VOICE", "JBFqnCBsd6RMkjVDRZzb")        # Georg
 MODEL = os.environ.get("ELEVEN_MODEL", "eleven_multilingual_v2")
 # Stimmen für Figuren (ElevenLabs-Standardstimmen, mehrsprachig). Per Umgebung überschreibbar: VOICES_M / VOICES_F (kommagetrennt)
 POOL = {
-  "m": os.environ.get("VOICES_M", "nPczCjzI2devNBz1zQrb,onwK4e9ZLuTAKqWW03F9,pqHfZKP75CVOlQylNhV4,iP95p4xoKVk53GoZ742B,cjVigY5qzO86Huf0OWal,TX3LPaxmHKxFdv7VOQHJ,N2lVS1w4EtoT3dr4eOWO,CwhRBWXzGAHq8TQ4Fs17").split(","),
+  "m": os.environ.get("VOICES_M", "nPczCjzI2devNBz1zQrb,onwK4e9ZLuTAKqWW03F9,iP95p4xoKVk53GoZ742B,cjVigY5qzO86Huf0OWal,TX3LPaxmHKxFdv7VOQHJ,N2lVS1w4EtoT3dr4eOWO,CwhRBWXzGAHq8TQ4Fs17").split(","),
   "f": os.environ.get("VOICES_F", "EXAVITQu4vr4xnSDxMaL,FGY2WhTYpPnrIDTdsKH5,Xb7hH8MSUJpSbSDYk0k2,XrExE9yKIg1WjnnlVkGX,cgSgspJ2msm6clMCkdW9,pFZP5JQG7iQjIQuC4Bku").split(","),
 }
 
 def load():
     a = ROOT / "assets"
-    js = ("global.window={};require(%r);require(%r);require(%r);"
-          "process.stdout.write(JSON.stringify({c:window.CASES,d:window.DETECTIVE}))") % (str(a/"cases.js"), str(a/"detective.js"), str(a/"cases2.js"))
+    js = ("global.window={};" + "".join("require(%r);" % str(a / f) for f in ["cases.js", "detective.js", "cases2.js", "cases3.js"]) +
+          "process.stdout.write(JSON.stringify({c:window.CASES,d:window.DETECTIVE}))")
     return json.loads(subprocess.check_output(["node", "-e", js]))
 
 def lines():

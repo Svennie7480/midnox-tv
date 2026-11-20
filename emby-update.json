@@ -1,6 +1,6 @@
 {
- "versionCode": 8,
- "versionName": "2.1",
+ "versionCode": 9,
+ "versionName": "2.1.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "midnox Media jetzt auch für Android-Handys und -Tablets: Touch-Bedienung mit Tab-Leiste, Player mit Doppeltipp-Spulen, Wischen für Helligkeit/Lautstärke, Bild-im-Bild, Musik im Hintergrund, Sparmodus bei mobilen Daten – und „Auf dem TV“: Film vom Handy auf den Fernseher schicken und per Handy fernsteuern."
+ "notes": "Für aktuelle Android-Versionen gebaut (Android 15): keine „Unsichere App“-Warnung von Play Protect mehr auf dem Handy. Musik-Benachrichtigung fragt bei Bedarf nach der Benachrichtigungs-Erlaubnis."
 }

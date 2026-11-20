@@ -1,7 +1,7 @@
 #!/bin/sh
-# Baut midnox-emby.apk (benoetigt Android SDK: platforms;android-28, build-tools;35.0.0; Media3-Jars in libs/)
+# Baut midnox-emby.apk (benoetigt Android SDK: platforms;android-35, build-tools;35.0.0; Media3-Jars in libs/)
 set -e
-B=${ANDROID_HOME:-$HOME/sdk}/build-tools/35.0.0; J=${ANDROID_HOME:-$HOME/sdk}/platforms/android-28/android.jar
+B=${ANDROID_HOME:-$HOME/sdk}/build-tools/35.0.0; J=${ANDROID_HOME:-$HOME/sdk}/platforms/android-35/android.jar
 L=$(ls libs/*.jar | tr '\n' ':')
 rm -rf build && mkdir -p build/res build/classes build/dex
 $B/aapt2 compile --dir res -o build/res/

@@ -9,9 +9,13 @@ import android.os.IBinder;
 public class PlaybackService extends Service {
     static final String CH = "playback";
     static MainActivity act;
+    static PlaybackService inst;
 
     static void show(MainActivity a, String title, String sub, boolean playing) {
         act = a;
+        if (inst != null) { try { inst.post(title, sub, playing); return; } catch (Exception ignored) {} }   // läuft schon: nur Benachrichtigung aktualisieren
+        if (Build.VERSION.SDK_INT >= 33 && a.checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            try { a.requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 7); } catch (Exception ignored) {}
         Intent i = new Intent(a, PlaybackService.class).putExtra("t", title).putExtra("s", sub).putExtra("p", playing);
         try { if (Build.VERSION.SDK_INT >= 26) a.startForegroundService(i); else a.startService(i); } catch (Exception ignored) {}
     }
@@ -23,6 +27,13 @@ public class PlaybackService extends Service {
         if ("stop".equals(act0)) { if (act != null) act.remoteKey("stop"); stopSelf(); return START_NOT_STICKY; }
         String t = in != null ? in.getStringExtra("t") : "midnox Media", s = in != null ? in.getStringExtra("s") : "";
         boolean playing = in == null || in.getBooleanExtra("p", true);
+        inst = this;
+        post(t, s, playing);
+        return START_NOT_STICKY;
+    }
+    @Override public void onDestroy() { if (inst == this) inst = null; super.onDestroy(); }
+
+    void post(String t, String s, boolean playing) {
         NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH) == null)
             nm.createNotificationChannel(new NotificationChannel(CH, "Wiedergabe", NotificationManager.IMPORTANCE_LOW));
@@ -34,8 +45,8 @@ public class PlaybackService extends Service {
             .addAction(playing ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play, playing ? "Pause" : "Weiter", tog)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stopp", stop);
         if (Build.VERSION.SDK_INT >= 21) b.setVisibility(Notification.VISIBILITY_PUBLIC).setStyle(new Notification.MediaStyle().setShowActionsInCompactView(0, 1));
-        startForeground(7, b.build());
-        return START_NOT_STICKY;
+        if (Build.VERSION.SDK_INT >= 29) startForeground(7, b.build(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        else startForeground(7, b.build());
     }
     static int pf() { return Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT : PendingIntent.FLAG_UPDATE_CURRENT; }
     @Override public IBinder onBind(Intent i) { return null; }

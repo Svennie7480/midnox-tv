@@ -1,0 +1,354 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox Krimi-Abend</title>
+<style>
+  :root{--bg:#09070a;--card:#15111acc;--line:#2c2430;--mut:#a59cab;--gold:#d9ad55;--red:#c2342b;--paper:#ece2c8;--ink:#2a2018}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:radial-gradient(1300px 800px at 50% -15%,#2a1820,#09070a 62%);color:#f3eee8;font-family:system-ui,sans-serif;overflow:hidden}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  #stage{position:fixed;inset:0;z-index:2}
+  #rain{position:fixed;inset:-20vh 0 0 0;z-index:1;pointer-events:none;opacity:.13;background:repeating-linear-gradient(104deg,transparent 0 2.2vw,#fff 2.2vw 2.26vw,transparent 2.26vw 4.1vw);animation:rain .55s linear infinite}
+  @keyframes rain{from{transform:translate(0,0)}to{transform:translate(-1.2vw,10vh)}}
+  #vig{position:fixed;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,#000c 100%)}
+  #flash{position:fixed;inset:0;z-index:4;pointer-events:none;background:#fff;opacity:0}
+  #flash.on{animation:flash 1s}
+  @keyframes flash{0%{opacity:0}8%{opacity:.35}16%{opacity:0}24%{opacity:.2}100%{opacity:0}}
+  h1{margin:0;font-size:5.4vh;font-family:Georgia,serif;font-weight:700;letter-spacing:.02em}
+  h1 b{color:var(--red)}
+  .mut{color:var(--mut)}
+  .gold{color:var(--gold)}
+  .fade{animation:fade .7s ease-out both}
+  @keyframes fade{from{opacity:0;transform:translateY(1.5vh)}to{opacity:1;transform:none}}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  /* Lobby */
+  .lobby{position:absolute;inset:0;display:flex;gap:4vw;padding:5vh 5vw}
+  .join{flex:none;width:28vw;background:var(--card);border:1px solid var(--line);border-radius:3vh;padding:3vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vh}
+  .join .qr{background:#fff;padding:2vh;border-radius:2vh}
+  .join .qr svg{width:25vh;height:25vh;display:block}
+  .join .url{font-size:2.8vh;font-weight:800;color:var(--gold)}
+  .join .hint{color:var(--mut);font-size:2.1vh;text-align:center;line-height:1.45}
+  .right{flex:1;display:flex;flex-direction:column;min-width:0;gap:2.2vh}
+  .players{display:flex;flex-wrap:wrap;gap:1.2vh;min-height:7vh;align-content:flex-start}
+  .pl{display:flex;align-items:center;gap:1vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1vh 1.8vh;font-size:2.6vh;font-weight:700;animation:pop .3s}
+  .pl .ok{color:#4ade80;margin-left:.6vh}
+  .cases{display:flex;gap:1.6vw;flex:1;min-height:0}
+  .case{flex:1;border-radius:2.6vh;background:var(--card);border:.4vh solid var(--line);padding:2.6vh;display:flex;flex-direction:column;gap:1.2vh;opacity:.5;transition:transform .15s,opacity .15s,border-color .15s}
+  .case.sel{opacity:1;transform:scale(1.04);border-color:var(--gold);box-shadow:0 2vh 6vh #000a,0 0 6vh #d9ad5522}
+  .case .ic{font-size:8vh;line-height:1}
+  .case h2{margin:0;font-size:3.3vh;font-family:Georgia,serif}
+  .case .tag{color:var(--gold);font-size:2vh;font-style:italic;font-family:Georgia,serif}
+  .case p{margin:0;color:var(--mut);font-size:2.1vh;line-height:1.45}
+  .case .n{margin-top:auto;color:var(--mut);font-size:1.9vh}
+  .case .done{color:#4ade80;font-size:1.9vh;font-weight:700}
+  .cta{color:var(--mut);font-size:2.3vh}.cta b{color:#fff}
+  /* Erzählung */
+  .story{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12vw;text-align:center;gap:3vh}
+  .story .over{font-size:2.2vh;letter-spacing:.35em;text-transform:uppercase;color:var(--gold)}
+  .story .txt{font-family:Georgia,serif;font-size:4.2vh;line-height:1.5;max-width:76vw}
+  .story .big{font-family:Georgia,serif;font-size:9vh;font-weight:700;line-height:1.1}
+  .okhint{position:absolute;bottom:4vh;left:0;right:0;text-align:center;color:var(--mut);font-size:2vh}
+  .hud{position:absolute;left:3vw;top:3vh;font-size:2.2vh;color:var(--mut);font-family:Georgia,serif}.hud b{color:#fff}
+  .hudr{position:absolute;right:3vw;top:3vh;font-size:2vh;color:var(--mut);text-align:right}
+  /* Rollen */
+  .chips{display:flex;flex-wrap:wrap;gap:1.4vh;justify-content:center;max-width:80vw}
+  .chip{background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1.2vh 2.2vh;font-size:2.8vh;font-weight:700;opacity:.55}
+  .chip.on{opacity:1;border-color:#4ade80}
+  /* Figur im Rampenlicht */
+  .spot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:5vw;padding:0 8vw;background:radial-gradient(40vh 60vh at 30% 50%,#ffffff14,transparent 70%)}
+  .spot .em{font-size:30vh;line-height:1;filter:drop-shadow(0 3vh 5vh #000)}
+  .spot .info{max-width:52vw;display:flex;flex-direction:column;gap:1.6vh}
+  .spot .nm{font-family:Georgia,serif;font-size:7vh;font-weight:700;line-height:1.05}
+  .spot .rl{font-size:3vh;color:var(--gold);font-style:italic;font-family:Georgia,serif}
+  .spot .by{font-size:2.6vh;color:var(--mut)}
+  .spot .by b{color:#fff}
+  .spot .q{font-family:Georgia,serif;font-size:4.4vh;line-height:1.4;border-left:.6vh solid var(--red);padding-left:3vh;margin-top:1vh}
+  /* Beweise */
+  .evrow{display:flex;gap:2vw;justify-content:center;flex-wrap:wrap}
+  .ev{width:24vw;background:var(--paper);color:var(--ink);border-radius:.8vh;padding:2vh 2.2vh 2.4vh;box-shadow:0 2vh 5vh #000a;transform:rotate(-1.2deg);font-family:Georgia,serif;position:relative}
+  .ev:nth-child(2n){transform:rotate(1.4deg)}
+  .ev.in{animation:evin .6s cubic-bezier(.2,1.3,.4,1) both}
+  @keyframes evin{from{opacity:0;transform:translateY(-8vh) rotate(-8deg) scale(.8)}}
+  .ev .ic{font-size:6vh;line-height:1.1}
+  .ev h3{margin:.6vh 0;font-size:2.8vh}
+  .ev p{margin:0;font-size:2.1vh;line-height:1.4;color:#4a3d30}
+  .ev::before{content:'';position:absolute;top:-1.4vh;left:50%;width:7vh;height:2.6vh;margin-left:-3.5vh;background:#d9ccaa99;transform:rotate(-3deg)}
+  /* Ermittlungstafel */
+  .board{position:absolute;inset:0;display:flex;gap:2.4vw;padding:9vh 3vw 4vh}
+  .board .wall{flex:1;display:flex;flex-direction:column;gap:2vh;min-width:0}
+  .board .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vh 1.6vw}
+  .board .ev{width:auto;padding:1.2vh 1.4vh 1.4vh;transform:none}
+  .board .ev .ic{font-size:3.6vh}.board .ev h3{font-size:2.1vh;margin:.3vh 0}.board .ev p{font-size:1.65vh;line-height:1.3}
+  .board .ev.old{opacity:.78}
+  .board .side{width:25vw;display:flex;flex-direction:column;gap:1.2vh}
+  .who{display:flex;align-items:center;gap:1.2vh;background:var(--card);border:1px solid var(--line);border-radius:1.6vh;padding:1vh 1.4vh}
+  .who .e{font-size:4vh}
+  .who .t{flex:1;min-width:0}.who .t b{display:block;font-size:2.2vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.who .t small{color:var(--mut);font-size:1.7vh}
+  .who .ok{font-size:2.6vh;color:#4ade80}
+  .who.dim{opacity:.5}
+  .clock{font-size:7vh;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;font-family:Georgia,serif}
+  .clock.low{color:var(--red);animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.55}}
+  .tbar{height:.8vh;border-radius:1vh;background:#fff2;overflow:hidden}.tbar>div{height:100%;background:linear-gradient(90deg,var(--gold),var(--red))}
+  /* Abstimmung & Auflösung */
+  .votes{display:flex;gap:2vw;justify-content:center;align-items:flex-end;height:46vh}
+  .vcol{width:12vw;display:flex;flex-direction:column;align-items:center;gap:1vh}
+  .vcol .bar{width:100%;background:linear-gradient(180deg,var(--red),#5a1712);border-radius:1vh 1vh 0 0;transition:height 1.2s cubic-bezier(.2,1,.3,1);height:0;display:flex;align-items:flex-start;justify-content:center;font-size:3vh;font-weight:900;padding-top:.6vh}
+  .vcol .e{font-size:6vh}.vcol .n{font-size:2vh;text-align:center;font-weight:700}
+  .vcol.cul .bar{background:linear-gradient(180deg,var(--gold),#7a5a1c)}
+  .culprit{display:flex;flex-direction:column;align-items:center;gap:2vh;animation:pop .6s cubic-bezier(.2,1.4,.4,1)}
+  .culprit .em{font-size:24vh;line-height:1;filter:drop-shadow(0 0 6vh #c2342b88)}
+  .stamp{font-family:Georgia,serif;font-size:5vh;font-weight:900;color:var(--red);border:.6vh solid var(--red);padding:.6vh 3vh;transform:rotate(-6deg);letter-spacing:.1em;animation:stamp .5s cubic-bezier(.2,1.6,.4,1) both .4s}
+  .stamp.esc{color:var(--gold);border-color:var(--gold)}
+  @keyframes stamp{from{transform:rotate(-6deg) scale(3);opacity:0}}
+  .keys{display:flex;flex-direction:column;gap:1.2vh;text-align:left;font-size:2.6vh}
+  .keys div::before{content:'🔎 ';}
+  .rank{display:flex;flex-direction:column;gap:1.1vh;min-width:46vw}
+  .rank .r{display:flex;align-items:center;gap:2vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1.3vh 3vh;font-size:3vh}
+  .rank .r.lead{border-color:var(--gold);box-shadow:0 0 4vh #d9ad5533}
+  .rank .r .nm{font-weight:800;flex:1;text-align:left}.rank .r .pl{color:var(--mut);font-size:2.2vh;background:none;border:0;padding:0;animation:none}.rank .r .pts{font-weight:900;color:var(--gold)}
+  .rank .r .plus{color:#4ade80;font-weight:800;font-size:2.4vh}
+  .toast{position:fixed;left:50%;top:4vh;transform:translateX(-50%);background:#000d;border:1px solid var(--line);border-radius:2vh;padding:1.4vh 3vh;font-size:2.7vh;font-weight:700;opacity:0;transition:opacity .2s;z-index:60;white-space:nowrap}
+  #ovl{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:70}
+  #ovl div{background:#17121b;border:1px solid var(--line);border-radius:3vh;padding:5vh 6vw;text-align:center;font-size:3.4vh;font-weight:800}
+  #ovl small{display:block;margin-top:2vh;color:var(--mut);font-size:2.4vh;font-weight:400}
+</style></head>
+<body>
+<div id="rain"></div><div id="stage"></div><div id="vig"></div><div id="flash"></div>
+<div class="toast" id="toast"></div>
+<div id="ovl"><div>Fall abbrechen?<small>OK = zurück zur Lobby · Zurück = weiterspielen</small></div></div>
+<script src="/lib/qrcode.js"></script>
+<script src="/cases.js"></script>
+<script src="/sound.js"></script>
+<script>
+const stage=document.getElementById('stage');
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+const esc=(s)=>(s==null?'':s+'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function toast(t){ const e=document.getElementById('toast'); e.textContent=t; e.style.opacity=1; clearTimeout(e._t); e._t=setTimeout(()=>e.style.opacity=0,2600); }
+function flash(){ const f=document.getElementById('flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); SND.play('thunder'); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const fmt=(s)=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+const KEY_MIN=4, MAX_CHARS=6;
+
+// ---------- Netz: Handys ↔ Fernseher ----------
+let players=[], seq=0, scene='lobby', gen=0, selCase=0, ipUrl='', nonce=0;
+const ABORT={abort:1};
+const byId=(pid)=>players.find(p=>p.pid===pid);
+const pq={}, lastSent={};
+function push(pid,view,force){ if(force) view.n=++nonce; const s=JSON.stringify(view), cmp=JSON.stringify(view,(k,v)=>k==='secs'?undefined:v); if(lastSent[pid]===cmp) return; lastSent[pid]=cmp;   // Restzeit allein löst kein neues Rendern aus
+  pq[pid]=(pq[pid]||Promise.resolve()).then(()=>fetch('/push?to='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:s}).catch(()=>{})); }
+async function tvLoop(){ while(true){ try{ const r=await fetch('/tvpoll?since='+seq); const j=await r.json(); seq=j.seq; for(const e of j.evs){ try{ onEvent(e); }catch(err){ console.error(err); } } }catch(e){ await sleep(400); } } }
+function onEvent(e){
+  if(e.t==='join'){ if(byId(e.pid)) return; const d=e.d||{};
+    players.push({pid:e.pid,name:((d.name||'Gast')+'').trim().slice(0,14)||'Gast',emoji:d.emoji||'🕵️'}); SND.play('join');
+    if(scene==='lobby') renderLobby(); sync(); return; }
+  if(e.t==='rejoin'){ delete lastSent[e.pid]; sync(); return; }
+  if(e.t==='ev'){ const p=byId(e.pid); if(!p||!e.d) return; onInput(p,e.d); }
+}
+
+// ---------- Einstellungen ----------
+const TIMES=[3,5,8,12,0];   // Diskussionszeit in Minuten, 0 = ohne Limit
+let timeIdx=1, voiceMode=0; // 0 = Ton + Erzähler, 1 = nur Ton, 2 = stumm
+const solved=new Set();
+const score={};             // pid -> Punkte über alle Fälle
+
+// ---------- Lobby ----------
+function qrSvg(url){ try{ const q=qrcode(0,'M'); q.addData(url); q.make(); return q.createSvgTag({cellSize:4,margin:1,scalable:true}); }catch(e){ return ''; } }
+function renderLobby(){
+  scene='lobby'; SND.amb('quiet');
+  stage.innerHTML='<div class="lobby"><div class="join"><div class="qr">'+qrSvg(ipUrl)+'</div><div class="url">'+esc(ipUrl.replace('http://',''))+'</div>'+
+    '<div class="hint">QR-Code mit dem Handy scannen<br>(gleiches WLAN, keine App nötig).<br>Deine Rolle und deine Geheimnisse<br>siehst nur du.</div></div>'+
+    '<div class="right"><div><h1>midnox <b>Krimi-Abend</b></h1><div class="mut" style="font-size:2.3vh;margin-top:.6vh">Einer von euch ist der Mörder. Findet heraus, wer – bevor er davonkommt.</div></div>'+
+    '<div class="players">'+(players.length?players.map(p=>'<div class="pl">'+p.emoji+' '+esc(p.name)+(score[p.pid]?' <span class="gold">· '+score[p.pid]+'</span>':'')+'</div>').join(''):'<span class="mut" style="font-size:2.5vh">Noch niemand da – scannt den Code!</span>')+'</div>'+
+    '<div class="cases">'+CASES.map((c,i)=>'<div class="case'+(i===selCase?' sel':'')+'"><div class="ic">'+c.icon+'</div><h2>'+esc(c.title)+'</h2><div class="tag">'+esc(c.tag)+'</div><p>'+esc(c.blurb)+'</p>'+
+      (solved.has(c.id)?'<div class="done">✔ schon gespielt</div>':'')+'<div class="n">4–6 Verdächtige · weitere Spieler ermitteln mit · ca. 45 Min.</div></div>').join('')+'</div>'+
+    '<div class="cta">◀ ▶ Fall wählen · ▲ ▼ Diskussionszeit: <b>'+(TIMES[timeIdx]?TIMES[timeIdx]+' Min. pro Akt':'ohne Limit')+'</b> · MENU: <b>'+['Ton + Erzähler','nur Ton','stumm'][voiceMode]+'</b> · <b>OK</b> starten</div></div></div>';
+}
+function lobbyView(p){ return {t:'wait',emoji:p.emoji,title:'Willkommen, '+p.name+'!',sub:players.length<KEY_MIN?'Noch '+(KEY_MIN-players.length)+' Mitspieler, dann kann es losgehen.':'Der Fall wird am Fernseher ausgewählt.'}; }
+
+// ---------- Spielzustand ----------
+let G=null;   // laufender Fall
+let okRes=null, inputHook=null;
+function okWait(ms){ return new Promise(res=>{ const t=ms?setTimeout(()=>{ if(okRes===fn) okRes=null; res('time'); },ms):0; const fn=()=>{ clearTimeout(t); okRes=null; res('ok'); }; okRes=fn; }); }
+function guard(my){ if(my!==gen) throw ABORT; }
+const roleOf=(p)=>G&&G.cast.find(c=>c.p===p);
+function onInput(p,d){ if(inputHook) inputHook(p,d); }
+
+// Wartet, bis alle in `need` „fertig“ gemeldet haben, die Zeit abläuft oder am TV OK gedrückt wird.
+function waitReady(need,ms,onChange){ G.ready=new Set(); sync();
+  return new Promise(res=>{ let t=0; const end=()=>{ clearTimeout(t); inputHook=null; if(okRes===fn) okRes=null; res(); };
+    const fn=()=>end(); okRes=fn; if(ms) t=setTimeout(end,ms);
+    inputHook=(p,d)=>{ if(d.ready&&need.includes(p)&&!G.ready.has(p.pid)){ G.ready.add(p.pid); SND.play('ready'); if(onChange) onChange(); sync(); if(need.every(q=>G.ready.has(q.pid))) setTimeout(end,600); } }; }); }
+
+// Erzähltext anzeigen und vorlesen; weiter mit OK oder nach dem Vorlesen.
+async function tell(my,key,text,render){ render(); const t0=Date.now();
+  const spoke=SND.narrate(voiceMode===0?key:'',voiceMode===0?text:'');
+  const r=await Promise.race([spoke.then(v=>v?'spoke':'silent'),okWait()]);
+  guard(my);
+  if(r==='silent'){ const rest=Math.max(2500,text.length*60)-(Date.now()-t0); if(rest>0){ await okWait(rest); guard(my); } }
+  else if(r==='spoke'){ okRes=null; await sleep(500); guard(my); }
+  else SND.hush();
+}
+
+// ---------- Handy-Ansichten ----------
+function viewFor(p){
+  if(!G) return lobbyView(p);
+  if(!G.all.includes(p)) return {t:'wait',emoji:'🕰️',title:'Der Fall läuft schon',sub:'Beim nächsten Fall bist du dabei. Bis dahin: zuhören und miträtseln!'};
+  const r=roleOf(p), C=G.c;
+  const v={t:'krimi',cid:C.id,case:C.title,tag:C.tag,victim:C.victim,act:G.act,actTitle:G.act>0?C.acts[G.act-1].title:'',
+    me:r?{name:r.ch.name,emoji:r.ch.emoji,role:r.ch.role,intro:r.ch.intro,secret:r.ch.secret,story:r.ch.story,guilty:!!r.ch.guilty}
+        :{name:'Ermittler/in',emoji:'🕵️',role:'Assistenz von der Kripo',intro:'',secret:'Du spielst keine Figur, sondern ermittelst mit: Stell Fragen, vergleiche Aussagen und finde die Lüge. Du bist garantiert unschuldig.',story:'Achte auf Uhrzeiten und Widersprüche – und frag ruhig nach!',det:true},
+    clues:r?r.ch.clues.slice(0,G.act).map((t,i)=>({a:i+1,text:t})).reverse():[],
+    cast:G.cast.map(c=>({name:c.ch.name,emoji:c.ch.emoji,role:c.ch.role,pl:c.p.name,me:c.p===p})),
+    ev:G.ev.slice().reverse(),
+    action:actionFor(p,r)};
+  return v;
+}
+function actionFor(p,r){ const A=G.ph, rd=G.ready&&G.ready.has(p.pid);
+  switch(A.k){
+    case 'role': return {k:'ready',title:'Lies heimlich deine Rolle',sub:'Zeig dein Handy niemandem! Tippe unten auf „Rolle“, um alles zu lesen.',btn:'Ich habe meine Rolle gelesen',done:rd};
+    case 'listen': return {k:'listen',title:A.title||'Hört zu …',sub:A.sub||''};
+    case 'intro': return A.c.p===p ? {k:'read',title:'Du bist dran: Stell dich vor!',text:r.ch.intro,btn:'Fertig vorgelesen',done:rd,hint:'Lies laut vor – mit Gefühl!'}
+                                   : {k:'listen',title:A.c.ch.emoji+' '+A.c.ch.name+' stellt sich vor',sub:'gespielt von '+A.c.p.name};
+    case 'evidence': return {k:'listen',title:'Neuer Akt: '+A.title,sub:'Neue Beweise auf dem Fernseher. Dein neuer geheimer Hinweis wartet unter „Hinweise“.'};
+    case 'ask': return A.c.p===p ? {k:'ask',title:'Verhör! Du wirst befragt:',text:A.q,btn:'Ich habe geantwortet',done:rd,hint:r.ch.guilty?'Bleib bei deiner Tarngeschichte – oder lüge geschickt.':'Antworte laut. Die Wahrheit steht in deiner Rolle und deinen Hinweisen – du musst aber nicht alles verraten.'}
+                                  : {k:'listen',title:'Verhör: '+A.c.ch.emoji+' '+A.c.ch.name,sub:'„'+A.q+'“'};
+    case 'discuss': return {k:'discuss',title:'Diskussion – Akt '+G.act,sub:r&&r.ch.guilty?'Mische dich ein, lenke den Verdacht um. Niemand darf dich durchschauen!':'Fragt euch gegenseitig aus! Wer hat ein Alibi, wer widerspricht sich?',secs:A.end?Math.max(0,Math.round((A.end-Date.now())/1000)):0,btn:G.act<3?'Bereit für den nächsten Akt':'Bereit zur Abstimmung',done:rd};
+    case 'vote': return {k:'vote',title:'Wer ist der Täter?',sub:'Deine Stimme ist geheim.',opts:G.cast.filter(c=>c.p!==p).map(c=>({ci:c.ci,name:c.ch.name,emoji:c.ch.emoji,pl:c.p.name})),sel:G.votes[p.pid]==null?null:G.votes[p.pid],secs:A.end?Math.max(0,Math.round((A.end-Date.now())/1000)):0};
+    case 'result': { const R=G.res[p.pid]||{}; return {k:'result',title:R.title||'',sub:R.sub||'',pts:R.pts||0,good:!!R.good,culprit:G.cul.ch.emoji+' '+G.cul.ch.name+' ('+G.cul.p.name+')',solution:G.c.solution,keys:G.c.keys}; }
+  }
+  return {k:'listen',title:'…'};
+}
+function sync(){ players.forEach(p=>push(p.pid,viewFor(p))); }
+
+// ---------- TV-Bildschirme ----------
+function hud(){ return G?'<div class="hud">'+G.c.icon+' <b>'+esc(G.c.title)+'</b>'+(G.act?' · Akt '+G.act+' von 3':'')+'</div><div class="hudr">Zurück = Fall abbrechen</div>':''; }
+function storyScreen(over,txt,big){ stage.innerHTML=hud()+'<div class="story fade"><div class="over">'+esc(over)+'</div>'+(big?'<div class="big">'+esc(big)+'</div>':'')+(txt?'<div class="txt">'+esc(txt)+'</div>':'')+'</div><div class="okhint">OK = weiter</div>'; }
+function evHtml(e,cls){ return '<div class="ev '+(cls||'')+'"><div class="ic">'+e.ic+'</div><h3>'+esc(e.name)+'</h3><p>'+esc(e.text)+'</p></div>'; }
+function spotScreen(c,label,q){ stage.innerHTML=hud()+'<div class="spot fade"><div class="em">'+c.ch.emoji+'</div><div class="info"><div class="over mut" style="letter-spacing:.3em;text-transform:uppercase;font-size:2vh">'+esc(label)+'</div><div class="nm">'+esc(c.ch.name)+'</div><div class="rl">'+esc(c.ch.role)+'</div><div class="by">gespielt von <b>'+c.p.emoji+' '+esc(c.p.name)+'</b></div>'+(q?'<div class="q">„'+esc(q)+'“</div>':'')+'</div></div><div class="okhint">'+(q?'Antwortet laut · ':'Liest laut vor · ')+'weiter, wenn fertig (Handy oder OK)</div>'; }
+function boardScreen(){ const A=G.ph, left=A.end?Math.max(0,Math.round((A.end-Date.now())/1000)):0;
+  const need=G.all;
+  stage.innerHTML=hud()+'<div class="board"><div class="wall"><div class="serif" style="font-size:3.4vh">🗂️ Ermittlungstafel <span class="mut" style="font-size:2.2vh">· '+esc(G.c.victim)+'</span></div>'+
+    '<div class="grid">'+G.ev.map(e=>evHtml(e,e.a<G.act?'old':'')).join('')+'</div></div>'+
+    '<div class="side">'+(A.end?'<div class="clock'+(left<=30?' low':'')+'" id="clk">'+fmt(left)+'</div><div class="tbar"><div id="tb" style="width:'+(left/A.total*100)+'%"></div></div>':'<div class="clock" style="font-size:3.4vh">Diskutiert!</div>')+
+    G.cast.map(c=>'<div class="who"><span class="e">'+c.ch.emoji+'</span><span class="t"><b>'+esc(c.ch.name)+'</b><small>'+c.p.emoji+' '+esc(c.p.name)+'</small></span>'+(G.ready.has(c.p.pid)?'<span class="ok">✔</span>':'')+'</div>').join('')+
+    (G.det.length?'<div class="mut" style="font-size:1.9vh;margin-top:.6vh">🕵️ Ermittler: '+G.det.map(p=>esc(p.name)+(G.ready.has(p.pid)?' ✔':'')).join(', ')+'</div>':'')+
+    '<div class="mut" style="font-size:1.9vh;margin-top:auto">Alle bereit oder OK = '+(G.act<3?'nächster Akt':'Abstimmung')+'</div></div></div>'; }
+
+// ---------- Ein Fall ----------
+async function runCase(my){
+  const C=CASES[selCase];
+  const ps=shuffle(players), nChars=Math.min(MAX_CHARS,ps.length);
+  const cast=[]; for(let i=0;i<nChars;i++) cast.push({ci:i,ch:C.chars[i],p:null});
+  const order=shuffle(cast); order.forEach((c,i)=>c.p=ps[i]);
+  G={c:C,cast,all:ps.slice(),det:ps.slice(nChars),act:0,ev:[],ready:new Set(),votes:{},res:{},ph:{k:'listen',title:'Der Fall beginnt …'}};
+  G.cul=cast.find(c=>c.ch.guilty);
+  SND.amb('mood'); SND.play('start'); flash();
+  // 1. Rollen lesen
+  G.ph={k:'role'}; sync();
+  const rolesTv=()=>{ stage.innerHTML=hud()+'<div class="story fade"><div class="over">Die Rollen sind verteilt</div><div class="big">Lest heimlich<br>eure Rollenkarte</div><div class="txt mut" style="font-size:2.8vh">Zeigt euer Handy niemandem. Einer von euch hat gerade erfahren, dass er der Mörder ist …</div>'+
+    '<div class="chips">'+G.all.map(p=>'<div class="chip'+(G.ready.has(p.pid)?' on':'')+'">'+p.emoji+' '+esc(p.name)+(G.ready.has(p.pid)?' ✔':'')+'</div>').join('')+'</div></div><div class="okhint">Weiter, wenn alle bereit sind (oder OK)</div>'; };
+  G.ready=new Set(); rolesTv(); await waitReady(G.all,0,rolesTv); guard(my);
+  // 2. Einleitung
+  G.ph={k:'listen',title:'Der Fall: '+C.title,sub:C.tag}; sync();
+  for(let i=0;i<C.intro.length;i++){ await tell(my,C.id+'_intro'+i,C.intro[i],()=>storyScreen(C.tag,C.intro[i],i===0?C.title:'')); if(i===1) flash(); }
+  // 3. Vorstellungsrunde
+  for(const c of cast){ G.ph={k:'intro',c}; spotScreen(c,'Vorstellung'); SND.play('paper'); await waitReady([c.p],0); guard(my); }
+  // 4. Drei Akte
+  for(let a=1;a<=3;a++){ const A=C.acts[a-1]; G.act=a;
+    G.ph={k:'evidence',title:A.title}; sync(); SND.amb(a===3?'tense':'mood');
+    await tell(my,C.id+'_act'+a,A.text,()=>storyScreen('Akt '+a,A.text,A.title));
+    // Beweise einzeln aufdecken
+    for(let i=0;i<A.evidence.length;i++){ G.ev.push(Object.assign({a},A.evidence[i])); SND.play('paper');
+      stage.innerHTML=hud()+'<div class="story"><div class="over">Akt '+a+' · Neue Beweise</div><div class="evrow">'+A.evidence.slice(0,i+1).map((e,j)=>evHtml(e,j===i?'in':'')).join('')+'</div></div><div class="okhint">OK = weiter</div>';
+      sync(); await okWait(i<A.evidence.length-1?2600:4500); guard(my); }
+    SND.play('clue'); toast('📱 Jeder hat einen neuen geheimen Hinweis bekommen!'); await sleep(1200); guard(my);
+    // Verhör
+    for(let qi=0;qi<A.ask.length;qi++){ const q=A.ask[qi], c=cast[q.c]; if(!c) continue; G.ph={k:'ask',c,q:q.q}; SND.play('ask'); spotScreen(c,'Verhör',q.q);
+      SND.narrate(voiceMode===0?C.id+'_q'+a+'_'+qi:'',voiceMode===0?c.ch.name+': '+q.q:''); await waitReady([c.p],0); guard(my); SND.hush(); }
+    // Diskussion
+    const mins=TIMES[timeIdx]; G.ph={k:'discuss',end:mins?Date.now()+mins*60000:0,total:mins*60};
+    G.ready=new Set(); boardScreen();
+    const iv=setInterval(()=>{ if(G&&G.ph.k==='discuss'&&G.ph.end){ const left=Math.max(0,Math.round((G.ph.end-Date.now())/1000)); const k=document.getElementById('clk'), b=document.getElementById('tb');
+      if(k){ k.textContent=fmt(left); k.className='clock'+(left<=30?' low':''); } if(b) b.style.width=(left/G.ph.total*100)+'%'; if(left<=10&&left>0) SND.play('tick'); } },1000);
+    try{ await waitReady(G.all,mins?mins*60000:0,boardScreen); } finally{ clearInterval(iv); }
+    guard(my);
+  }
+  // 5. Abstimmung
+  SND.amb('tense'); G.ph={k:'vote',end:Date.now()+120000}; G.votes={};
+  const voteTv=()=>{ stage.innerHTML=hud()+'<div class="story fade"><div class="over">Die Anklage</div><div class="big">Wer ist der Täter?</div><div class="txt mut" style="font-size:2.8vh">Stimmt geheim auf euren Handys ab. Auch der Täter stimmt mit …</div>'+
+    '<div class="chips">'+G.all.map(p=>'<div class="chip'+(G.votes[p.pid]!=null?' on':'')+'">'+p.emoji+' '+esc(p.name)+(G.votes[p.pid]!=null?' ✔':'')+'</div>').join('')+'</div></div><div class="okhint">Auflösung, wenn alle abgestimmt haben (oder OK)</div>'; };
+  voteTv(); sync();
+  await new Promise(res=>{ let done=false; const end=()=>{ if(done) return; done=true; clearTimeout(t); inputHook=null; okRes=null; res(); };
+    const t=setTimeout(end,120000); okRes=end;
+    inputHook=(p,d)=>{ if(d.vote==null||!G.all.includes(p)) return; const c=G.cast[d.vote]; if(!c||c.p===p) return;
+      G.votes[p.pid]=d.vote; SND.play('vote'); voteTv(); sync(); if(G.all.every(q=>G.votes[q.pid]!=null)) setTimeout(end,900); }; });
+  guard(my);
+  // 6. Auflösung
+  await reveal(my);
+}
+
+async function reveal(my){
+  const C=G.c, cnt=G.cast.map(()=>0); Object.values(G.votes).forEach(ci=>cnt[ci]++);
+  const max=Math.max(0,...cnt), top=cnt.map((n,i)=>n===max?i:-1).filter(i=>i>=0);
+  const caught=max>0&&top.length===1&&top[0]===G.cul.ci;
+  G.ph={k:'listen',title:'Die Auflösung …',sub:'Schaut auf den Fernseher!'}; sync(); SND.amb(null);
+  // Stimmen
+  stage.innerHTML=hud()+'<div class="story"><div class="over">Die Stimmen</div><div class="votes">'+G.cast.map((c,i)=>'<div class="vcol" id="vc'+i+'"><div class="bar" id="vb'+i+'"></div><div class="e">'+c.ch.emoji+'</div><div class="n">'+esc(c.ch.name)+'</div></div>').join('')+'</div></div>';
+  SND.play('drum'); await sleep(300);
+  G.cast.forEach((c,i)=>{ const b=document.getElementById('vb'+i); b.style.height=(max?cnt[i]/max*36:0)+'vh'; b.textContent=cnt[i]||''; });
+  await sleep(2600); guard(my);
+  stage.innerHTML=hud()+'<div class="story"><div class="over">Und der Täter ist …</div></div>'; SND.play('drum'); await sleep(2200); guard(my);
+  SND.play('sting'); flash();
+  stage.innerHTML=hud()+'<div class="story"><div class="culprit"><div class="em">'+G.cul.ch.emoji+'</div><div class="big">'+esc(G.cul.ch.name)+'</div><div class="by mut" style="font-size:2.8vh">gespielt von <b style="color:#fff">'+G.cul.p.emoji+' '+esc(G.cul.p.name)+'</b></div>'+
+    '<div class="stamp'+(caught?'':' esc')+'">'+(caught?'ÜBERFÜHRT':'ENTKOMMEN')+'</div></div></div><div class="okhint">OK = weiter</div>';
+  // Punkte
+  const gain={};
+  G.all.forEach(p=>{ const r=roleOf(p), isCul=r===G.cul, v=G.votes[p.pid], ok=v===G.cul.ci; let pts=0, title, sub;
+    if(isCul){ const wrong=Object.keys(G.votes).filter(pid=>+pid!==p.pid&&G.votes[pid]!==G.cul.ci).length; pts=wrong+(caught?0:5);
+      title=caught?'Du wurdest überführt!':'Du bist davongekommen!'; sub=caught?'Die anderen haben dich durchschaut. '+wrong+' Stimme(n) gingen trotzdem daneben.':'Perfekt gelogen! +5 Punkte Bonus und +1 für jede falsche Stimme.'; }
+    else { pts=(ok?3:0)+(caught?1:0); title=ok?'Richtig getippt!':'Daneben getippt!'; sub=(ok?'+3 Punkte für die richtige Spur.':'Du hattest '+(v!=null?G.cast[v].ch.name:'niemanden')+' im Verdacht.')+(caught?' +1 Teambonus, weil der Täter überführt wurde.':''); }
+    gain[p.pid]=pts; score[p.pid]=(score[p.pid]||0)+pts; G.res[p.pid]={title,sub,pts,good:isCul?!caught:ok}; });
+  G.ph={k:'result'}; sync(); setTimeout(()=>SND.play(caught?'win':'lose'),1400);
+  await okWait(9000); guard(my);
+  // Lösung erzählen
+  for(let i=0;i<C.solution.length;i++){ await tell(my,C.id+'_sol'+i,C.solution[i],()=>storyScreen('Die Lösung',C.solution[i],i===0?'Was wirklich geschah':'')); }
+  stage.innerHTML=hud()+'<div class="story fade"><div class="over">Die entscheidenden Spuren</div><div class="keys">'+C.keys.map(k=>'<div>'+esc(k)+'</div>').join('')+'</div></div><div class="okhint">OK = Punktestand</div>';
+  await okWait(15000); guard(my);
+  const rk=G.all.slice().sort((a,b)=>(score[b.pid]||0)-(score[a.pid]||0));
+  stage.innerHTML=hud()+'<div class="story fade"><div class="over">Punktestand</div><div class="rank">'+rk.map((p,i)=>{ const r=roleOf(p);
+    return '<div class="r'+(i===0?' lead':'')+'"><span>'+(i===0?'🏆':p.emoji)+'</span><span class="nm">'+esc(p.name)+' <span class="pl">'+(r?r.ch.emoji+' '+esc(r.ch.name):'🕵️ Ermittler')+'</span></span>'+(gain[p.pid]?'<span class="plus">+'+gain[p.pid]+'</span>':'')+'<span class="pts">'+(score[p.pid]||0)+'</span></div>'; }).join('')+'</div></div><div class="okhint">OK = zurück zur Lobby</div>';
+  SND.play('win'); solved.add(C.id);
+  await okWait(30000); guard(my);
+}
+
+async function startCase(){
+  if(players.length<KEY_MIN){ toast('Für einen Krimi braucht ihr mindestens '+KEY_MIN+' Mitspieler'); return; }
+  scene='game'; const my=++gen; SND.resume();
+  try{ await runCase(my); }
+  catch(e){ if(e!==ABORT){ console.error(e); toast('Fehler: '+(e&&e.message||e)); await sleep(2500); } }
+  if(gen===my){ gen++; backToLobby(); }
+}
+function backToLobby(){ inputHook=null; if(okRes) okRes(); okRes=null; SND.hush(); G=null; { const nx=CASES.findIndex(c=>!solved.has(c.id)); if(nx>=0) selCase=nx; } renderLobby(); players.forEach(p=>push(p.pid,lobbyView(p),true)); }
+let exitArm=0;
+window.TV={ key(k){ SND.resume();
+  if(k==='menu'){ voiceMode=(voiceMode+1)%3; SND.voice(voiceMode===0); if((voiceMode===2)!==SND.isMuted()) SND.toggle(); toast(['🔊 Ton + Erzähler','🎵 Nur Ton, kein Erzähler','🔇 Stumm'][voiceMode]); if(scene==='lobby') renderLobby(); return; }
+  const ovl=document.getElementById('ovl');
+  if(ovl.style.display==='flex'){ if(k==='ok'){ ovl.style.display='none'; gen++; backToLobby(); } else if(k==='back') ovl.style.display='none'; return; }
+  if(scene==='lobby'){
+    if(k==='left'||k==='right'){ selCase=(selCase+(k==='left'?CASES.length-1:1))%CASES.length; SND.play('select'); renderLobby(); }
+    else if(k==='up'||k==='down'){ timeIdx=(timeIdx+(k==='up'?1:TIMES.length-1))%TIMES.length; SND.play('select'); renderLobby(); }
+    else if(k==='ok') startCase();
+    else if(k==='back'){ if(Date.now()-exitArm<2500){ try{ Android.exit(); }catch(e){} } else { exitArm=Date.now(); toast('Nochmal Zurück drücken, um den Krimi-Abend zu beenden'); } }
+    return; }
+  if(k==='back'){ ovl.style.display='flex'; return; }
+  if(k==='ok'&&okRes) okRes();
+} };
+
+(async function boot(){
+  try{ ipUrl='http://'+Android.ip()+':'+Android.port()+'/p'; }
+  catch(e){ try{ const j=await (await fetch('/info')).json(); ipUrl='http://'+j.ip+':'+j.port+'/p'; }catch(_){ ipUrl=location.origin+'/p'; } }
+  renderLobby(); tvLoop();
+  window.addEventListener('keydown',(e)=>{ const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'ok',Escape:'back',m:'menu'}[e.key]; if(m){ TV.key(m); e.preventDefault(); } });
+})();
+</script>
+</body></html>

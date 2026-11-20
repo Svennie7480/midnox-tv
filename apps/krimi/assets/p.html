@@ -1,0 +1,195 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>midnox Krimi-Abend</title>
+<style>
+  :root{--bg:#0b0809;--card:#17121a;--line:#2e2531;--mut:#a59cab;--gold:#d9ad55;--red:#c2342b;--paper:#ece2c8;--ink:#2a2018}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:#f3eee8;font-family:system-ui,sans-serif;overscroll-behavior:none}
+  body{display:flex;flex-direction:column;height:100dvh}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  #top{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:14px;color:var(--mut);border-bottom:1px solid var(--line)}
+  #top b{color:#fff;font-family:Georgia,serif}
+  #top .me{margin-left:auto;font-weight:700;color:#fff}
+  #act{padding:14px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1d1418,transparent)}
+  #act:empty{display:none}
+  #act h2{margin:0;font-size:21px;line-height:1.25;font-family:Georgia,serif}
+  #act .sub{color:var(--mut);font-size:15px;margin:0;line-height:1.4}
+  #act .read{background:var(--paper);color:var(--ink);border-radius:12px;padding:14px 16px;font-family:Georgia,serif;font-size:19px;line-height:1.45}
+  #act .hint{font-size:13px;color:var(--gold)}
+  #app{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+  #tabs{display:flex;border-top:1px solid var(--line);background:#100c11;padding-bottom:env(safe-area-inset-bottom,0)}
+  #tabs button{flex:1;border:0;background:none;color:var(--mut);font-size:12px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+  #tabs button span{font-size:22px}
+  #tabs button.on{color:#fff}
+  #tabs button.on::before{content:'';position:absolute;top:0;left:25%;right:25%;height:3px;border-radius:0 0 3px 3px;background:var(--red)}
+  #tabs button .dot{position:absolute;top:6px;right:calc(50% - 20px);width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 0 2px #100c11}
+  .btn{border:0;border-radius:14px;color:#fff;font-size:18px;font-weight:800;padding:16px 10px;background:linear-gradient(135deg,#8d2620,#c2342b);width:100%}
+  .btn.done{background:#1f3a29;color:#86efac}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.5}
+  input{width:100%;background:#100c11;border:2px solid var(--line);border-radius:14px;color:#fff;padding:16px;font-size:20px;outline:none}
+  input:focus{border-color:var(--gold)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:2px solid var(--line);background:#100c11;border-radius:999px;padding:9px 13px;font-size:24px}
+  .chip.on{border-color:var(--gold);background:#2a1f18}
+  .wait{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;color:var(--mut);padding:20px}
+  .wait .big{font-size:64px}
+  .wait h2{color:#fff;margin:0;font-family:Georgia,serif}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+  .card h3{margin:0 0 6px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+  .card p{margin:0;font-size:16px;line-height:1.5}
+  .card.secret{border-color:#5a2a2a;background:#1e1215}
+  .card.guilty{border-color:var(--red);background:#2a0f10;box-shadow:0 0 30px #c2342b33}
+  .card.guilty h3{color:#ff8a80}
+  .hero{display:flex;align-items:center;gap:14px}
+  .hero .em{font-size:56px;line-height:1}
+  .hero b{display:block;font-size:22px;font-family:Georgia,serif}
+  .hero small{color:var(--gold);font-style:italic;font-family:Georgia,serif;font-size:15px}
+  .clue{background:var(--paper);color:var(--ink);border-radius:12px;padding:12px 14px;font-family:Georgia,serif;font-size:16.5px;line-height:1.45;position:relative}
+  .clue .a{display:block;font-family:system-ui;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8a6a3a;margin-bottom:4px}
+  .clue.new{box-shadow:0 0 0 3px var(--gold)}
+  .ev{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .ev .ic{font-size:28px;line-height:1}
+  .ev b{display:block;font-size:15px}.ev span{color:var(--mut);font-size:14px;line-height:1.35}
+  .sus{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+  .sus .em{font-size:34px}
+  .sus .t{flex:1;min-width:0}.sus .t b{display:block;font-size:16px}.sus .t small{color:var(--mut);font-size:13px}
+  .sus.me{border-color:var(--gold)}
+  .sus textarea{width:100%;margin-top:8px;background:#100c11;border:1px solid var(--line);border-radius:10px;color:#fff;font-size:15px;padding:8px;resize:vertical;min-height:40px;font-family:inherit}
+  .vopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:12px;color:#fff;font-size:17px}
+  .vopt .em{font-size:34px}
+  .vopt small{display:block;color:var(--mut);font-size:13px}
+  .vopt.on{border-color:var(--red);background:#2a1214}
+  .tbar{height:6px;border-radius:3px;background:#2e2531;overflow:hidden}
+  .tbar>div{height:100%;background:linear-gradient(90deg,var(--gold),var(--red));width:100%}
+  .tleft{font-variant-numeric:tabular-nums;color:var(--mut);font-size:14px;text-align:right}
+  .res{text-align:center;padding:10px 0}
+  .res .big{font-size:56px}
+  .res .pts{font-size:34px;font-weight:900;color:var(--gold)}
+  h4{margin:4px 0 0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+  .empty{color:var(--mut);text-align:center;padding:30px 10px;font-size:15px}
+</style></head>
+<body>
+<div id="top"><span>midnox <b>Krimi-Abend</b></span><span class="me" id="me"></span></div>
+<div id="act"></div>
+<div id="app"></div>
+<div id="tabs" style="display:none"></div>
+<script>
+const app=document.getElementById('app'), actEl=document.getElementById('act'), meEl=document.getElementById('me'), tabsEl=document.getElementById('tabs');
+let pid=0, ver=0, sid='', key='', me={name:'',emoji:'🕵️'}, V=null, tab='rolle', tick=null, seenClues=0, seenEv=0, lastAct='';
+function vib(ms){ if(navigator.vibrate){ try{navigator.vibrate(ms);}catch(e){} } }
+function esc(s){ return (s==null?'':s+'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function el(tag,cls,html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function store(k,v){ try{ if(v===undefined) return JSON.parse(localStorage.getItem(k)||'null'); localStorage.setItem(k,JSON.stringify(v)); }catch(e){ return null; } }
+async function ev(d){ try{ await fetch('/ev?pid='+pid+'&key='+key,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); }catch(e){} }
+function showMe(){ meEl.textContent=me.emoji+' '+me.name; }
+
+// ---- Beitreten ----
+function joinScreen(){
+  const old=store('kr_me'); if(old) me=old;
+  actEl.innerHTML=''; tabsEl.style.display='none'; app.innerHTML='';
+  app.appendChild(el('h2','serif','Wer bist du?'));
+  app.appendChild(el('p','','<span style="color:var(--mut)">Dein echter Name – deine Rolle bekommst du gleich.</span>'));
+  const inp=el('input'); inp.placeholder='Dein Name'; inp.maxLength=14; inp.value=me.name||''; app.appendChild(inp);
+  const emo=el('div','row');
+  ['🕵️','🎩','🦊','🐈‍⬛','🦉','🌹','🍷','🔍','🗝️','🕯️','💼','🎭'].forEach(e=>{ const b=el('div','chip'+(e===me.emoji?' on':''),e); b.onclick=()=>{ me.emoji=e; [...emo.children].forEach(c=>c.classList.remove('on')); b.classList.add('on'); vib(5); }; emo.appendChild(b); });
+  app.appendChild(emo);
+  const go=el('button','btn','Mitspielen'); go.style.marginTop='auto'; app.appendChild(go);
+  go.onclick=async()=>{ me.name=(inp.value.trim()||'Gast').slice(0,14); go.disabled=true; go.textContent='Verbinde…';
+    try{ const r=await fetch('/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(me)}); const j=await r.json(); pid=j.pid; key=j.key||'';
+      store('kr_me',me); store('kr',{sid,pid,key,me}); showMe(); render(null); poll(); }
+    catch(e){ go.disabled=false; go.textContent='Nochmal versuchen'; } };
+}
+
+// ---- Aktionsbereich (oben) ----
+function renderAction(a){
+  clearInterval(tick); tick=null; actEl.innerHTML='';
+  if(!a) return;
+  const sig=JSON.stringify([a.k,a.title,a.text]); if(sig!==lastAct){ lastAct=sig; if(a.k==='read'||a.k==='ask'||a.k==='vote') vib([80,60,80]); }
+  actEl.appendChild(el('h2','',esc(a.title)));
+  if(a.sub) actEl.appendChild(el('p','sub',esc(a.sub)));
+  if(a.text) actEl.appendChild(el('div','read','„'+esc(a.text)+'“'));
+  if(a.hint) actEl.appendChild(el('div','hint','💡 '+esc(a.hint)));
+  if(a.secs){ const row=el('div',''), tb=el('div','tbar'), fill=el('div'), lbl=el('div','tleft'); tb.appendChild(fill); row.appendChild(tb); row.appendChild(lbl); actEl.appendChild(row);
+    const end=Date.now()+a.secs*1000, total=a.k==='vote'?120000:Math.max(a.secs*1000,1);
+    const up=()=>{ const left=Math.max(0,end-Date.now()); fill.style.width=Math.min(100,left/total*100)+'%'; const s=Math.ceil(left/1000); lbl.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(left<=0){ clearInterval(tick); } };
+    up(); tick=setInterval(up,500); }
+  if(a.k==='vote'){ a.opts.forEach(o=>{ const b=el('button','vopt'+(a.sel===o.ci?' on':''),'<span class="em">'+o.emoji+'</span><span>'+esc(o.name)+'<small>gespielt von '+esc(o.pl)+'</small></span>');
+      b.onclick=()=>{ vib(20); actEl.querySelectorAll('.vopt').forEach(x=>x.classList.remove('on')); b.classList.add('on'); ev({vote:o.ci}); }; actEl.appendChild(b); });
+    if(a.sel!=null) actEl.appendChild(el('p','sub','✔ Stimme abgegeben – du kannst sie noch ändern.')); }
+  if(a.k==='result'){ actEl.innerHTML=''; const r=el('div','res'); r.innerHTML='<div class="big">'+(a.good?'🎉':'🕯️')+'</div><h2>'+esc(a.title)+'</h2><p class="sub">'+esc(a.sub)+'</p><div class="pts">+'+a.pts+' Punkte</div><p class="sub">Täter: '+esc(a.culprit)+'</p>';
+    actEl.appendChild(r); }
+  if(a.btn){ const b=el('button','btn'+(a.done?' done':''),a.done?'✔ '+esc(a.btn):esc(a.btn)); if(a.done) b.disabled=true;
+    b.onclick=()=>{ vib(20); b.disabled=true; b.className='btn done'; b.textContent='✔ '+a.btn; ev({ready:1}); }; actEl.appendChild(b); }
+}
+
+// ---- Reiter ----
+const TABS=[['rolle','🎭','Rolle'],['hinweise','🔎','Hinweise'],['beweise','🗂️','Beweise'],['personen','👥','Personen']];
+function renderTabs(){ tabsEl.style.display='flex'; tabsEl.innerHTML='';
+  TABS.forEach(([id,ic,lb])=>{ const b=el('button',tab===id?'on':'','<span>'+ic+'</span>'+lb);
+    if(id==='hinweise'&&V.clues.length>seenClues&&tab!=='hinweise') b.appendChild(el('i','dot'));
+    if(id==='beweise'&&V.ev.length>seenEv&&tab!=='beweise') b.appendChild(el('i','dot'));
+    b.onclick=()=>{ tab=id; vib(5); renderTabs(); renderTab(); }; tabsEl.appendChild(b); }); }
+function notesKey(){ return 'kr_notes_'+(V&&V.cid||''); }
+function renderTab(){
+  app.innerHTML=''; const m=V.me;
+  if(tab==='rolle'){
+    const h=el('div','card'); h.innerHTML='<div class="hero"><span class="em">'+m.emoji+'</span><span><b>'+esc(m.name)+'</b><small>'+esc(m.role)+'</small></span></div>'; app.appendChild(h);
+    const f=el('div','card'); f.innerHTML='<h3>Der Fall</h3><p><b class="serif">'+esc(V.case)+'</b> · '+esc(V.tag)+'<br><span style="color:var(--mut)">Opfer: '+esc(V.victim)+'</span></p>'; app.appendChild(f);
+    if(m.intro){ const i=el('div','card'); i.innerHTML='<h3>Das sagst du allen</h3><p class="serif">„'+esc(m.intro)+'“</p>'; app.appendChild(i); }
+    const s=el('div','card '+(m.guilty?'guilty':'secret')); s.innerHTML='<h3>'+(m.guilty?'🔪 Nur für dich – du bist der Täter!':'🤫 Dein Geheimnis')+'</h3><p>'+esc(m.secret)+'</p>'; app.appendChild(s);
+    const t=el('div','card'); t.innerHTML='<h3>'+(m.guilty?'Deine Tarnung':'So spielst du')+'</h3><p>'+esc(m.story)+'</p>'; app.appendChild(t);
+  }
+  if(tab==='hinweise'){ seenClues=V.clues.length;
+    if(m.det) app.appendChild(el('div','empty','Als Ermittler bekommst du keine geheimen Hinweise.<br>Dafür siehst du alle Beweise und darfst jeden ausfragen.'));
+    else if(!V.clues.length) app.appendChild(el('div','empty','Noch keine Hinweise.<br>Mit jedem Akt bekommst du einen neuen geheimen Hinweis.'));
+    V.clues.forEach((c,i)=>{ app.appendChild(el('div','clue'+(i===0&&c.a===V.act?' new':''),'<span class="a">Akt '+c.a+(i===0&&c.a===V.act?' · neu':'')+'</span>'+esc(c.text))); });
+    if(V.clues.length) app.appendChild(el('p','','<span style="color:var(--mut);font-size:13px">Du entscheidest selbst, was du davon verrätst.</span>'));
+  }
+  if(tab==='beweise'){ seenEv=V.ev.length;
+    if(!V.ev.length) app.appendChild(el('div','empty','Noch keine Beweise. Sie erscheinen mit jedem Akt auf dem Fernseher – und hier.'));
+    V.ev.forEach(e=>app.appendChild(el('div','ev','<span class="ic">'+e.ic+'</span><span><b>'+esc(e.name)+' <small style="color:var(--mut);font-weight:400">· Akt '+e.a+'</small></b><span>'+esc(e.text)+'</span></span>')));
+  }
+  if(tab==='personen'){ const notes=store(notesKey())||{};
+    app.appendChild(el('h4','','Verdächtige · deine Notizen bleiben auf deinem Handy'));
+    V.cast.forEach(c=>{ const d=el('div','sus'+(c.me?' me':'')); const w=el('div','t'); w.innerHTML='<b>'+esc(c.name)+(c.me?' (du)':'')+'</b><small>'+esc(c.role)+' · '+esc(c.pl)+'</small>';
+      if(!c.me){ const ta=el('textarea'); ta.placeholder='Notiz: Alibi? Widerspruch? Motiv?'; ta.value=notes[c.name]||''; ta.oninput=()=>{ const n=store(notesKey())||{}; n[c.name]=ta.value; store(notesKey(),n); }; w.appendChild(ta); }
+      d.appendChild(el('span','em',c.emoji)); d.appendChild(w); app.appendChild(d); });
+  }
+}
+
+function render(v){
+  V=v;
+  if(!v||v.t!=='krimi'){ clearInterval(tick); actEl.innerHTML=''; tabsEl.style.display='none'; lastAct='';
+    app.innerHTML='<div class="wait"><div class="big">'+esc(v&&v.emoji||'⏳')+'</div><h2>'+esc(v&&v.title||'Warte auf den Fernseher …')+'</h2>'+(v&&v.sub?'<div>'+esc(v.sub)+'</div>':'')+'</div>'; return; }
+  if(v.clues.length>seenClues&&v.clues.length){ vib([40,40,40]); if(!(v.action&&v.action.k==='role')) tab='hinweise'; }   // neuer Hinweis: direkt zeigen
+  if(v.action&&v.action.k==='role'&&tab!=='rolle'&&!v.action.done) tab='rolle';
+  renderAction(v.action); renderTabs();
+  // Notizfeld nicht unter den Fingern wegrendern
+  const a=document.activeElement; if(a&&a.tagName==='TEXTAREA'&&tab==='personen') return;
+  const y=app.scrollTop; renderTab(); app.scrollTop=y;
+}
+
+// ---- Long-Poll ----
+async function poll(){
+  let fails=0;
+  while(true){
+    try{
+      const r=await fetch('/ppoll?pid='+pid+'&key='+key+'&since='+ver);
+      if(r.status===403){ store('kr',null); location.reload(); return; }
+      const j=await r.json(); fails=0;
+      if(j.sid&&sid&&j.sid!==sid){ store('kr',null); location.reload(); return; }
+      if(j.ver>ver){ ver=j.ver; render(j.view); }
+    }catch(e){ fails++; await new Promise(r=>setTimeout(r,Math.min(3000,400*fails))); }
+  }
+}
+window.addEventListener('contextmenu',e=>e.preventDefault());
+(async function boot(){
+  try{ const j=await (await fetch('/info')).json(); sid=j.sid||''; }catch(e){}
+  const s=store('kr');
+  if(s&&s.sid&&s.sid===sid&&s.pid){ pid=s.pid; key=s.key||''; me=s.me||me; showMe(); render(null); poll(); }
+  else joinScreen();
+})();
+</script>
+</body></html>

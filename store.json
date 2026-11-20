@@ -65,6 +65,15 @@
    "desc": "Die Party-Spielesammlung für den Fernseher – der TV ist das Spielbrett, jedes Handy ist der Controller. Einfach im WLAN den QR-Code scannen, Name wählen, loslegen (bis 8 Spieler, ohne App-Installation bei den Gästen). Acht Spiele: Reaktor (Reaktion), Buzzer-Battle (Quiz), Schätzmeister (Zahlen schätzen), Wort-Bombe (Silben-Hetze), Flaggen-Blitz (Flagge langsam aufdecken), Flunkerei (Bluff), Kritzel-Klau Mal-Battle (malen & raten) und Royale (Last Man Standing). Dazu Bonusrunden mit doppelten Punkten, Soundeffekte, Musik und ein echter Ansager (ElevenLabs). Punkte über die ganze Party, mit Vibration am Handy. Ohne Werbung."
   },
   {
+   "id": "midnox-krimi",
+   "name": "midnox Krimi-Abend",
+   "cat": "midnox",
+   "pkg": "de.midnox.krimi",
+   "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-krimi.apk",
+   "version": "1.0",
+   "desc": "Der Krimi-Abend für den Fernseher: Einer von euch ist der Mörder! Der TV ist der Erzähler und Spielleiter – mit eingesprochener Erzählerstimme, Regen, Gewitter und Spannungsmusik. Jeder bekommt auf dem eigenen Handy eine geheime Rolle mit Geheimnissen, Alibi und neuen Hinweisen in jedem Akt (QR-Code scannen, keine App nötig). Vorstellungsrunde, drei Akte mit Beweisen und Verhören, Diskussion mit Ermittlungstafel, geheime Abstimmung und dramatische Auflösung mit Punkten. Drei Fälle: „Mord im Hotel Seeblick“ (Ostsee 1958), „Lawine der Lügen“ (Berghütte heute) und „Marzipan und Bittermandel“ (Lübeck 1925). 4–6 Verdächtige, weitere Mitspieler ermitteln mit."
+  },
+  {
    "id": "midnox-karten",
    "name": "midnox Kartentisch",
    "cat": "midnox",

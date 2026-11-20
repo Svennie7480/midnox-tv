@@ -201,7 +201,9 @@ const EMBY = {
   async playbackInfo(item, opts) {
     opts = opts || {};
     const s = EMBY.settings();
-    const max = s.bitrate || 120000000;
+    let max = s.bitrate || 120000000;
+    // Handy unterwegs (mobile Daten): Qualität begrenzen
+    try { if (window.TOUCH && HAS_ANDROID && Android.metered && Android.metered() && s.mobileBitrate !== 0) max = Math.min(max, s.mobileBitrate || 4000000); } catch (e) {}
     const q = { UserId: EMBY.user.id, StartTimeTicks: Math.round((opts.startMs || 0) * 10000), IsPlayback: true, AutoOpenLiveStream: true, MaxStreamingBitrate: max,
       MediaSourceId: opts.mediaSourceId, AudioStreamIndex: opts.audioIndex, SubtitleStreamIndex: opts.subIndex };
     const r = await EMBY.post('/Items/' + item.Id + '/PlaybackInfo', { DeviceProfile: EMBY.profile(max) }, q);

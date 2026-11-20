@@ -59,6 +59,7 @@ const V = {
     if (item.Type !== 'MusicAlbum' && item.Type !== 'Audio') opts.push({ label: ud.Played ? 'Als ungesehen markieren' : 'Als gesehen markieren', value: 'played' });
     opts.push({ label: ud.IsFavorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten', value: 'fav' });
     if (item.Type === 'Movie' || item.Type === 'Series') { opts.push({ label: 'Bewerten', value: 'rate' }); opts.push({ label: 'Der Community empfehlen', value: 'rec' }); }
+    if (playable && window.TOUCH) opts.push({ label: '📺 Auf dem Fernseher abspielen', value: 'cast' });
     if (playable) opts.push({ label: 'Als Watch-Party starten', value: 'party' });
     const v = await UI.choose(item.Name, opts);
     if (v === 'play') APP.play(item); else if (v === 'start') APP.play(item, { fromStart: true }); else if (v === 'open') APP.open(item);
@@ -66,6 +67,7 @@ const V = {
     else if (v === 'fav') { await EMBY.setFav(item.Id, !ud.IsFavorite); ud.IsFavorite = !ud.IsFavorite; UI.toast(ud.IsFavorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt', { icon: '♥' }); }
     else if (v === 'rate') COMM.ratePrompt(item); else if (v === 'rec') COMM.recommend(item);
     else if (v === 'party') PARTY.create(item, ((item.UserData || {}).PlaybackPositionTicks || 0) / 10000);
+    else if (v === 'cast') CAST.play(item, (item.UserData || {}).PlaybackPositionTicks || 0);
   },
 };
 
@@ -415,6 +417,7 @@ ROUTER.reg('detail', async (scr, arg) => {
     btns.appendChild(onOk(h('div', 'btn pri', ic('play') + (pos ? 'Fortsetzen ab ' + fmtTime(pos / 10000) : 'Abspielen')), () => APP.play(item)));
     if (pos) btns.appendChild(onOk(h('div', 'btn', ic('restart') + 'Von vorne'), () => APP.play(item, { fromStart: true })));
   }
+  if (window.TOUCH && (item.Type !== 'Series' || scr.nextEp)) btns.appendChild(onOk(h('div', 'btn', ic('tv') + 'Auf dem TV'), () => { const t = item.Type === 'Series' ? scr.nextEp : item; CAST.play(t, ((t.UserData || {}).PlaybackPositionTicks || 0)); }));
   if (item.Type !== 'Series' || scr.nextEp) btns.appendChild(onOk(h('div', 'btn', ic('party') + 'Watch-Party'), () => { const t = item.Type === 'Series' ? scr.nextEp : item; PARTY.create(t, ((t.UserData || {}).PlaybackPositionTicks || 0) / 10000); }));
   if (item.LocalTrailerCount || (item.RemoteTrailers || []).length) btns.appendChild(onOk(h('div', 'btn', ic('trailer') + 'Trailer'), () => APP.trailer(item)));
   const rateBtn = onOk(h('div', 'btn' + (mx && mx.mine ? ' on' : ''), ic(mx && mx.mine ? 'starf' : 'star') + '<span>' + (mx && mx.mine ? 'Deine ' + mx.mine + '/10' : 'Bewerten') + '</span>'), async () => { const r = await COMM.ratePrompt(item); if (r !== undefined) ROUTER.go('detail', { id: item.Id }, { replace: true }); });
@@ -438,7 +441,9 @@ ROUTER.reg('detail', async (scr, arg) => {
       const eps = ((await EMBY.episodes(item.Id, s.Id)).Items || []); tr.innerHTML = ''; tr.style.transform = '';
       for (const ep of eps) {
         const c = V.card(ep, 'land', { cap: false, ok: () => APP.play(ep), focus: (e) => { epinfo.innerHTML = V.spoil(e) ? '<h3>' + (e.IndexNumber ? 'Folge ' + e.IndexNumber : 'Folge') + '</h3>' + V.meta(e) + '<p class="spoiltx">🙈 Titel und Beschreibung versteckt (Anti-Spoiler)</p>' : '<h3>' + (e.IndexNumber ? e.IndexNumber + '. ' : '') + esc(e.Name) + '</h3>' + V.meta(e) + '<p>' + esc(e.Overview || '') + '</p>'; } });
-        c.classList.add('ep'); c.appendChild(h('div', 'num', 'F' + (ep.IndexNumber || '?'))); tr.appendChild(c);
+        c.classList.add('ep'); c.appendChild(h('div', 'num', 'F' + (ep.IndexNumber || '?')));
+        if (window.TOUCH) c.appendChild(h('div', 'eptitle', esc(V.spoil(ep) ? 'Folge ' + (ep.IndexNumber || '') : ep.Name) + (ep.RunTimeTicks ? '<small>' + Math.round(ep.RunTimeTicks / 6e8) + ' Min.</small>' : '')));
+        tr.appendChild(c);
       }
       const want = focusId && $('.card[data-id="' + focusId + '"]', tr);
       return want || tr.firstChild;
@@ -514,9 +519,18 @@ ROUTER.reg('search', async (scr) => {
   key('Leerz.', () => type(' '), 'wide'); key('⌫', () => { term = term.slice(0, -1); draw(); go(); }, 'wide'); key('Löschen', () => { term = ''; draw(); go(); }, 'w3');
   if (HAS_ANDROID) key(ic('keyboard', ' style="width:1.8rem;height:1.8rem"'), async () => { const t = await TEXT.ask('Suchen', { value: term }); if (t != null) { term = t; draw(); go(); } }, '');
   key(ic('phone', ' style="width:1.8rem;height:1.8rem"'), async () => { const d = await PHONE.ask({ mode: 'text', title: 'Suchen', value: term }); if (d && typeof d.text === 'string') { term = d.text; draw(); go(); } }, '');
-  draw();
+  let draw0 = draw;
+  if (window.TOUCH) {   // Handy/Tablet: echtes Eingabefeld mit Handytastatur statt Bildschirmtastatur
+    kb.style.display = 'none'; field.innerHTML = '';
+    const inp = document.createElement('input'); inp.className = 'tin sin'; inp.placeholder = 'Titel, Serie, Person …'; inp.setAttribute('autocapitalize', 'off'); inp.autocomplete = 'off'; inp.spellcheck = false;
+    inp.addEventListener('input', () => { term = inp.value; go(); });
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { inp.blur(); if (HAS_ANDROID && Android.showKeyboard) Android.showKeyboard(false); } });
+    field.appendChild(inp); draw0 = () => { if (inp.value !== term) inp.value = term; };
+    setTimeout(() => inp.focus(), 300);
+  }
+  const draw1 = draw0; draw0();
   const recent = STORE.get('recentSearch', []);
-  if (recent.length) { right.appendChild(h('div', '', '<div style="font-size:1.05rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);font-weight:700">Zuletzt gesucht</div>')); const rr = h('div', 'recent'); for (const r of recent) rr.appendChild(onOk(h('div', 'chip', esc(r)), () => { term = r; draw(); go(); })); right.appendChild(rr); }
+  if (recent.length) { right.appendChild(h('div', '', '<div style="font-size:1.05rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);font-weight:700">Zuletzt gesucht</div>')); const rr = h('div', 'recent'); for (const r of recent) rr.appendChild(onOk(h('div', 'chip', esc(r)), () => { term = r; draw1(); go(); })); right.appendChild(rr); }
   const results = h('div', ''); results.style.marginTop = '2rem'; sc.appendChild(results);
   let seq = 0;
   const go = debounce(async () => {
@@ -562,6 +576,7 @@ ROUTER.reg('settings', async (scr) => {
   sect('Darstellung');
   row('Farbthema', (THEME.list.find(t => t[0] === (s.theme || 'auto')) || THEME.list[0])[1] + ((s.theme || 'auto') === 'auto' ? ' · gerade: ' + THEME.names[THEME.seasonal()] : ''), async (e) => { const v = await UI.choose('Farbthema', THEME.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.theme || 'auto') })), 'Saisonal wechselt automatisch – z. B. Advent, Halloween, Frühling, Sommer, Tag der Deutschen Einheit.'); if (v) { s.theme = v; save(); THEME.apply(v); setVal(e, THEME.list.find(t => t[0] === v)[1]); } }, 'gear');
   row('Glas-Effekte', (GLASS.list.find(t => t[0] === (s.glass || 'full')) || GLASS.list[0])[1], async (e) => { const v = await UI.choose('Glas-Effekte', GLASS.list.map(t => ({ label: t[1], value: t[0], sel: t[0] === (s.glass || 'full') })), 'Wenn es auf deinem Gerät ruckelt, nimm „Sparsam“ – der Look bleibt, nur die Unschärfe fällt weg.'); if (v) { s.glass = v; save(); GLASS.apply(v); setVal(e, GLASS.list.find(t => t[0] === v)[1]); } }, 'tv');
+  if (window.TOUCH) choice('Qualität über mobile Daten', 'mobileBitrate', [[4000000, 'Sparsam (4 Mbit/s, ca. 1,8 GB/h)'], [1500000, 'Sehr sparsam (1,5 Mbit/s, ca. 0,7 GB/h)'], [10000000, 'Gut (10 Mbit/s, ca. 4,5 GB/h)'], [0, 'Keine Begrenzung']], 'tv');
   choice('Anti-Spoiler', 'spoiler', [[false, 'Aus'], [true, 'An – ungesehene Folgen ohne Bild-Details und Beschreibung']], 'eye');
   choice('Schaust du noch?', 'still', [[3, 'Nach 3 Folgen ohne Tastendruck fragen'], [2, 'Nach 2 Folgen'], [5, 'Nach 5 Folgen'], [0, 'Nie fragen']], 'moon');
   choice('Titelmusik auf Detailseiten', 'themeSongs', [[true, 'An (leise im Hintergrund)'], [false, 'Aus']], 'music');

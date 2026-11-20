@@ -1,6 +1,6 @@
 {
- "versionCode": 7,
- "versionName": "2.0",
+ "versionCode": 8,
+ "versionName": "2.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "midnox Emby heißt jetzt midnox Media und kann auch Jellyfin! Neu: „Wer guckt?“-Profilauswahl über mehrere Server mit PIN, Kinderprofil mit Altersfreigabe und Eltern-PIN, Anti-Spoiler für ungesehene Folgen und „Schaust du noch?“. Bei Jellyfin: Spul-Vorschaubilder und Intro/Abspann über Medien-Segmente. Server-Update nötig: index.php neu hochladen."
+ "notes": "midnox Media jetzt auch für Android-Handys und -Tablets: Touch-Bedienung mit Tab-Leiste, Player mit Doppeltipp-Spulen, Wischen für Helligkeit/Lautstärke, Bild-im-Bild, Musik im Hintergrund, Sparmodus bei mobilen Daten – und „Auf dem TV“: Film vom Handy auf den Fernseher schicken und per Handy fernsteuern."
 }

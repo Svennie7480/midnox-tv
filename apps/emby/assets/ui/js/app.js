@@ -33,7 +33,7 @@ const APP = {
     await Promise.race([COMM.start(), new Promise(r => setTimeout(r, 3000))]);
     await ROUTER.go(KIDS.on ? 'kidshome' : 'home', null, { root: true });
     setTimeout(() => { if (window.STATS && !KIDS.on) STATS.check().catch(() => {}); }, 8000);
-    setTimeout(() => { if (STORE.get('welcomed') !== EMBY.user.id) { STORE.set('welcomed', EMBY.user.id); UI.toast('Willkommen, ' + EMBY.user.name + '! ◀ öffnet das Menü, MENU zeigt Optionen zu einem Titel.', { icon: '👋', ms: 8000 }); } }, 800);
+    setTimeout(() => { if (STORE.get('welcomed') !== EMBY.user.id) { STORE.set('welcomed', EMBY.user.id); UI.toast('Willkommen, ' + EMBY.user.name + (window.TOUCH ? '! Lange drücken zeigt Optionen zu einem Titel.' : '! ◀ öffnet das Menü, MENU zeigt Optionen zu einem Titel.'), { icon: '👋', ms: 8000 }); } }, 800);
   },
   async logout(silent) {
     if (PLAYER.active) await PLAYER.stop('user'); MUSIC.stop();

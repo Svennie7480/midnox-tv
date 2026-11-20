@@ -1,0 +1,248 @@
+/* midnox Media – Touch-Modus (Handy & Tablet). Alles nur unter body.touch, der Fernseher bleibt unberührt. */
+body.touch { -webkit-user-select: none; user-select: none; overscroll-behavior: none; }
+body.touch.tablet { --tabh: 6.4rem; } body.touch { --tabh: 6rem; --safeb: env(safe-area-inset-bottom, 0px); }
+
+/* Seiten scrollen nativ, keine Fokus-Verschiebung */
+body.touch .page { padding-left: 0 !important; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding-bottom: calc(var(--tabh) + 2rem); scrollbar-width: none; }
+body.touch .page::-webkit-scrollbar, body.touch .track::-webkit-scrollbar { display: none; }
+body.touch.notabs .page { padding-bottom: 2rem; }
+body.touch [data-vs] { transform: none !important; }
+body.touch .rows { position: relative !important; top: auto !important; transform: none !important; }
+body.touch .row.gone { opacity: 1 !important; }
+body.touch .row h2 { padding-left: 1.6rem; font-size: 1.5rem; }
+body.touch .track { overflow-x: auto; transform: none !important; padding: .4rem 1.6rem 1rem; scroll-snap-type: x proximity; scroll-padding: 1.6rem; scrollbar-width: none; }
+body.touch .track > * { scroll-snap-align: start; }
+body.touch .card.poster { width: 10.4rem; height: 15.6rem; }
+body.touch .card.land { width: 21rem; height: 11.8rem; }
+body.touch .focused { box-shadow: none; }
+body.touch .card.focused, body.touch .btn.focused, body.touch .chip.focused { transform: none; }
+body.touch .card.focused::after { display: none; }
+body.touch .pressed { transform: scale(.96) !important; opacity: .85; transition: transform .08s, opacity .08s; }
+body.touch .btn.focused:not(.pri) { background: rgba(255,255,255,.08); color: inherit; }
+body.glass.touch .btn.focused:not(.pri) { background-image: var(--gl-bg); color: #fff; box-shadow: var(--gl-hi), inset 0 0 0 .1rem var(--gl-brd); }
+body.touch .chip.focused:not(.sel) { background: rgba(255,255,255,.08); color: inherit; }
+
+/* Seitenleiste weg, Tab-Leiste unten */
+body.touch #rail { display: none !important; }
+#tabbar { display: none; }
+body.touch #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; height: calc(var(--tabh) + var(--safeb)); padding-bottom: var(--safeb);
+  background: rgba(10,8,22,.86); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); border-top: .1rem solid rgba(255,255,255,.1); }
+body.touch.glass #tabbar { background: linear-gradient(180deg, rgba(40,34,78,.62), rgba(14,12,30,.82)); box-shadow: inset 0 .1rem 0 rgba(255,255,255,.18); }
+body.touch.notabs #tabbar { display: none; }
+#tabbar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3rem; color: var(--mut); font-size: 1rem; font-weight: 700; }
+#tabbar .tab svg { width: 2.3rem; height: 2.3rem; }
+#tabbar .tab.cur { color: #fff; }
+#tabbar .tab.cur svg { color: var(--hl); filter: drop-shadow(0 0 .6rem rgba(var(--g1),.7)); }
+body.touch .toast { bottom: calc(var(--tabh) + 1.4rem) !important; }
+body.touch #mini { bottom: calc(var(--tabh) + 1rem) !important; right: 1rem !important; left: 1rem !important; width: auto !important; }
+
+/* Dialoge */
+body.touch .modal .box { width: auto !important; min-width: 0 !important; max-width: min(92vw, 52rem); max-height: 86vh; overflow-y: auto; padding: 2rem; }
+body.touch .modal .opts .opt, body.touch .modal .opt { padding: 1.2rem 1.4rem; }
+body.touch .tinbox .tin { width: 100%; box-sizing: border-box; margin-top: 1.4rem; font: inherit; font-size: 1.6rem; padding: 1.2rem 1.4rem; border-radius: 1.4rem; border: .1rem solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: #fff; outline: none; -webkit-user-select: text; user-select: text; }
+body.touch .tinbox .tin:focus { border-color: var(--c1); box-shadow: 0 0 0 .3rem rgba(var(--g1),.3); }
+body.touch .modal .btns { flex-wrap: wrap; }
+body.touch .whohint { display: none; }
+
+/* ---------- Allgemein: TV-Abstände im Code entschärfen ---------- */
+body.touch [style*="9rem"] { padding-left: 1.6rem !important; }
+body.touch [style*="width:76rem"], body.touch [style*="width: 76rem"] { width: auto !important; padding-right: 1.6rem !important; }
+body.touch .page > div[style*="position: absolute"], body.touch .page > div[style*="position:absolute"] { position: static !important; }
+body.touch .empty { padding: 4rem 1.6rem; }
+body.touch .skel { left: 0; padding-top: 4rem; }
+body.touch h1 { word-break: break-word; }
+
+/* ---------- Startseite ---------- */
+body.touch .hero { position: relative; left: auto; top: auto; width: auto; height: auto; min-height: 52vh; padding: 0 1.6rem 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; }
+body.touch.landscape.phone .hero { min-height: 70vh; }
+body.touch .hero .hinfo { max-width: 60rem; }
+body.touch .hero h1, body.touch .hero.spotmode .hinfo h1 { font-size: 3rem; }
+body.touch .hero .logoimg { max-width: 72vw; max-height: 7rem; }
+body.touch .hero .ov { font-size: 1.25rem; -webkit-line-clamp: 3; }
+body.touch .hero .spot { position: static; opacity: 1; margin-top: 1.4rem; flex-wrap: wrap; gap: 1.2rem; }
+body.touch .hero .spot .btns { display: flex; gap: .8rem; flex-wrap: wrap; }
+body.touch .rows { margin-top: 1rem; }
+body.touch .card.act { width: 28rem; }
+body.touch .card.wrapcard { width: 30rem; height: auto; min-height: 11rem; } body.touch .card.wrapcard.alt { width: 24rem; }
+
+/* ---------- Bibliotheken / Raster ---------- */
+body.touch .libhead { position: relative; left: auto; right: auto; top: auto; padding: 2rem 1.6rem 1rem; flex-wrap: wrap; gap: 1rem; }
+body.touch .libhead h1 { font-size: 2.8rem; width: 100%; }
+body.touch .grid-wrap { position: static; overflow: visible; }
+body.touch .grid, body.touch .grid.land, body.touch .grid.square { transform: none !important; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 5.4rem 1.2rem; padding: 1rem 1.6rem 6rem; }
+body.touch .grid.land { grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+body.touch .grid.square { grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+body.touch .grid .card.poster, body.touch .grid .card.land, body.touch .grid .card.square { width: auto; height: auto; }
+body.touch .grid .card.poster { aspect-ratio: 2/3; } body.touch .grid .card.land { aspect-ratio: 16/9; } body.touch .grid .card.square { aspect-ratio: 1; }
+
+/* ---------- Detailseite ---------- */
+body.touch .detail { padding-left: 0; }
+body.touch .detail .scroller { position: static; transform: none !important; }
+body.touch .detail .top { width: auto; min-height: 0; padding: 34vh 1.6rem 0; }
+body.touch.landscape .detail .top { padding-top: 14vh; }
+body.touch .detail h1 { font-size: 3.2rem; }
+body.touch .detail .logoimg { max-width: 80vw; max-height: 8rem; }
+body.touch .detail .ov { -webkit-line-clamp: 6; font-size: 1.3rem; }
+body.touch .detail .top .btns, body.touch .detail .btns { flex-wrap: wrap; width: auto; gap: .8rem; }
+body.touch .detail .row h2, body.touch .detail .row .track { padding-left: 1.6rem; }
+body.touch .detail .row .track { padding-right: 1.6rem; }
+body.touch .detail .sec { margin-top: 2rem; }
+body.touch .detail .streaminfo { flex-wrap: wrap; gap: .6rem 1.2rem; }
+body.touch .detail .community { flex-wrap: wrap; }
+
+/* ---------- Einstellungen, Listen ---------- */
+body.touch .srv, body.touch .setrow { max-width: none; }
+
+/* ---------- Willkommen / Anmeldung ---------- */
+body.touch .welcome { position: relative; inset: auto; min-height: 100%; flex-direction: column; justify-content: center; align-items: stretch; padding: 3rem 1.6rem; gap: 2.4rem; }
+body.touch.landscape .welcome { flex-direction: row; align-items: center; }
+body.touch .welcome .big { font-size: 4.6rem; }
+body.touch .welcome .panel2 { max-width: none; }
+
+/* ---------- Wer guckt? ---------- */
+body.touch .whopage { justify-content: flex-start; padding: 6rem 1.6rem 3rem !important; overflow-y: auto; }
+body.touch .whohead h1 { font-size: 4.2rem; }
+body.touch .whogrid { gap: 2.2rem 1.6rem; }
+body.touch .whogrid .who { width: 12rem; } body.touch .whogrid .who .wav { width: 11rem; height: 11rem; border-radius: 2.8rem; } body.touch .whogrid .who .wav span { font-size: 4.4rem; }
+body.touch.tablet .whogrid .who { width: 15rem; } body.touch.tablet .whogrid .who .wav { width: 13rem; height: 13rem; }
+
+/* ---------- Kinder ---------- */
+body.touch .kidshome .khead { position: relative; left: auto; top: auto; padding: 3rem 1.6rem 1rem; }
+body.touch .kidshome .khead h1 { font-size: 3.2rem; }
+body.touch .kidshome .rows { position: relative; }
+body.touch.kids .card.poster { width: 13rem; height: 19.5rem; }
+body.touch.kids .card.land { width: 24rem; height: 13.5rem; }
+
+/* ---------- Mein midnox ---------- */
+body.touch .mepage .rows { position: relative; left: auto; right: auto; }
+body.touch .mepage .mehead, body.touch .mepage .achgrid { padding-left: 1.6rem; padding-right: 1.6rem; }
+body.touch .mehead { padding-top: 2.4rem; }
+body.touch .mehead .who > .av { width: 7rem; height: 7rem; }
+body.touch .mehead h1 { font-size: 3.2rem; }
+body.touch .mehead .tiles { flex-wrap: wrap; }
+body.touch .mehead .tile { flex: 1 1 40%; }
+body.touch .mehead .btns { flex-wrap: wrap; }
+body.touch .mepage .achgrid { grid-template-columns: 1fr !important; }
+body.touch.tablet .mepage .achgrid { grid-template-columns: 1fr 1fr !important; }
+
+/* ---------- Suche ---------- */
+body.touch .sfield { border: 0; padding: 0; width: 100%; }
+body.touch .sin { width: 100%; box-sizing: border-box; font: inherit; font-size: 1.7rem; font-weight: 600; padding: 1.2rem 1.4rem; border-radius: 1.6rem; border: .1rem solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); color: #fff; outline: none; -webkit-user-select: text; user-select: text; }
+body.touch .sin:focus { border-color: var(--c1); box-shadow: 0 0 0 .3rem rgba(var(--g1),.3); }
+body.touch .page div[style*="gap: 4rem"], body.touch .page div[style*="gap:4rem"] { flex-direction: column; gap: 1.4rem !important; padding-top: 2rem !important; padding-right: 1.6rem; }
+body.touch .page div[style*="max-width: 40rem"], body.touch .page div[style*="max-width:40rem"] { max-width: none !important; }
+
+/* ---------- Community ---------- */
+body.touch .ctabs { position: relative; left: auto; top: auto; flex-wrap: wrap; padding: 2rem 1.6rem 1rem; gap: .7rem; }
+body.touch .ctabs h1 { width: 100%; font-size: 2.8rem; margin: 0 0 .6rem; }
+body.touch .ctabs .chip { padding: 0 1.2rem; height: 3.4rem; font-size: 1.2rem; }
+body.touch .cbody { position: relative; left: auto; right: auto; top: auto; bottom: auto; padding: 0 1.6rem; }
+body.touch .chat { position: relative; width: auto; height: calc(100vh - 24rem - var(--tabh)); overflow-y: auto; bottom: auto; }
+body.touch .chat .list { position: static; transform: none !important; padding: 1rem 0; }
+body.touch .msg { max-width: 92%; }
+body.touch .rec { width: auto; max-width: 30rem; }
+body.touch .chatbar { position: fixed; left: 1.2rem; right: 1.2rem; bottom: calc(var(--tabh) + .8rem); width: auto; z-index: 30; flex-wrap: nowrap; }
+body.touch .chatbar .btn { flex: none; }
+body.touch .side { position: static; width: auto; margin-top: 2rem; }
+body.touch .toplist { width: auto; grid-template-columns: 1fr; }
+body.touch.tablet .toplist { grid-template-columns: 1fr 1fr; }
+body.touch .rateflow { position: relative; inset: auto; flex-direction: column; padding: 2rem 1.6rem; gap: 2rem; align-items: stretch; }
+body.touch .adm-form { width: auto; }
+body.touch .panel[style*="width"] { width: auto !important; }
+
+/* ---------- Was gucken wir heute? ---------- */
+body.touch .mx h1 { font-size: 3.2rem; }
+body.touch .mx p { font-size: 1.3rem; }
+body.touch .mx-setup { position: relative; left: auto; right: auto; top: auto; padding: 2.4rem 1.6rem; }
+body.touch .mx-line { flex-direction: column; align-items: flex-start; gap: .7rem; }
+body.touch .mx-line label { width: auto; }
+body.touch .mx-line .chips { flex-wrap: wrap; }
+body.touch .mx-lobby { position: relative; left: auto; right: auto; flex-direction: column; gap: 2.4rem; padding: 2.4rem 1.6rem; align-items: stretch; }
+body.touch .mx-qr { width: auto; max-width: 26rem; align-self: center; }
+body.touch .mx-vote { position: relative; left: auto; right: auto; top: auto; bottom: auto; flex-direction: column; gap: 2rem; padding: 2rem 1.6rem; }
+body.touch .mx-card { flex-direction: column; align-items: flex-start; gap: 1.6rem; }
+body.touch .mx-card .pst { width: 16rem; }
+body.touch .mx-card h1 { font-size: 2.8rem; }
+body.touch .mx-yn { flex-wrap: wrap; }
+body.touch .mx-side2 { width: auto; }
+body.touch .mx-rhead { position: relative; left: auto; right: auto; top: auto; padding: 2.4rem 1.6rem 0; }
+body.touch .mx-result .rows { position: relative; }
+body.touch .mx-hint { display: none; }
+body.touch #mxparty .p { width: 15rem; } body.touch #mxparty h2 { font-size: 4.4rem; }
+
+/* ---------- Rückblick (Story-Folien) ---------- */
+body.touch .wstage { padding: 0 2rem; overflow-y: auto; align-items: center; }
+body.touch .wslide h1 { font-size: 3.4rem; }
+body.touch .wslide p { font-size: 1.4rem; }
+body.touch .wslide .big { font-size: 8rem; } body.touch .wslide .big.yr { font-size: 10rem; }
+body.touch .wslide .split { gap: 2rem; flex-wrap: wrap; } body.touch .wslide .split b { font-size: 3.6rem; }
+body.touch .wslide .bars, body.touch .wslide .clock, body.touch .wslide .lb { width: auto; max-width: 100%; }
+body.touch .wslide .br span { width: 9rem; font-size: 1.2rem; }
+body.touch .wslide .clock { height: 11rem; gap: .25rem; }
+body.touch .wslide .grid4 { grid-template-columns: 1fr 1fr; }
+body.touch .wslide .podium, body.touch .wslide .posters { flex-wrap: wrap; gap: 1rem; }
+body.touch .wslide .posters i { width: 8.5rem; }
+body.touch .wslide .podium > div { width: 9rem; }
+body.touch .wslide .medals > div { width: 8rem; } body.touch .wslide .medals .medal { width: 5.6rem; height: 5.6rem; }
+body.touch .wslide .lb small { display: none; }
+body.touch .wprog { left: 1.2rem; right: 1.2rem; top: calc(1rem + env(safe-area-inset-top, 0px)); }
+
+/* ---------- Mein midnox ---------- */
+body.touch .mehead .who { flex-direction: row; align-items: center; text-align: left; }
+
+/* ---------- Player (Touch) ---------- */
+body.touch #osd { pointer-events: auto; }
+body.touch #osd:not(.show) .head, body.touch #osd:not(.show) .foot, body.touch #osd:not(.show) .scrim { pointer-events: none; }
+body.touch #osd .tlayer { position: absolute; inset: 0; z-index: 0; }
+body.touch #osd .head, body.touch #osd .foot { z-index: 2; }
+body.touch #osd .head { display: flex; align-items: center; gap: 1.2rem; padding: 1.2rem 1.6rem; left: 0; right: 0; }
+body.touch #osd .head .t2 { font-size: 1.6rem; } body.touch #osd .head .t1 { font-size: 1.1rem; }
+body.touch #osd .head .clock { display: none; }
+body.touch #osd .tbtn { width: 4.4rem; height: 4.4rem; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(10,8,22,.55); border: .1rem solid rgba(255,255,255,.15); }
+body.touch #osd .tbtn svg { width: 2.2rem; height: 2.2rem; }
+body.touch #osd .tpip { margin-left: auto; }
+body.touch #osd .foot { left: 1.2rem; right: 1.2rem; bottom: 1.2rem; padding: 1.2rem 1.6rem; }
+body.touch #osd .seek { height: 1.2rem; touch-action: none; }
+body.touch #osd .seek::before { content: ''; position: absolute; left: 0; right: 0; top: -1.6rem; bottom: -1.6rem; }
+body.touch #osd .seek .k { width: 2rem; height: 2rem; }
+body.touch #osd .ctrl { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; gap: .7rem; }
+body.touch #osd .ctrl::-webkit-scrollbar { display: none; }
+body.touch #osd .ctrl .btn { flex: none; height: 4.2rem; }
+body.touch #osd .ctrl .spacer { display: none; }
+body.touch #osd .tind { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; display: none; flex-direction: column; align-items: center; gap: .8rem; padding: 1.2rem; border-radius: 2rem; background: rgba(10,8,22,.7); }
+body.touch #osd .tind.on { display: flex; } body.touch #osd .tind.l { left: 3rem; } body.touch #osd .tind.r { right: 3rem; }
+body.touch #osd .tind span { font-size: 2rem; }
+body.touch #osd .tind b { width: .8rem; height: 14rem; border-radius: .4rem; background: rgba(255,255,255,.2); position: relative; overflow: hidden; display: block; }
+body.touch #osd .tind b i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--grad); }
+body.touch #osd .trip { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; padding: 1.4rem 2rem; border-radius: 3rem; background: rgba(255,255,255,.16); font-size: 1.6rem; font-weight: 800; opacity: 0; transition: opacity .2s; pointer-events: none; }
+body.touch #osd .trip.on { opacity: 1; } body.touch #osd .trip.l { left: 12%; } body.touch #osd .trip.r { right: 12%; }
+body.touch .skipper { right: 1.6rem; bottom: 15rem; }
+body.touch .upnext { right: 1.2rem !important; left: auto; max-width: 70vw; }
+/* Bild-im-Bild: nur das Video */
+body.pip #osd, body.pip #subs, body.pip #toasts, body.pip #tabbar, body.pip #reacts { display: none !important; }
+/* Chat auf dem Handy */
+body.touch.phone .cbody .side { display: none; }
+body.touch .chatbar { overflow-x: auto; scrollbar-width: none; }
+body.touch .chatbar::-webkit-scrollbar { display: none; }
+body.touch #osd .scrim, body.touch #osd .big-state, body.touch #osd .buffer { pointer-events: none !important; }
+
+/* ---------- Fernbedienung ---------- */
+.remote .rmhead { padding: 2.4rem 1.6rem 1rem; } .remote .rmhead small { display: block; font-size: 1.1rem; letter-spacing: .2em; text-transform: uppercase; color: var(--hl); font-weight: 800; } .remote .rmhead b { font-size: 2.4rem; font-weight: 850; }
+.remote .rmbody { display: flex; flex-direction: column; align-items: center; padding: 1.6rem; gap: 1.6rem; }
+.remote .rmposter { width: 60%; max-width: 26rem; aspect-ratio: 2/3; border-radius: 1.8rem; background: var(--card2) center/cover; box-shadow: 0 2rem 5rem rgba(0,0,0,.6); }
+.remote .rmtitle { text-align: center; } .remote .rmtitle small { display: block; color: var(--mut); font-size: 1.2rem; } .remote .rmtitle b { font-size: 2.2rem; font-weight: 850; }
+.remote .rmseek { width: 100%; max-width: 46rem; }
+.remote .rmseek .bar { height: .9rem; border-radius: .5rem; background: rgba(255,255,255,.18); position: relative; touch-action: none; }
+.remote .rmseek .bar::before { content: ''; position: absolute; left: 0; right: 0; top: -1.4rem; bottom: -1.4rem; }
+.remote .rmseek .bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: .5rem; background: var(--grad); }
+.remote .rmseek .tm { display: flex; justify-content: space-between; margin-top: .7rem; font-size: 1.15rem; color: var(--mut); font-variant-numeric: tabular-nums; }
+.remote .rmctl { display: flex; gap: 1.4rem; align-items: center; }
+.remote .rmctl .btn { width: 5.6rem; height: 5.6rem; justify-content: center; padding: 0; border-radius: 50%; }
+.remote .rmctl .btn.pri { width: 7.4rem; height: 7.4rem; } .remote .rmctl .btn svg { width: 2.6rem; height: 2.6rem; }
+body.touch.landscape.phone .remote .rmbody { flex-direction: row; flex-wrap: wrap; justify-content: center; } body.touch.landscape.phone .remote .rmposter { width: 12rem; }
+body.touch .detail .seasons { display: flex; gap: .7rem; padding: 0 1.6rem; overflow-x: auto; scrollbar-width: none; }
+body.touch .detail .track[style*="padding-left"] { padding-left: 1.6rem !important; }
+body.touch .detail .epinfo { display: none; }
+body.touch .card.ep { margin-bottom: 4.4rem; }
+body.touch .card.ep .eptitle { position: absolute; left: 0; right: 0; top: calc(100% + .6rem); font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.touch .card.ep .eptitle small { display: block; font-size: 1.05rem; color: var(--mut); font-weight: 500; }

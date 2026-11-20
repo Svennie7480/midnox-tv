@@ -761,19 +761,19 @@ body.glass #bg.dim .shade { background: linear-gradient(0deg, rgba(7,6,13,.9), r
 .whohead h1 { font-size: 6rem; font-weight: 900; letter-spacing: -.045em; margin-top: .6rem; }
 .whohead h1 span { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .whogrid { display: flex; gap: 3.4rem; flex-wrap: wrap; justify-content: center; max-width: 86rem; }
-.who { width: 15rem; display: flex; flex-direction: column; align-items: center; gap: .9rem; text-align: center; transition: transform .25s var(--ease); }
-.who .wav { position: relative; width: 13rem; height: 13rem; border-radius: 3.4rem; display: grid; place-items: center; background-size: cover !important; background-position: center !important; box-shadow: 0 1.6rem 4rem rgba(0,0,0,.45), inset 0 .15rem 0 rgba(255,255,255,.35); transition: box-shadow .25s, transform .25s var(--ease); }
-.who .wav span { font-size: 5.6rem; font-weight: 900; color: #fff; text-shadow: 0 .3rem 1.2rem rgba(0,0,0,.25); }
-.who .wav.img span { display: none; }
-.who .wav em { position: absolute; font-style: normal; font-size: 2.2rem; width: 3.8rem; height: 3.8rem; border-radius: 50%; display: grid; place-items: center; background: rgba(12,10,26,.85); box-shadow: 0 .4rem 1rem rgba(0,0,0,.4); }
-.who .wav .kb { right: -.8rem; bottom: -.8rem; } .who .wav .lk { left: -.8rem; bottom: -.8rem; font-size: 1.7rem; }
-.who b { font-size: 1.7rem; font-weight: 800; color: #c9cbe3; transition: color .2s; }
-.who small { font-size: 1.1rem; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 15rem; }
-.who.add .wav { background: rgba(255,255,255,.06); border: .25rem dashed rgba(255,255,255,.25); box-shadow: none; }
-.who.add .wav span { font-weight: 300; color: #c9cbe3; }
-.who.focused { transform: scale(1.08); }
-.who.focused .wav { box-shadow: 0 0 0 .4rem #fff, 0 0 0 1rem rgba(255,255,255,.12), 0 2rem 5rem rgba(var(--g1),.5); }
-.who.focused b { color: #fff; }
+.whogrid .who { width: 15rem; display: flex; flex-direction: column; align-items: center; gap: .9rem; text-align: center; transition: transform .25s var(--ease); }
+.whogrid .who .wav { position: relative; width: 13rem; height: 13rem; border-radius: 3.4rem; display: grid; place-items: center; background-size: cover !important; background-position: center !important; box-shadow: 0 1.6rem 4rem rgba(0,0,0,.45), inset 0 .15rem 0 rgba(255,255,255,.35); transition: box-shadow .25s, transform .25s var(--ease); }
+.whogrid .who .wav span { font-size: 5.6rem; font-weight: 900; color: #fff; text-shadow: 0 .3rem 1.2rem rgba(0,0,0,.25); }
+.whogrid .who .wav.img span { display: none; }
+.whogrid .who .wav em { position: absolute; font-style: normal; font-size: 2.2rem; width: 3.8rem; height: 3.8rem; border-radius: 50%; display: grid; place-items: center; background: rgba(12,10,26,.85); box-shadow: 0 .4rem 1rem rgba(0,0,0,.4); }
+.whogrid .who .wav .kb { right: -.8rem; bottom: -.8rem; } .whogrid .who .wav .lk { left: -.8rem; bottom: -.8rem; font-size: 1.7rem; }
+.whogrid .who b { font-size: 1.7rem; font-weight: 800; color: #c9cbe3; transition: color .2s; }
+.whogrid .who small { font-size: 1.1rem; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 15rem; }
+.whogrid .who.add .wav { background: rgba(255,255,255,.06); border: .25rem dashed rgba(255,255,255,.25); box-shadow: none; }
+.whogrid .who.add .wav span { font-weight: 300; color: #c9cbe3; }
+.whogrid .who.focused { transform: scale(1.08); }
+.whogrid .who.focused .wav { box-shadow: 0 0 0 .4rem #fff, 0 0 0 1rem rgba(255,255,255,.12), 0 2rem 5rem rgba(var(--g1),.5); }
+.whogrid .who.focused b { color: #fff; }
 .whohint { margin-top: 4.4rem; font-size: 1.2rem; color: var(--mut); }
 /* PIN-Feld */
 .modal .box.pinbox { width: 40rem; text-align: center; }

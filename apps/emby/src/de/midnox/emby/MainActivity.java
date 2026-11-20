@@ -23,7 +23,7 @@ import java.net.*;
 import java.util.*;
 
 /**
- * midnox Emby: Die gesamte Oberfläche ist HTML (assets/ui) in einer transparenten WebView,
+ * midnox Media: Die gesamte Oberfläche ist HTML (assets/ui) in einer transparenten WebView,
  * darunter liegt die native Videofläche (ExoPlayer). Die WebView spricht über "Android" mit der App.
  */
 public class MainActivity extends Activity {
@@ -31,11 +31,17 @@ public class MainActivity extends Activity {
     final Handler h = new Handler(Looper.getMainLooper());
     boolean pageReady, wasPlaying;
     String pendingJs;
+    boolean isTv, inPip; int lastVw, lastVh; float lastPar = 1f;
     JSONObject pendingUpdate;
 
     @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        android.app.UiModeManager um = (android.app.UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
+        isTv = (um != null && um.getCurrentModeType() == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) || getPackageManager().hasSystemFeature("android.software.leanback");
+        // Fire TV / Android TV: immer quer. Handy/Tablet: drehen erlaubt.
+        setRequestedOrientation(isTv ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        if (!isTv && Build.VERSION.SDK_INT >= 21) { getWindow().setStatusBarColor(0xFF07060D); getWindow().setNavigationBarColor(0xFF07060D); }
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED, WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFF07060D);
@@ -62,6 +68,9 @@ public class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return !url.startsWith("file:"); }
         });
         root.addView(web, new FrameLayout.LayoutParams(-1, -1));
+        root.addOnLayoutChangeListener(new View.OnLayoutChangeListener() { public void onLayoutChange(View v, int l, int t, int r, int bt, int ol, int ot, int or, int ob) {
+            if (r - l != or - ol || bt - t != ob - ot) h.post(new Runnable() { public void run() { if (lastVw > 0) fitVideo(lastVw, lastVh, lastPar); } });
+        } });
         setContentView(root);
         web.loadUrl("file:///android_asset/ui/index.html");
         web.requestFocus();
@@ -117,6 +126,7 @@ public class MainActivity extends Activity {
     }
     void fitVideo(int w, int hgt, float par) {
         if (w <= 0 || hgt <= 0) return;
+        lastVw = w; lastVh = hgt; lastPar = par;
         View root = (View) surface.getParent();
         float vr = w * par / hgt, sr = root.getWidth() / (float) Math.max(1, root.getHeight());
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) surface.getLayoutParams();
@@ -217,15 +227,74 @@ public class MainActivity extends Activity {
         return true;
     }
 
-    @Override protected void onStop() { super.onStop(); if (player != null && player.isPlaying()) { wasPlaying = true; player.pause(); } js("window.APP&&APP.onPause&&APP.onPause()"); }
+    /** Auf dem Handy läuft Musik (ohne Bild) im Hintergrund weiter; Video pausiert (außer im Bild-im-Bild). */
+    boolean audioOnly() { return surface.getVisibility() != View.VISIBLE; }
+    @Override protected void onStop() {
+        super.onStop();
+        if (player != null && player.isPlaying() && (isTv || !audioOnly()) && !inPip) { wasPlaying = true; player.pause(); }
+        js("window.APP&&APP.onPause&&APP.onPause()");
+    }
+    @Override protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (!isTv && Build.VERSION.SDK_INT >= 26 && player != null && player.isPlaying() && !audioOnly()) enterPip();
+    }
+    void enterPip() {
+        if (Build.VERSION.SDK_INT < 26) return;
+        try {
+            android.app.PictureInPictureParams.Builder pb = new android.app.PictureInPictureParams.Builder();
+            if (lastVw > 0 && lastVh > 0) { int w = Math.round(lastVw * lastPar), hh = lastVh; float r = w / (float) hh; if (r > 2.39f) { hh = Math.round(w / 2.39f); } if (r < 0.42f) { w = Math.round(hh * 0.42f); } pb.setAspectRatio(new android.util.Rational(w, hh)); }
+            enterPictureInPictureMode(pb.build());
+        } catch (Exception ignored) {}
+    }
+    @Override public void onPictureInPictureModeChanged(boolean pip, android.content.res.Configuration c) {
+        super.onPictureInPictureModeChanged(pip, c); inPip = pip;
+        js("window.PLAYER&&PLAYER.pip&&PLAYER.pip(" + pip + ")");
+    }
+    void remoteKey(final String k) { h.post(new Runnable() { public void run() { js("window.KEY&&KEY(" + q(k) + ",0)"); } }); }
     @Override protected void onStart() { super.onStart(); js("window.APP&&APP.onResume&&APP.onResume()"); }
-    @Override protected void onDestroy() { Phone.stop(); if (player != null) { player.release(); player = null; } super.onDestroy(); }
+    @Override protected void onDestroy() { PlaybackService.hide(this); Phone.stop(); if (player != null) { player.release(); player = null; } super.onDestroy(); }
 
     // ===================== Brücke zur Oberfläche =====================
     boolean uiAwake = false;
     volatile byte[] bifData; volatile int[] bifOff; volatile String bifId = "";
     static int le(byte[] b, int o) { return (b[o] & 0xff) | (b[o + 1] & 0xff) << 8 | (b[o + 2] & 0xff) << 16 | (b[o + 3] & 0xff) << 24; }
     final class Bridge {
+        @JavascriptInterface public boolean isTv() { return isTv; }
+        @JavascriptInterface public boolean metered() {
+            try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm != null && cm.isActiveNetworkMetered(); } catch (Exception e) { return false; }
+        }
+        /** "landscape", "portrait" oder "auto" (nur Handy/Tablet). */
+        @JavascriptInterface public void orientation(final String m) { if (isTv) return; h.post(new Runnable() { public void run() {
+            setRequestedOrientation("landscape".equals(m) ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE : "portrait".equals(m) ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        } }); }
+        /** Vollbild ohne Status-/Navigationsleiste (beim Video). */
+        @JavascriptInterface public void immersive(final boolean on) { if (isTv) return; h.post(new Runnable() { public void run() {
+            View d = getWindow().getDecorView();
+            d.setSystemUiVisibility(on ? (View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN) : View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        } }); }
+        /** Helligkeit nur für dieses Fenster: 0..1, negativ = System. Liefert den aktuellen Wert. */
+        @JavascriptInterface public float brightness(final float v) {
+            final WindowManager.LayoutParams lp = getWindow().getAttributes(); float cur = lp.screenBrightness;
+            if (cur < 0) { try { cur = android.provider.Settings.System.getInt(getContentResolver(), android.provider.Settings.System.SCREEN_BRIGHTNESS) / 255f; } catch (Exception e) { cur = .5f; } }
+            if (v >= -1.5f && v != -2f) h.post(new Runnable() { public void run() { WindowManager.LayoutParams l = getWindow().getAttributes(); l.screenBrightness = v < 0 ? -1f : Math.max(.02f, Math.min(1f, v)); getWindow().setAttributes(l); } });
+            return cur;
+        }
+        /** Lautstärke 0..1 setzen (negativ = nur lesen). */
+        @JavascriptInterface public float volume(float v) {
+            android.media.AudioManager am = (android.media.AudioManager) getSystemService(Context.AUDIO_SERVICE);
+            int max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+            if (v >= 0) am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.round(Math.max(0, Math.min(1, v)) * max), 0);
+            return am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) / (float) max;
+        }
+        @JavascriptInterface public void pip() { h.post(new Runnable() { public void run() { enterPip(); } }); }
+        /** Hintergrund-Wiedergabe (Musik) auf dem Handy: Benachrichtigung zeigen/aktualisieren oder entfernen. */
+        @JavascriptInterface public void bgAudio(final String title, final String sub, final boolean playing, final boolean on) { if (isTv) return; h.post(new Runnable() { public void run() {
+            if (on) PlaybackService.show(MainActivity.this, title, sub, playing); else PlaybackService.hide(MainActivity.this);
+        } }); }
+        @JavascriptInterface public void showKeyboard(final boolean on) { h.post(new Runnable() { public void run() {
+            InputMethodManager im = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (on) { web.requestFocus(); im.showSoftInput(web, 0); } else im.hideSoftInputFromWindow(web.getWindowToken(), 0);
+        } }); }
         @JavascriptInterface public void keepAwake(final boolean on) { h.post(new Runnable() { public void run() {
             uiAwake = on;
             if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

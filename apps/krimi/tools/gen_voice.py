@@ -18,7 +18,7 @@ POOL = {
 
 def load():
     a = ROOT / "assets"
-    js = ("global.window={};" + "".join("require(%r);" % str(a / f) for f in ["cases.js", "detective.js", "cases2.js", "cases3.js"]) +
+    js = ("global.window={};" + "".join("require(%r);" % str(a / f) for f in ["cases.js", "detective.js", "cases2.js", "cases3.js", "cases4.js"]) +
           "process.stdout.write(JSON.stringify({c:window.CASES,d:window.DETECTIVE}))")
     return json.loads(subprocess.check_output(["node", "-e", js]))
 

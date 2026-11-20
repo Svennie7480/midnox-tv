@@ -1,6 +1,6 @@
 {
- "versionCode": 9,
- "versionName": "2.1.1",
+ "versionCode": 10,
+ "versionName": "2.1.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Für aktuelle Android-Versionen gebaut (Android 15): keine „Unsichere App“-Warnung von Play Protect mehr auf dem Handy. Musik-Benachrichtigung fragt bei Bedarf nach der Benachrichtigungs-Erlaubnis."
+ "notes": "Fix: Beim Abspielen von Filmen und Serien war nur der Untertitel zu sehen, das Bild blieb schwarz. Jetzt wird das Video wieder angezeigt. Außerdem für Android 15 gebaut (keine Play-Protect-Warnung mehr)."
 }

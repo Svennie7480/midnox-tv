@@ -83,7 +83,7 @@ const PLAYER = {
     if (PLAYER.active) await PLAYER.stop('switch');
     PLAYER.active = true; PLAYER.ended = false; PLAYER.ready = false; PLAYER.upNextShown = false; PLAYER.nextItem = null; PLAYER.fallback = false;
     PLAYER.party = opts.party || null; PLAYER.isTrailer = !!opts.trailer; PLAYER.pos = opts.startMs || 0; PLAYER.dur = (item.RunTimeTicks || 0) / 10000;
-    document.body.classList.add('playing');
+    document.body.classList.add('playing'); document.documentElement.classList.add('playing');
     PLAYER.buildOsd(); PLAYER.showOsd(true);
     PLAYER.loading(true);
     try {
@@ -238,7 +238,7 @@ const PLAYER = {
     if (reason !== 'switch' && reason !== 'sleep' && !PLAYER.isTrailer && it && dur && (pos / dur > .85 || reason === 'ended') && (it.Type === 'Movie' || it.Type === 'Episode')) setTimeout(() => COMM.afterWatch(it), 400);
   },
   close() {
-    document.body.classList.remove('playing');
+    document.body.classList.remove('playing'); document.documentElement.classList.remove('playing');
     const o = $('#osd'); o.className = 'off'; o.innerHTML = ''; $('#subs').innerHTML = ''; $('#reacts').innerHTML = '';
     PLAYER.active = false;
     const t = ROUTER.top(); if (t) { if (t.refresh) t.refresh(); NAV.focus(t._focus && t._focus.isConnected ? t._focus : (NAV.cur && NAV.cur.isConnected && t.el.contains(NAV.cur) ? NAV.cur : NAV.first(t.el))); }

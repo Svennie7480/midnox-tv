@@ -11,7 +11,7 @@
 html { font-size: calc(100vh / 54); background: var(--bg); }
 body { width: 100vw; height: 100vh; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; color: var(--text); background: transparent;
   -webkit-font-smoothing: antialiased; font-feature-settings: 'cv11', 'ss01'; letter-spacing: -.01em; cursor: none; user-select: none; }
-body.playing { background: transparent; }
+html.playing, body.playing { background: transparent !important; }
 body.playing #app, body.playing #bg { display: none; }
 img { display: block; }
 .hidden { display: none !important; }

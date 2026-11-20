@@ -14,7 +14,7 @@ window.CASES = [
     'Wachtmeister Harms aus dem Ort hat alle in der Halle versammelt. Stellt euch vor!'
   ],
   chars: [
-    { name: 'Greta Wiese', emoji: '💍', role: 'Die Ehefrau des Opfers',
+    { name: 'Greta Wiese', g: 'f', emoji: '💍', role: 'Die Ehefrau des Opfers',
       intro: 'Ich bin Greta Wiese. Seit 31 Jahren bin ich mit Konrad verheiratet, und ich habe dieses Hotel mit ihm zusammen aufgebaut. Ich kann nicht glauben, dass er tot ist.',
       secret: 'Du wolltest dich von Konrad scheiden lassen. Er war kalt und geizig geworden. Heute Abend hast du heimlich deinen Anwalt in Hamburg angerufen. Das ist dir peinlich, deshalb sagst du zuerst: „Ich hatte Kopfschmerzen und war auf meinem Zimmer.“',
       story: 'Du bist unschuldig. Gib dein Telefonat erst zu, wenn man dich in die Enge treibt – oder wenn es dich entlastet.',
@@ -23,7 +23,7 @@ window.CASES = [
         'Aus der Telefonzelle in der Halle hast du gegen 22:50 Uhr gesehen, wie jemand in einem grauen Kostüm die Treppe zum Büro hinaufging. Das Gesicht hast du nicht erkannt.',
         'Das Fernamt hat dein Gespräch notiert: 22:31 bis 23:02 Uhr. Das ist dein Alibi – aber es verrät auch deine Scheidungspläne.'
       ] },
-    { name: 'Henning Wiese', emoji: '🎲', role: 'Der Sohn, Lebemann',
+    { name: 'Henning Wiese', g: 'm', emoji: '🎲', role: 'Der Sohn, Lebemann',
       intro: 'Henning Wiese, der Sohn. Mein Vater und ich waren nicht immer einer Meinung, aber so etwas … so etwas hat niemand verdient.',
       secret: 'Du hast 8.000 Mark Spielschulden beim Kasino in Travemünde. Um halb zehn hast du Vater um Geld gebeten – er hat dich angeschrien und abgelehnt. Von 22:30 bis 23:10 Uhr warst du draußen am Seesteg und hast einem Mann vom Kasino, Herrn Kalle, deine goldene Armbanduhr als Pfand gegeben.',
       story: 'Du bist unschuldig. Du schämst dich für die Schulden und behauptest anfangs, du seist auf deinem Zimmer gewesen.',
@@ -32,7 +32,7 @@ window.CASES = [
         'Auf dem Weg zum Steg, gegen 22:35 Uhr, hast du Vater noch oben am Bürofenster stehen sehen. Er lebte also nach halb elf noch!',
         'Auf dem Rückweg um 23:05 Uhr hast du durchs Treppenhausfenster gesehen, wie Fräulein Martens aus dem Büroflur kam und sich die Hände mit einem Taschentuch abwischte. Herr Kalle kann bezeugen, dass du bis 23:10 am Steg warst.'
       ] },
-    { name: 'Ilse Martens', emoji: '📒', role: 'Die Buchhalterin', guilty: true,
+    { name: 'Ilse Martens', g: 'f', emoji: '📒', role: 'Die Buchhalterin', guilty: true,
       intro: 'Ilse Martens. Ich führe seit zwölf Jahren die Bücher des Seeblick. Herr Wiese war ein strenger, aber gerechter Chef.',
       secret: 'DU BIST DIE TÄTERIN. Seit vier Jahren hast du rund 30.000 Mark aus der Hotelkasse abgezweigt. Heute um 22:45 Uhr hat Konrad dich ins Büro bestellt: Er hatte alles entdeckt und wollte morgen die Polizei rufen. Gegen 22:50 Uhr hast du ihn mit dem Messing-Leuchtturm erschlagen. Dann hast du die Wanduhr zerschlagen und auf 22:30 gestellt – da hast du noch mit dem Kapitän Karten gespielt. Die Seiten aus dem Kassenbuch hast du im Ofen verbrannt.',
       story: 'Deine Tarngeschichte: Du hast von 22 Uhr bis zum Fund mit dem Kapitän an der Bar Rommé gespielt und warst höchstens kurz zum Frischmachen weg. Lüge, lenke ab, bleib ruhig – niemand darf dich überführen!',
@@ -41,7 +41,7 @@ window.CASES = [
         'Gefahr: Der Küchenjunge hat um 22:40 Uhr Tee ins Büro gebracht. Wenn das rauskommt, stimmt die Uhr nicht! Lenk ab: Henning brauchte dringend Geld, und Greta wirkt seltsam gefasst für eine Witwe.',
         'Die Asche im Ofen verrät dich. Behaupte, Konrad habe selbst alte Unterlagen verbrannt, weil er „aufräumen“ wollte. Und falls jemand den Fleck an deinem Ärmel bemerkt: Das sei Tinte von der Abrechnung.'
       ] },
-    { name: 'Kapitän Johann Petersen', emoji: '⚓', role: 'Alter Freund des Hauses',
+    { name: 'Kapitän Johann Petersen', g: 'm', emoji: '⚓', role: 'Alter Freund des Hauses',
       intro: 'Kapitän Johann Petersen, 40 Jahre auf See. Konrad und ich kennen uns seit der Schulzeit. Ich wohne jeden Herbst im Seeblick.',
       secret: 'Du wolltest das Hotel kaufen und hast Konrad heute ein großzügiges Angebot gemacht – er hat abgelehnt. Außerdem hast du ihm vor Jahren Geld geliehen, das noch nicht zurückgezahlt ist. Das macht dich verdächtig, aber du bist unschuldig.',
       story: 'Du bist unschuldig. Du trinkst gern einen Rum zu viel, daher bist du dir bei Uhrzeiten nicht immer sicher.',
@@ -50,7 +50,7 @@ window.CASES = [
         'Wenn du ehrlich bist: Ilse ist gegen 22:40 Uhr aufgestanden – „die Abrechnung“ – und kam erst gegen 23 Uhr zurück, ziemlich blass. Du hattest aber schon drei Rum …',
         'Konrad hat dir gestern erzählt, die Bilanzen sähen „merkwürdig“ aus und er wolle „jemandem im Haus auf den Zahn fühlen“.'
       ] },
-    { name: 'Viktor Lamm', emoji: '🎹', role: 'Der Barpianist',
+    { name: 'Viktor Lamm', g: 'm', emoji: '🎹', role: 'Der Barpianist',
       intro: 'Viktor Lamm, ich spiele jeden Abend am Flügel in der Bar. Ich sehe viel – und ich vergesse wenig.',
       secret: 'Du stiehlst ab und zu Kleinigkeiten von Gästen. Heute hast du Gretas Perlenbrosche „gefunden“ und eingesteckt. Mit dem Mord hast du nichts zu tun – aber durchsuchen lassen willst du dich nicht.',
       story: 'Du bist unschuldig. Vom Flügel aus siehst du die ganze Bar.',
@@ -59,7 +59,7 @@ window.CASES = [
         'Ilse Martens kam gegen 23 Uhr an die Bar zurück, mit einem dunklen Fleck am Ärmel, und bestellte sofort einen doppelten Korn. Sonst trinkt sie nie.',
         'Gegen 22:40 Uhr hast du Ilse an der Bar vorbei zur Treppe gehen sehen – nicht zu den Toiletten, die liegen in die andere Richtung.'
       ] },
-    { name: 'Dr. Clara Hesse', emoji: '🩺', role: 'Kurärztin, Gast des Hotels',
+    { name: 'Dr. Clara Hesse', g: 'f', emoji: '🩺', role: 'Kurärztin, Gast des Hotels',
       intro: 'Dr. Clara Hesse, ich bin Ärztin und zur Kur hier. Ich habe den Toten als Erste untersucht.',
       secret: 'Du hast ein Verhältnis mit dem Kapitän – ganz harmlos, aber diskret soll es bleiben. Du bist unschuldig.',
       story: 'Du bist unschuldig. Als Ärztin kannst du sachliche Hinweise geben.',
@@ -116,7 +116,7 @@ window.CASES = [
     'Bis die Bergwacht kommt, müsst ihr selbst herausfinden, wer von euch lügt. Stellt euch vor!'
   ],
   chars: [
-    { name: 'Sepp Gruber', emoji: '🧔', role: 'Der Hüttenwirt', guilty: true,
+    { name: 'Sepp Gruber', g: 'm', emoji: '🧔', role: 'Der Hüttenwirt', guilty: true,
       intro: 'Sepp Gruber, mir gehört die Edelweißhütte, schon in dritter Generation. Ich stand den ganzen Abend in der Küche, wie jeden Abend.',
       secret: 'DU BIST DER TÄTER. Vor sechs Jahren, am 12. März, starb dein Sohn Florian auf der Passstraße – Fahrerflucht, ein roter Kleinwagen, nie gefunden. Beim Abendessen erzählte Lara lachend von „damals mit 23, mein roter Mini, irgendwas angefahren auf dem Pass, bin einfach weitergefahren“. Um 21:15 Uhr hast du sie auf der Terrasse zur Rede gestellt. Sie hat gelacht. Da hast du sie gepackt und übers Geländer gestoßen. Ihr Handy mit der Story hast du ins Regenfass hinter der Küche geworfen.',
       story: 'Deine Tarngeschichte: Du warst den ganzen Abend in der Küche und hast Kaiserschmarrn gemacht. Bleib ruhig, sei der freundliche Wirt – und lenk den Verdacht auf andere!',
@@ -125,7 +125,7 @@ window.CASES = [
         'Gefahr: Dein Kaiserschmarrn ist um 21:20 Uhr verbrannt, weil du nicht in der Küche warst. Sag, du warst „kurz im Keller, Bier holen“. Und erinnere alle daran, dass Tobias heute gefeuert wurde.',
         'Das Foto von Florian hängt hinter der Theke. Wenn jemand fragt: Sag, es ist dein Neffe. Und das Regenfass? „Da kommt jeder hin, die Tür ist nie abgeschlossen.“'
       ] },
-    { name: 'Tobias Brandt', emoji: '💼', role: 'Laras Manager',
+    { name: 'Tobias Brandt', g: 'm', emoji: '💼', role: 'Laras Manager',
       intro: 'Tobias Brandt, ich bin seit fünf Jahren Laras Manager. Ohne mich wäre sie nie so groß geworden – das wusste sie auch.',
       secret: 'Du hast 40.000 Euro Sponsorengeld für dich abgezweigt. Lara hat es herausgefunden und dich beim Abendessen um 20:45 Uhr vor allen gefeuert. Von 21:00 bis 21:35 Uhr saßt du in der Gaststube am Laptop und hast verzweifelt E-Mails gelöscht.',
       story: 'Du bist unschuldig. Du willst nicht, dass die Sache mit dem Geld herauskommt.',
@@ -134,7 +134,7 @@ window.CASES = [
         'Von der Gaststube aus hast du gegen 21:15 Uhr gehört, wie die Küchentür zur Terrasse knarrte. Gesehen hast du nichts.',
         'Der WLAN-Router der Hütte protokolliert jede Verbindung: Dein Laptop war von 21:00 bis 21:35 Uhr ununterbrochen aktiv – in der Gaststube. Das ist dein Alibi.'
       ] },
-    { name: 'Mia Sommer', emoji: '📸', role: 'Laras jüngere Schwester',
+    { name: 'Mia Sommer', g: 'f', emoji: '📸', role: 'Laras jüngere Schwester',
       intro: 'Ich bin Mia, Laras Schwester. Ich mache die meisten Fotos für ihren Kanal. Wir waren … sehr eng.',
       secret: 'Die schönsten Bilder auf Laras Kanal sind von dir – sie hat dich nie erwähnt, und das hat dich wütend gemacht. Außerdem erbst du alles. Von 21:00 bis 21:40 Uhr warst du in der Sauna im Keller. Deine Handschuhe hattest du Lara am Nachmittag geliehen.',
       story: 'Du bist unschuldig. Du hast Angst, dass dein Erbe dich verdächtig macht.',
@@ -143,7 +143,7 @@ window.CASES = [
         'Beim Abendessen erzählte Lara lachend, wie sie vor sechs Jahren mit ihrem roten Mini auf dem Pass „irgendwas angefahren“ hat und einfach weitergefahren ist. In dem Moment ließ Sepp ein Glas fallen.',
         'Die Sauna hat eine Zeitschaltuhr: Sie lief von 21:00 bis 21:40 Uhr, und du hast sie selbst gestartet. Das ist dein Alibi.'
       ] },
-    { name: 'Jonas Keller', emoji: '🧗', role: 'Der Bergführer',
+    { name: 'Jonas Keller', g: 'm', emoji: '🧗', role: 'Der Bergführer',
       intro: 'Jonas Keller, Bergführer. Ich habe die Gruppe heute heraufgeführt. Lara wollte unbedingt noch Sonnenuntergangs-Fotos auf dem Grat.',
       secret: 'Du hattest seit Monaten eine heimliche Affäre mit Lara. Um 20:30 Uhr hat sie per Nachricht Schluss gemacht: „Es ist aus.“ Von 21:10 bis 21:30 Uhr warst du allein im Skiraum und hast eine Bindung repariert.',
       story: 'Du bist unschuldig. Die Affäre willst du verschweigen – sie macht dich verdächtig.',
@@ -152,7 +152,7 @@ window.CASES = [
         'Im Skiraum hast du gegen 21:15 Uhr durch das kleine Fenster jemanden mit Küchenschürze über die Terrasse gehen sehen. Bei dem Schneetreiben war es nur ein Schatten.',
         'Von 21:18 bis 21:24 Uhr hast du aus dem Skiraum per Funk mit der Bergwacht über das Wetter gesprochen. Das Funkprotokoll beweist es.'
       ] },
-    { name: 'Nele Wagner', emoji: '🎥', role: 'Kamerafrau des Teams',
+    { name: 'Nele Wagner', g: 'f', emoji: '🎥', role: 'Kamerafrau des Teams',
       intro: 'Nele Wagner, ich filme für Laras Kanal. Heute hätte unser großes Hütten-Video entstehen sollen.',
       secret: 'Du hast heimlich einen Job bei Laras größter Konkurrentin angenommen und wolltest morgen kündigen. Du bist unschuldig.',
       story: 'Du bist unschuldig. Deine Kamera lief am Abend für Stimmungsbilder in der Gaststube.',
@@ -161,7 +161,7 @@ window.CASES = [
         'Um 21:20 Uhr wolltest du Wasser aus der Küche holen. Die Küche war leer, und in der Pfanne verbrannte der Kaiserschmarrn.',
         'Auf deiner Kamera ist um 21:24 Uhr zu sehen, wie Sepp durch die Küchentür hereinkommt – Schnee auf den Schultern, keine Bierkiste in der Hand.'
       ] },
-    { name: 'Dr. Frank Ostermann', emoji: '⛑️', role: 'Arzt und Hüttengast',
+    { name: 'Dr. Frank Ostermann', g: 'm', emoji: '⛑️', role: 'Arzt und Hüttengast',
       intro: 'Frank Ostermann, ich bin Notarzt und mache hier oben Skitouren-Urlaub. Ich habe Lara untersucht, als man sie gefunden hat.',
       secret: 'Du bist wegen eines Behandlungsfehlers suspendiert und willst nicht, dass das jemand erfährt. Du bist unschuldig.',
       story: 'Du bist unschuldig. Als Arzt kannst du sachliche Hinweise geben.',
@@ -218,7 +218,7 @@ window.CASES = [
     'Kommissar Dahl von der Lübecker Kriminalpolizei lässt niemanden gehen. Stellt euch vor!'
   ],
   chars: [
-    { name: 'Charlotte Holm', emoji: '📷', role: 'Die junge Ehefrau', guilty: true,
+    { name: 'Charlotte Holm', g: 'f', emoji: '📷', role: 'Die junge Ehefrau', guilty: true,
       intro: 'Charlotte Holm. Albert und ich sind seit zwei Jahren verheiratet. Ich bin aus Berlin hierhergezogen – für ihn. Ich fotografiere leidenschaftlich gern.',
       secret: 'DU BIST DIE TÄTERIN. Bevor du Albert geheiratet hast, warst du in Berlin als Varieté-Tänzerin „Lotte Lux“ mit einem Zauberkünstler verheiratet – und nie geschieden. Heute früh kam ein Brief einer Berliner Detektei. Um 21:30 Uhr hat Albert dich zur Rede gestellt: Er lässt die Ehe annullieren und ändert morgen um 10 Uhr beim Notar sein Testament. Du hättest alles verloren. Um 21:55 Uhr hast du Cyankali aus deiner Dunkelkammer in seinen Cognac gegeben und ihm das Glas selbst gereicht.',
       story: 'Deine Tarngeschichte: Du warst den ganzen Abend Gastgeberin im Salon. Das Gift muss im Marzipan gewesen sein – das hat ja Paul mitgebracht! Lenke den Verdacht auf ihn und auf den Doktor.',
@@ -227,7 +227,7 @@ window.CASES = [
         'Der Brief der Detektei liegt halb verbrannt im Kamin – das war zu hastig. Behaupte, es sei ein Werbebrief gewesen. Und das Cyankali? „Das braucht man in der Fotografie, jeder Fotograf hat das.“ Erwähne, dass auch ein Arzt leicht an Gift kommt.',
         'Gefahr: Der Befund wird zeigen, dass das Gift im Cognac war. Sag, du hast das Glas nur „weitergereicht“, eingeschenkt habe Martha. Und erinnere daran: Paul erbt die Fabrik!'
       ] },
-    { name: 'Paul Holm', emoji: '🍬', role: 'Der Neffe, Konditormeister',
+    { name: 'Paul Holm', g: 'm', emoji: '🍬', role: 'Der Neffe, Konditormeister',
       intro: 'Paul Holm, Konditormeister und Alberts Neffe. Ich habe meinem Onkel heute eine Schachtel meines besten Marzipans geschenkt. Und jetzt glauben alle, ich hätte ihn vergiftet.',
       secret: 'Deine Konditorei steckt tief in den Schulden. Gestern hat Onkel Albert dir unter vier Augen gesagt, dass er morgen sein Testament ändert – zu deinen Gunsten: Du solltest die Fabrik erben. Du hattest also allen Grund, dass er MORGEN noch lebt.',
       story: 'Du bist unschuldig. Deine Schulden sind dir peinlich, und das neue Testament solltest du eigentlich für dich behalten.',
@@ -236,7 +236,7 @@ window.CASES = [
         'Gegen 21:45 Uhr hast du Charlotte aus dem Keller kommen sehen, wo ihre Dunkelkammer ist. Sie trug Handschuhe – mitten auf der Gesellschaft.',
         'Wenn das Testament erst morgen geändert wird, hättest du heute alles verloren, wenn Albert stirbt. Wer verliert durch das neue Testament? Das ist die entscheidende Frage.'
       ] },
-    { name: 'Dr. Friedrich Kahl', emoji: '🩺', role: 'Der Hausarzt',
+    { name: 'Dr. Friedrich Kahl', g: 'm', emoji: '🩺', role: 'Der Hausarzt',
       intro: 'Dr. Friedrich Kahl, seit zwanzig Jahren Hausarzt der Familie Holm. Ich habe sofort den Bittermandelgeruch bemerkt. Für den Senator kam jede Hilfe zu spät.',
       secret: 'Du stellst dir selbst Morphium-Rezepte aus, weil du nicht mehr ohne kannst. Albert hat das vor einer Woche bemerkt und gedroht, es der Ärztekammer zu melden. Ein Motiv – aber du bist unschuldig.',
       story: 'Du bist unschuldig. Deine Sucht darf niemand erfahren.',
@@ -245,7 +245,7 @@ window.CASES = [
         'Albert hat dich um 21:40 Uhr gebeten, morgen um 10 Uhr beim Notar als Zeuge zu unterschreiben. „Ich habe eine bittere Entdeckung über Berlin gemacht“, sagte er.',
         'Cyankali wurde damals in der Fotografie zum Abschwächen von Negativen verwendet. In deiner Arzttasche ist so etwas nicht – das kann jeder nachprüfen.'
       ] },
-    { name: 'Martha Kröger', emoji: '🧺', role: 'Die Haushälterin',
+    { name: 'Martha Kröger', g: 'f', emoji: '🧺', role: 'Die Haushälterin',
       intro: 'Martha Kröger. Ich führe den Haushalt der Holms seit dreißig Jahren. Ich habe den Senator schon gekannt, als er noch Lehrling in der Fabrik war.',
       secret: 'Du hast um 21:30 Uhr an der Tür des Herrenzimmers gelauscht. Du hast Albert sagen hören: „Berlin … nie geschieden … morgen der Notar.“ Danach war es still. Um 22:15 Uhr befahl dir die Gnädige Frau, alle Gläser sofort zu spülen – Alberts Glas hast du aber heimlich in der Speisekammer versteckt, weil es so seltsam roch.',
       story: 'Du bist unschuldig. Du hast Angst, dass man dir das Lauschen übel nimmt, und rückst erst nach und nach mit der Wahrheit heraus.',
@@ -254,7 +254,7 @@ window.CASES = [
         'Gegen 22:15 Uhr befahl dir Frau Charlotte, sofort alle Gläser zu spülen. Alberts Glas hast du aber versteckt – es roch nach bitteren Mandeln. Jetzt kannst du es dem Kommissar übergeben.',
         'Du hast mit eigenen Augen gesehen, wie Charlotte dem Senator um 21:55 Uhr ein Glas Cognac reichte. Sie hatte es selbst eingeschenkt, mit dem Rücken zum Raum.'
       ] },
-    { name: 'Hinrich Lange', emoji: '🚗', role: 'Der Chauffeur',
+    { name: 'Hinrich Lange', g: 'm', emoji: '🚗', role: 'Der Chauffeur',
       intro: 'Hinrich Lange, Chauffeur der Familie. Ich fahre den Senator seit acht Jahren und weiß, wohin er fährt – und manchmal auch, warum.',
       secret: 'Du verkaufst heimlich Benzin aus der Garage der Holms weiter. Mit dem Mord hast du nichts zu tun.',
       story: 'Du bist unschuldig.',
@@ -263,7 +263,7 @@ window.CASES = [
         'Von der Garage aus hast du gegen 21:45 Uhr Licht im Kellerfenster der Dunkelkammer gesehen. Dort hat nur Frau Charlotte einen Schlüssel.',
         'Letzten Monat hast du Frau Charlotte zur Apotheke in der Breiten Straße gefahren. Sie kam mit einem kleinen braunen Fläschchen zurück: „Für meine Negative.“'
       ] },
-    { name: 'Ida von Berg', emoji: '🎭', role: 'Charlottes Freundin aus Berlin',
+    { name: 'Ida von Berg', g: 'f', emoji: '🎭', role: 'Charlottes Freundin aus Berlin',
       intro: 'Ida von Berg, aus Berlin. Charlotte und ich kennen uns aus wilden Zeiten. Ich bin für ein paar Tage zu Besuch an der Ostsee.',
       secret: 'Du schuldest Charlotte viel Geld und bist deshalb eigentlich auf ihrer Seite. Aber du bist unschuldig, und lügen für einen Mord wirst du nicht.',
       story: 'Du bist unschuldig.',

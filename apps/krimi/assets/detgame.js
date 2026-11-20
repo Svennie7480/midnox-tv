@@ -10,7 +10,7 @@ window.DG = (function(){
   function curKey(){ const e = F.list[F.i]; return e && e.dataset ? (e.dataset.ev || e.dataset.sus || e.dataset.k) : null; }
   function paint(){ F.list.forEach((e, i) => e.classList.toggle('foc', i === F.i)); }
   function move(dir){
-    const cur = F.list[F.i]; if (!cur) return; const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const cur = F.list[F.i]; if (!cur || !cur.getBoundingClientRect) return; const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     let best = -1, bs = Infinity;
     F.list.forEach((e, i) => { if (i === F.i) return; const q = e.getBoundingClientRect(), x = q.left + q.width / 2, y = q.top + q.height / 2;
       const dx = x - cx, dy = y - cy; let pri, ort;
@@ -20,6 +20,7 @@ window.DG = (function(){
   }
   function key(k){
     if (!G || !G.mode || !F.list.length) return false;
+    if (F.scroll && F.scroll.isConnected && (k === 'up' || k === 'down')) { const el = F.scroll; el.scrollTop += (k === 'down' ? 1 : -1) * el.clientHeight * 0.6; return true; }
     if (['up', 'down', 'left', 'right'].includes(k)) { move(k); return true; }
     if (k === 'ok') { const e = F.list[F.i]; if (e && e._ok) { e._ok(); return true; } }
     return false;
@@ -28,12 +29,14 @@ window.DG = (function(){
   // ---------- Daten ----------
   const D = () => DETECTIVE[G.c.id];
   const recOf = (p) => G.mode === 'team' ? G.rec : G.recs[p.pid];
+  const voiceKey = (k) => VOICES.has(k) ? k : '';
   function newRec(){ return { left: 0, asked: new Set(), looked: new Set(), notes: [], ready: false, acc: null, step: 0, pick: {}, score: null }; }
   function ask(rec, ci){ const k = ci + '_' + G.act; if (rec.left <= 0 || rec.asked.has(k) || !G.c.chars[ci]) return null;
     rec.left--; rec.asked.add(k); const ch = G.c.chars[ci];
-    const n = { ic: ch.emoji, who: ch.name, a: G.act, kind: 'Aussage', text: D().talk[ci][G.act - 1] }; rec.notes.push(n); return n; }
+    const n = { ic: ch.emoji, who: ch.name, a: G.act, kind: 'Aussage', text: D().talk[ci][G.act - 1], key: voiceKey(G.c.id + '_t' + ci + '_' + G.act) }; rec.notes.push(n); return n; }
   function look(rec, name){ const e = G.ev.find(x => x.name === name); if (!e || rec.left <= 0 || rec.looked.has(name)) return null;
-    rec.left--; rec.looked.add(name); const n = { ic: '🔍', who: e.name, a: G.act, kind: 'Lupe', text: D().look[name] || 'Nichts Auffälliges.' }; rec.notes.push(n); return n; }
+    rec.left--; rec.looked.add(name); const idx = G.c.acts.flatMap(x => x.evidence).findIndex(x => x.name === name);
+    const n = { ic: '🔍', who: e.name, a: G.act, kind: 'Lupe', text: D().look[name] || 'Nichts Auffälliges.', key: voiceKey(G.c.id + '_l' + idx) }; rec.notes.push(n); return n; }
   function scoreOf(rec){ const a = rec.acc || {}, cul = G.c.chars.findIndex(c => c.guilty);
     const r = { cul: a.c === cul, mot: a.m === D().motives[0], ev: D().keys.includes(a.e) };
     r.pts = (r.cul ? PTS.cul : 0) + (r.mot ? PTS.mot : 0) + (r.ev ? PTS.ev : 0) + rec.left * PTS.left;
@@ -102,8 +105,9 @@ window.DG = (function(){
     if (team && rec.left <= 0) { const j = F.list.findIndex(e => e.dataset.k === 'next'); if (j >= 0) { F.i = j; paint(); } }   // keine Aktionen mehr: gleich auf „Weiter“
   }
   function showNote(n){
+    if (n.key && voiceMode === 0) SND.narrate(n.key, '');
     F.keep = curKey() || F.keep;
-    const back = () => board();
+    const back = () => { SND.hush(); board(); };
     stage.innerHTML = hudLine() + '<div class="spot fade"><div class="em" style="font-size:22vh">' + n.ic + '</div><div class="info"><div class="over mut" style="letter-spacing:.3em;text-transform:uppercase;font-size:2vh">' + (n.kind === 'Lupe' ? 'Unter der Lupe' : 'Verhör · Akt ' + n.a) + '</div><div class="nm" style="font-size:5.4vh">' + esc(n.who) + '</div><div class="q">' + (n.kind === 'Lupe' ? '' : '„') + esc(n.text) + (n.kind === 'Lupe' ? '' : '“') + '</div></div></div>' +
       '<div class="okhint">OK = zurück zur Ermittlung</div>';
     F.list = [{ _ok: back, classList: { toggle(){} } }]; F.i = 0;
@@ -113,8 +117,9 @@ window.DG = (function(){
     const rec = G.rec;
     stage.innerHTML = hudLine() + '<div class="story" style="justify-content:flex-start;padding-top:10vh"><div class="over">📓 Notizbuch</div><div class="nbk">' +
       (rec.notes.length ? rec.notes.slice().reverse().map(n => '<div><b>' + n.ic + ' ' + esc(n.who) + '</b> <span class="mut">· Akt ' + n.a + ' · ' + n.kind + '</span><br>' + esc(n.text) + '</div>').join('') : '<div class="mut">Noch nichts notiert.</div>') +
-      '</div></div><div class="okhint">OK = zurück</div>';
-    F.list = [{ _ok: () => board(), classList: { toggle(){} } }]; F.i = 0;
+      '</div></div><div class="okhint">▲ ▼ blättern · OK = zurück</div>';
+    F.scroll = stage.querySelector('.nbk');
+    F.list = [{ _ok: () => { F.scroll = null; board(); }, classList: { toggle(){} } }]; F.i = 0;
   }
   function accWaitTv(){
     stage.innerHTML = hudLine() + '<div class="story fade"><div class="over">Die Anklage</div><div class="big">Wer war es – und warum?</div><div class="txt mut" style="font-size:2.8vh">Beide erheben jetzt geheim auf dem Handy Anklage: Täter, Motiv und entscheidender Beweis.</div>' +

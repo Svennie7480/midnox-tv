@@ -59,9 +59,9 @@ window.SND = (function(){
   function tts(text){ try{ if(Android.say(text)) return true; }catch(e){}
     try{ if(window.speechSynthesis&&window.KRIMI_WEBTTS){ const u=new SpeechSynthesisUtterance(text); u.lang='de-DE'; u.rate=0.95; speechSynthesis.cancel(); speechSynthesis.speak(u); return true; } }catch(e){} return false; }
   // spielt /voice/key.mp3 oder spricht den Text; Promise löst nach dem Ende auf (false = nichts gesprochen)
-  function narrate(key,text){ hush(); if(muted||!voiceOn||!text) return Promise.resolve(false);
+  function narrate(key,text){ hush(); if(muted||!voiceOn||(!text&&!key)) return Promise.resolve(false);
     return new Promise(res=>{ let done=false; const fin=(v)=>{ if(!done){ done=true; res(v); } };
-      const viaTts=()=>{ if(!tts(text)) return fin(false); const t0=Date.now(); const iv=setInterval(()=>{ if((Date.now()-t0>1500&&!speaking())||Date.now()-t0>120000){ clearInterval(iv); fin(true); } },300); };
+      const viaTts=()=>{ if(!text||!tts(text)) return fin(false); const t0=Date.now(); const iv=setInterval(()=>{ if((Date.now()-t0>1500&&!speaking())||Date.now()-t0>120000){ clearInterval(iv); fin(true); } },300); };
       if(!key) return viaTts();
       try{ const a=new Audio('/voice/'+key+'.mp3'); cur=a; a.onended=()=>fin(true); a.onerror=()=>{ if(cur===a) cur=null; viaTts(); };
         const p=a.play(); if(p&&p.catch) p.catch(()=>{ if(cur===a) cur=null; viaTts(); }); }

@@ -29,7 +29,7 @@
   .join .hint{color:var(--mut);font-size:2.1vh;text-align:center;line-height:1.45}
   .right{flex:1;display:flex;flex-direction:column;min-width:0;gap:2.2vh}
   .players{display:flex;flex-wrap:wrap;gap:1.2vh;min-height:7vh;align-content:flex-start}
-  .pl{display:flex;align-items:center;gap:1vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1vh 1.8vh;font-size:2.6vh;font-weight:700;animation:pop .3s}
+  .pl{display:flex;align-items:center;gap:1vh;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:1vh 1.8vh;font-size:2.6vh;font-weight:700}
   .pl .ok{color:#4ade80;margin-left:.6vh}
   .cases{display:flex;gap:1.6vw;flex:1;min-height:0}
   .case{flex:1;border-radius:2.6vh;background:var(--card);border:.4vh solid var(--line);padding:2.6vh;display:flex;flex-direction:column;gap:1.2vh;opacity:.5;transition:transform .15s,opacity .15s,border-color .15s}
@@ -41,6 +41,33 @@
   .case .n{margin-top:auto;color:var(--mut);font-size:1.9vh}
   .case .done{color:#4ade80;font-size:1.9vh;font-weight:700}
   .cta{color:var(--mut);font-size:2.3vh}.cta b{color:#fff}
+  .opts{display:flex;gap:1.4vw}
+  .opt{flex:1;background:var(--card);border:.3vh solid var(--line);border-radius:2vh;padding:1.2vh 2vh;opacity:.6}
+  .opt.sel{opacity:1;border-color:var(--gold)}
+  .opt small{display:block;color:var(--mut);font-size:1.7vh;letter-spacing:.15em;text-transform:uppercase}
+  .opt b{font-size:2.6vh}.opt span{display:block;color:var(--mut);font-size:1.8vh;margin-top:.3vh}
+  .case.dim{opacity:.35}
+  /* Detektiv-Modus */
+  .sgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vh 1.2vw}
+  .agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vh 1.4vw;width:84vw}
+  .stile{display:flex;align-items:center;gap:1.2vh;background:var(--card);border:.3vh solid var(--line);border-radius:1.6vh;padding:1.1vh 1.4vh;min-width:0;text-align:left}
+  .stile .e{font-size:4.4vh}.stile .t{flex:1;min-width:0}.stile .t b{display:block;font-size:2.2vh;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.stile .t small{color:var(--mut);font-size:1.6vh}
+  .stile .ok{color:#4ade80;font-size:2.6vh}
+  .stile.done{opacity:.55}
+  .df.foc{border-color:var(--gold)!important;box-shadow:0 0 0 .4vh var(--gold),0 1.5vh 4vh #000a;transform:scale(1.03);opacity:1!important}
+  .ev.dev.df{border:.3vh solid transparent}.ev.done{opacity:.7}
+  .dboard .grid{grid-template-columns:repeat(3,1fr)}
+  .dleft{text-align:center;background:var(--card);border:1px solid var(--line);border-radius:2vh;padding:2vh}
+  .big2{font-size:9vh;font-weight:900;color:var(--gold);font-family:Georgia,serif;line-height:1}
+  .dbtn{background:var(--card);border:.3vh solid var(--line);border-radius:1.6vh;padding:1.6vh;font-size:2.4vh;font-weight:800;text-align:center}
+  .nbk{display:flex;flex-direction:column;gap:1.4vh;max-width:80vw;max-height:72vh;overflow:hidden;text-align:left;font-size:2.3vh;line-height:1.4}
+  .nbk>div{background:var(--card);border:1px solid var(--line);border-radius:1.4vh;padding:1.2vh 1.8vh}
+  .rescard{background:var(--card);border:.3vh solid var(--line);border-radius:2.4vh;padding:2.6vh 3vh;min-width:36vw;display:flex;flex-direction:column;gap:1.2vh;text-align:left}
+  .rescard.win{border-color:var(--gold);box-shadow:0 0 6vh #d9ad5533}
+  .rh{font-size:3.2vh;font-weight:800}
+  .rl2{display:flex;gap:1.4vh;align-items:baseline;font-size:2.5vh}.rl2>span:first-child{color:var(--red);width:3vh}.rl2.ok>span:first-child{color:#4ade80}.rl2 b{width:10vh}
+  .rpts{font-size:5vh;font-weight:900;color:var(--gold);font-family:Georgia,serif;margin-top:1vh}
+  .rrank{font-size:2.6vh;color:var(--mut);font-style:italic;font-family:Georgia,serif}
   /* Erzählung */
   .story{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12vw;text-align:center;gap:3vh}
   .story .over{font-size:2.2vh;letter-spacing:.35em;text-transform:uppercase;color:var(--gold)}
@@ -119,6 +146,7 @@
 <script src="/lib/qrcode.js"></script>
 <script src="/cases.js"></script>
 <script src="/sound.js"></script>
+<script src="/detective.js"></script>
 <script>
 const stage=document.getElementById('stage');
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
@@ -147,6 +175,8 @@ function onEvent(e){
 
 // ---------- Einstellungen ----------
 const TIMES=[3,5,8,12,0];   // Diskussionszeit in Minuten, 0 = ohne Limit
+const MODES=[{id:'dinner',name:'Krimi-Dinner',sub:'ab 4 Spielern · jeder spielt eine Figur'},{id:'team',name:'Detektiv-Team',sub:'1–2 Spieler · gemeinsam ermitteln'},{id:'duel',name:'Detektiv-Duell',sub:'2 Spieler · gegeneinander per Handy'}];
+let modeIdx=0, lrow=0;
 let timeIdx=1, voiceMode=0; // 0 = Ton + Erzähler, 1 = nur Ton, 2 = stumm
 const solved=new Set();
 const score={};             // pid -> Punkte über alle Fälle
@@ -160,10 +190,13 @@ function renderLobby(){
     '<div class="right"><div><h1>midnox <b>Krimi-Abend</b></h1><div class="mut" style="font-size:2.3vh;margin-top:.6vh">Einer von euch ist der Mörder. Findet heraus, wer – bevor er davonkommt.</div></div>'+
     '<div class="players">'+(players.length?players.map(p=>'<div class="pl">'+p.emoji+' '+esc(p.name)+(score[p.pid]?' <span class="gold">· '+score[p.pid]+'</span>':'')+'</div>').join(''):'<span class="mut" style="font-size:2.5vh">Noch niemand da – scannt den Code!</span>')+'</div>'+
     '<div class="cases">'+CASES.map((c,i)=>'<div class="case'+(i===selCase?' sel':'')+'"><div class="ic">'+c.icon+'</div><h2>'+esc(c.title)+'</h2><div class="tag">'+esc(c.tag)+'</div><p>'+esc(c.blurb)+'</p>'+
-      (solved.has(c.id)?'<div class="done">✔ schon gespielt</div>':'')+'<div class="n">4–6 Verdächtige · weitere Spieler ermitteln mit · ca. 45 Min.</div></div>').join('')+'</div>'+
-    '<div class="cta">◀ ▶ Fall wählen · ▲ ▼ Diskussionszeit: <b>'+(TIMES[timeIdx]?TIMES[timeIdx]+' Min. pro Akt':'ohne Limit')+'</b> · MENU: <b>'+['Ton + Erzähler','nur Ton','stumm'][voiceMode]+'</b> · <b>OK</b> starten</div></div></div>';
+      (solved.has(c.id)?'<div class="done">✔ schon gespielt</div>':'')+'<div class="n">'+(MODES[modeIdx].id==='dinner'?'4–6 Verdächtige · weitere Spieler ermitteln mit · ca. 45 Min.':'6 Verdächtige · 3 Akte · ca. 25 Min.')+'</div></div>').join('')+'</div>'+
+    '<div class="opts"><div class="opt'+(lrow===1?' sel':'')+'"><small>Spielmodus</small><b>◀ '+MODES[modeIdx].name+' ▶</b><span>'+MODES[modeIdx].sub+'</span></div>'+
+      (MODES[modeIdx].id==='dinner'?'<div class="opt'+(lrow===2?' sel':'')+'"><small>Diskussionszeit</small><b>◀ '+(TIMES[timeIdx]?TIMES[timeIdx]+' Min. pro Akt':'ohne Limit')+' ▶</b><span>Zeit zum Diskutieren nach jedem Akt</span></div>':'')+'</div>'+
+    '<div class="cta">▲ ▼ Zeile wählen · ◀ ▶ ändern · MENU: <b>'+['Ton + Erzähler','nur Ton','stumm'][voiceMode]+'</b> · <b>OK</b> starten</div></div></div>';
+  if(lrow!==0) stage.querySelectorAll('.case').forEach(e=>e.classList.add('dim'));
 }
-function lobbyView(p){ return {t:'wait',emoji:p.emoji,title:'Willkommen, '+p.name+'!',sub:players.length<KEY_MIN?'Noch '+(KEY_MIN-players.length)+' Mitspieler, dann kann es losgehen.':'Der Fall wird am Fernseher ausgewählt.'}; }
+function lobbyView(p){ const m=MODES[modeIdx].id; return {t:'wait',emoji:p.emoji,title:'Willkommen, '+p.name+'!',sub:m==='dinner'&&players.length<KEY_MIN?'Noch '+(KEY_MIN-players.length)+' Mitspieler für ein Krimi-Dinner – oder wählt am Fernseher den Detektiv-Modus.':'Modus: '+MODES[modeIdx].name+'. Der Fall wird am Fernseher ausgewählt.'}; }
 
 // ---------- Spielzustand ----------
 let G=null;   // laufender Fall
@@ -171,7 +204,7 @@ let okRes=null, inputHook=null;
 function okWait(ms){ return new Promise(res=>{ const t=ms?setTimeout(()=>{ if(okRes===fn) okRes=null; res('time'); },ms):0; const fn=()=>{ clearTimeout(t); okRes=null; res('ok'); }; okRes=fn; }); }
 function guard(my){ if(my!==gen) throw ABORT; }
 const roleOf=(p)=>G&&G.cast.find(c=>c.p===p);
-function onInput(p,d){ if(inputHook) inputHook(p,d); }
+function onInput(p,d){ if(G&&G.mode){ DG.input(p,d); return; } if(inputHook) inputHook(p,d); }
 
 // Wartet, bis alle in `need` „fertig“ gemeldet haben, die Zeit abläuft oder am TV OK gedrückt wird.
 function waitReady(need,ms,onChange){ G.ready=new Set(); sync();
@@ -192,6 +225,7 @@ async function tell(my,key,text,render){ render(); const t0=Date.now();
 // ---------- Handy-Ansichten ----------
 function viewFor(p){
   if(!G) return lobbyView(p);
+  if(G.mode) return DG.view(p);
   if(!G.all.includes(p)) return {t:'wait',emoji:'🕰️',title:'Der Fall läuft schon',sub:'Beim nächsten Fall bist du dabei. Bis dahin: zuhören und miträtseln!'};
   const r=roleOf(p), C=G.c;
   const v={t:'krimi',cid:C.id,case:C.title,tag:C.tag,victim:C.victim,act:G.act,actTitle:G.act>0?C.acts[G.act-1].title:'',
@@ -322,9 +356,11 @@ async function reveal(my){
 }
 
 async function startCase(){
-  if(players.length<KEY_MIN){ toast('Für einen Krimi braucht ihr mindestens '+KEY_MIN+' Mitspieler'); return; }
+  const m=MODES[modeIdx].id;
+  if(m==='dinner'&&players.length<KEY_MIN){ toast('Krimi-Dinner ab '+KEY_MIN+' Spielern – für 1–2 wählt „Detektiv-Team“ oder „Detektiv-Duell“'); return; }
+  if(m==='duel'&&players.length<2){ toast('Fürs Duell braucht ihr zwei Handys – scannt den QR-Code'); return; }
   scene='game'; const my=++gen; SND.resume();
-  try{ await runCase(my); }
+  try{ if(m==='dinner') await runCase(my); else await DG.run(my,m); }
   catch(e){ if(e!==ABORT){ console.error(e); toast('Fehler: '+(e&&e.message||e)); await sleep(2500); } }
   if(gen===my){ gen++; backToLobby(); }
 }
@@ -335,12 +371,18 @@ window.TV={ key(k){ SND.resume();
   const ovl=document.getElementById('ovl');
   if(ovl.style.display==='flex'){ if(k==='ok'){ ovl.style.display='none'; gen++; backToLobby(); } else if(k==='back') ovl.style.display='none'; return; }
   if(scene==='lobby'){
-    if(k==='left'||k==='right'){ selCase=(selCase+(k==='left'?CASES.length-1:1))%CASES.length; SND.play('select'); renderLobby(); }
-    else if(k==='up'||k==='down'){ timeIdx=(timeIdx+(k==='up'?1:TIMES.length-1))%TIMES.length; SND.play('select'); renderLobby(); }
+    const rows=MODES[modeIdx].id==='dinner'?3:2;
+    if(k==='up'||k==='down'){ lrow=(lrow+(k==='down'?1:rows-1))%rows; SND.play('select'); renderLobby(); }
+    else if(k==='left'||k==='right'){ const d=k==='left'?-1:1;
+      if(lrow===0) selCase=(selCase+d+CASES.length)%CASES.length;
+      else if(lrow===1){ modeIdx=(modeIdx+d+MODES.length)%MODES.length; players.forEach(p=>push(p.pid,lobbyView(p))); }
+      else timeIdx=(timeIdx+d+TIMES.length)%TIMES.length;
+      SND.play('select'); renderLobby(); }
     else if(k==='ok') startCase();
     else if(k==='back'){ if(Date.now()-exitArm<2500){ try{ Android.exit(); }catch(e){} } else { exitArm=Date.now(); toast('Nochmal Zurück drücken, um den Krimi-Abend zu beenden'); } }
     return; }
   if(k==='back'){ ovl.style.display='flex'; return; }
+  if(window.DG&&DG.key(k)) return;
   if(k==='ok'&&okRes) okRes();
 } };
 
@@ -351,4 +393,5 @@ window.TV={ key(k){ SND.resume();
   window.addEventListener('keydown',(e)=>{ const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'ok',Escape:'back',m:'menu'}[e.key]; if(m){ TV.key(m); e.preventDefault(); } });
 })();
 </script>
+<script src="/detgame.js"></script>
 </body></html>

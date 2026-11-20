@@ -160,6 +160,7 @@ function renderTab(){
 }
 
 function render(v){
+  if(v&&v.t==='det'){ V=v; renderDet(v); return; }
   V=v;
   if(!v||v.t!=='krimi'){ clearInterval(tick); actEl.innerHTML=''; tabsEl.style.display='none'; lastAct='';
     app.innerHTML='<div class="wait"><div class="big">'+esc(v&&v.emoji||'⏳')+'</div><h2>'+esc(v&&v.title||'Warte auf den Fernseher …')+'</h2>'+(v&&v.sub?'<div>'+esc(v.sub)+'</div>':'')+'</div>'; return; }
@@ -169,6 +170,64 @@ function render(v){
   // Notizfeld nicht unter den Fingern wegrendern
   const a=document.activeElement; if(a&&a.tagName==='TEXTAREA'&&tab==='personen') return;
   const y=app.scrollTop; renderTab(); app.scrollTop=y;
+}
+
+// ---- Detektiv-Modus ----
+let dtab='ermitteln', dLast=0, accPick={};
+function renderDet(v){
+  clearInterval(tick); actEl.innerHTML=''; lastAct='';
+  const duel=v.mode==='duel';
+  // Kopf: Status und Aktion
+  if(v.phase==='listen'||v.phase==='reveal'){ actEl.appendChild(el('h2','',v.phase==='reveal'?'Die Auflösung …':'Hört zu …')); actEl.appendChild(el('p','sub','Schaut auf den Fernseher.')); }
+  if(v.phase==='invest'){
+    actEl.appendChild(el('h2','','🔎 Ermittlung – Akt '+v.act));
+    actEl.appendChild(el('p','sub','<b style="color:var(--gold);font-size:20px">'+v.left+'</b> Aktionen übrig · Befragen oder Lupe kostet je 1'+(duel?' · nur du siehst deine Funde':'')));
+    if(v.last>dLast&&v.notes.length){ const n=v.notes[0]; actEl.appendChild(el('div','read','<span style="font-family:system-ui;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#8a6a3a">'+esc(n.kind)+' · '+esc(n.who)+'</span><br>'+esc(n.text))); vib(30); }
+    if(duel){ const b=el('button','btn'+(v.ready?' done':''),v.ready?'✔ Fertig – warte auf den anderen':(v.act<3?'Fertig mit Akt '+v.act:'Fertig – zur Anklage')); if(v.ready) b.disabled=true; b.onclick=()=>{ vib(20); b.disabled=true; ev({ready:1}); }; actEl.appendChild(b); }
+    else { const b=el('button','btn',v.act<3?'➜ Weiter zu Akt '+(v.act+1):'⚖️ Anklage erheben'); b.onclick=()=>{ vib(20); b.disabled=true; ev({next:1}); }; actEl.appendChild(b); }
+  }
+  if(v.phase==='accuse'){
+    if(!v.acc||!v.acc.mine){ actEl.appendChild(el('h2','','⚖️ Die Anklage')); actEl.appendChild(el('p','sub','Entscheidet gemeinsam am Fernseher.')); }
+    else if(v.acc.done){ actEl.appendChild(el('h2','','✔ Anklage erhoben')); actEl.appendChild(el('p','sub','Warte auf deinen Gegner …')); }
+    else { actEl.appendChild(el('h2','','⚖️ Deine Anklage')); actEl.appendChild(el('p','sub','Wähle Täter, Motiv und den entscheidenden Beweis.')); }
+  }
+  if(v.phase==='result'&&v.res){ const r=v.res, d=el('div','res');
+    d.innerHTML='<div class="big">'+(r.win===true?'🏆':r.cul?'🎉':'🕯️')+'</div><h2>'+(r.win===true?'Du hast das Duell gewonnen!':r.win===false&&!r.draw?'Knapp verloren!':r.draw?'Unentschieden!':(r.cul?'Fall gelöst!':'Der Täter entkommt …'))+'</h2>'+
+      '<p class="sub">Täter: '+esc(r.culprit)+'</p><p class="sub">'+(r.cul?'✔':'✘')+' Täter · '+(r.mot?'✔':'✘')+' Motiv · '+(r.ev?'✔':'✘')+' Beweis</p><div class="pts">'+r.pts+' Punkte</div><p class="sub">Rang: '+esc(r.rank)+'</p>';
+    actEl.appendChild(d); }
+  dLast=v.last;
+  // Reiter
+  tabsEl.style.display='flex'; tabsEl.innerHTML='';
+  [['ermitteln','🔎','Ermitteln'],['notiz','📓','Notizbuch'],['fall','🗂️','Fall']].forEach(([id,ic,lb])=>{ const b=el('button',dtab===id?'on':'','<span>'+ic+'</span>'+lb); b.onclick=()=>{ dtab=id; vib(5); renderDet(V); }; tabsEl.appendChild(b); });
+  app.innerHTML='';
+  if(v.phase==='accuse'&&v.acc&&v.acc.mine&&!v.acc.done){ accForm(v.acc); return; }
+  const can=v.phase==='invest'&&v.left>0&&!(duel&&v.ready);
+  if(dtab==='ermitteln'){
+    app.appendChild(el('h4','','Verdächtige befragen'));
+    v.sus.forEach(c=>{ const d=el('div','sus'); d.innerHTML='<span class="em">'+c.emoji+'</span><span class="t"><b>'+esc(c.name)+'</b><small>'+esc(c.role)+'</small></span>';
+      const b=el('button','btn','Befragen'); b.style.cssText='width:auto;padding:10px 14px;font-size:15px'; if(c.asked){ b.textContent='✔'; b.className='btn done'; b.disabled=true; } else if(!can) b.disabled=true;
+      b.onclick=()=>{ vib(15); b.disabled=true; ev({ask:c.i}); }; d.appendChild(b); app.appendChild(d); });
+    app.appendChild(el('h4','','Beweise mit der Lupe untersuchen'));
+    if(!v.ev.length) app.appendChild(el('div','empty','Noch keine Beweise.'));
+    v.ev.forEach(e=>{ const d=el('div','ev','<span class="ic">'+e.ic+'</span><span style="flex:1"><b>'+esc(e.name)+' <small style="color:var(--mut);font-weight:400">· Akt '+e.a+'</small></b><span>'+esc(e.text)+'</span></span>');
+      const b=el('button','btn','🔍'); b.style.cssText='width:auto;padding:10px 14px;font-size:15px'; if(e.looked){ b.textContent='✔'; b.className='btn done'; b.disabled=true; } else if(!can) b.disabled=true;
+      b.onclick=()=>{ vib(15); b.disabled=true; ev({look:e.name}); }; d.appendChild(b); app.appendChild(d); });
+  }
+  if(dtab==='notiz'){ if(!v.notes.length) app.appendChild(el('div','empty','Noch keine Funde. Befrage Verdächtige oder untersuche Beweise.'));
+    v.notes.forEach((n,i)=>app.appendChild(el('div','clue'+(i===0&&v.phase==='invest'?' new':''),'<span class="a">Akt '+n.a+' · '+esc(n.kind)+' · '+n.ic+' '+esc(n.who)+'</span>'+esc(n.text)))); }
+  if(dtab==='fall'){ const f=el('div','card'); f.innerHTML='<h3>Der Fall</h3><p><b class="serif">'+esc(v.case)+'</b> · '+esc(v.tag)+'<br><span style="color:var(--mut)">Opfer: '+esc(v.victim)+'</span></p>'; app.appendChild(f);
+    const t=el('div','card'); t.innerHTML='<h3>So geht’s</h3><p>'+(duel?'Ihr ermittelt gegeneinander. Jeder hat pro Akt 3 Aktionen und sieht nur seine eigenen Funde. Am Ende erhebt jeder Anklage: Täter (50), Motiv (25), entscheidender Beweis (25) – plus 2 Punkte je übrige Aktion.':'Ihr ermittelt zusammen. Pro Akt habt ihr 4 Aktionen. Am Ende erhebt ihr am Fernseher Anklage: Täter (50), Motiv (25), entscheidender Beweis (25) – plus 2 Punkte je übrige Aktion.')+' Achtung: Der Täter lügt!</p>'; app.appendChild(t); }
+}
+function accForm(a){
+  const grp=(title,key,opts)=>{ app.appendChild(el('h4','',title)); opts.forEach(o=>{ const b=el('button','vopt'+(accPick[key]===o.v?' on':''),(o.ic?'<span class="em">'+o.ic+'</span>':'')+'<span>'+esc(o.label)+'</span>');
+    b.onclick=()=>{ accPick[key]=o.v; vib(10); accForm(a); }; app.appendChild(b); }); };
+  const y=app.scrollTop; app.innerHTML='';
+  grp('1 · Wer ist der Täter?','c',a.sus.map(s=>({v:s.i,label:s.name,ic:s.emoji})));
+  grp('2 · Was war das Motiv?','m',a.mot.map(m=>({v:m,label:m})));
+  grp('3 · Welcher Beweis überführt den Täter?','e',a.ev.map(e=>({v:e.name,label:e.name,ic:e.ic})));
+  const ok=accPick.c!=null&&accPick.m!=null&&accPick.e!=null;
+  const b=el('button','btn',ok?'⚖️ Anklage erheben':'Noch nicht vollständig'); b.disabled=!ok; b.style.marginTop='8px';
+  b.onclick=()=>{ vib([40,40,80]); b.disabled=true; ev({acc:accPick}); }; app.appendChild(b); app.scrollTop=y;
 }
 
 // ---- Long-Poll ----

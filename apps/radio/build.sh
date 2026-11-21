@@ -1,7 +1,7 @@
 #!/bin/sh
-# Baut midnox-tv.apk (benoetigt Android SDK: platforms;android-28, build-tools;35.0.0)
+# Baut midnox-tv.apk (benoetigt Android SDK: platforms;android-35, build-tools;35.0.0)
 set -e
-B=${ANDROID_HOME:-$HOME/sdk}/build-tools/35.0.0; J=${ANDROID_HOME:-$HOME/sdk}/platforms/android-28/android.jar
+B=${ANDROID_HOME:-$HOME/sdk}/build-tools/35.0.0; J=${ANDROID_HOME:-$HOME/sdk}/platforms/android-35/android.jar
 rm -rf build && mkdir -p build/res build/classes
 $B/aapt2 compile --dir res -o build/res/
 $B/aapt2 link -o build/base.apk -I $J --manifest AndroidManifest.xml -A assets build/res/*.flat --java build/gen

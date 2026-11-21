@@ -12,8 +12,14 @@ final class U {
     static final int C1 = 0xFF7C3AED, C2 = 0xFF3B5BF0, C3 = 0xFF06B6D4, BG = 0xFF0B0A14, CARD = 0xFF15141F, MUTED = 0xFF8A8FA8, TEXT = 0xFFE6E8F2;
     static float dp = 2f;
     static Typeface POP = Typeface.DEFAULT;
+    static boolean tv = true;
     static void init(Context c) {
         dp = c.getResources().getDisplayMetrics().density;
+        try {   // Fernseher (Fire TV, Android TV) oder Handy/Tablet?
+            android.app.UiModeManager um = (android.app.UiModeManager) c.getSystemService(Context.UI_MODE_SERVICE);
+            tv = (um != null && um.getCurrentModeType() == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION)
+                 || c.getPackageManager().hasSystemFeature("android.software.leanback") || c.getPackageManager().hasSystemFeature("amazon.hardware.fire_tv");
+        } catch (Exception e) { tv = true; }
         try { POP = Typeface.create("sans-serif-light", Typeface.NORMAL); } catch (Exception ignored) {}
     }
     static int px(double v) { return (int) Math.round(v * dp); }

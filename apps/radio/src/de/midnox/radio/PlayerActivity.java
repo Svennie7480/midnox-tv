@@ -24,30 +24,44 @@ public class PlayerActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         U.init(this);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        boolean portrait = !U.tv && dm.heightPixels > dm.widthPixels;
+        if (U.tv) {
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            if (Build.VERSION.SDK_INT >= 21) { getWindow().setStatusBarColor(U.BG); getWindow().setNavigationBarColor(U.BG); }
+        }
         FrameLayout root = new FrameLayout(this);
         bg = new Ui.Bg(); root.setBackground(bg);
         LinearLayout main = new LinearLayout(this);
-        main.setGravity(Gravity.CENTER_VERTICAL);
-        main.setPadding(U.px(70), U.px(40), U.px(60), U.px(40));
-        root.addView(main, new FrameLayout.LayoutParams(-1, -1));
+        main.setGravity(portrait ? Gravity.CENTER_HORIZONTAL : Gravity.CENTER_VERTICAL);
+        if (portrait) { main.setOrientation(LinearLayout.VERTICAL); main.setPadding(U.px(24), U.px(24), U.px(24), U.px(24)); }
+        else if (U.tv) main.setPadding(U.px(70), U.px(40), U.px(60), U.px(40));
+        else main.setPadding(U.px(30), U.px(16), U.px(24), U.px(16));
+        if (U.tv) root.addView(main, new FrameLayout.LayoutParams(-1, -1));
+        else { ScrollView sv = new ScrollView(this); sv.setFillViewport(true); sv.addView(main, new FrameLayout.LayoutParams(-1, -2)); root.addView(sv, new FrameLayout.LayoutParams(-1, -1)); if (!portrait) main.setMinimumHeight(dm.heightPixels - U.px(30)); }
 
         art = new Art(this);
-        main.addView(art, new LinearLayout.LayoutParams(U.px(330), U.px(330)));
+        int as = U.tv ? U.px(330) : portrait ? Math.min(dm.widthPixels - U.px(70), U.px(340)) : Math.min(dm.heightPixels - U.px(60), U.px(300));
+        main.addView(art, new LinearLayout.LayoutParams(as, as));
 
         LinearLayout info = new LinearLayout(this);
         info.setOrientation(LinearLayout.VERTICAL);
-        info.setPadding(U.px(46), 0, 0, 0);
-        main.addView(info, new LinearLayout.LayoutParams(0, -2, 1f));
+        info.setPadding(portrait ? 0 : U.px(U.tv ? 46 : 26), portrait ? U.px(10) : 0, 0, 0);
+        if (portrait) info.setGravity(Gravity.CENTER_HORIZONTAL);
+        main.addView(info, portrait ? new LinearLayout.LayoutParams(-1, -2) : new LinearLayout.LayoutParams(0, -2, 1f));
         station = U.text(this, "", 13, U.MUTED); station.setLetterSpacing(0.2f);
         info.addView(station);
-        titleV = U.text(this, "", 34, 0xFFFFFFFF);
+        titleV = U.text(this, "", U.tv ? 34 : 26, 0xFFFFFFFF);
+        if (portrait) titleV.setGravity(Gravity.CENTER);
         titleV.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         titleV.setMaxLines(2); titleV.setEllipsize(TextUtils.TruncateAt.END);
         titleV.setPadding(0, U.px(10), 0, U.px(4));
         info.addView(titleV);
-        artistV = U.text(this, "", 20, 0xFFC9CCE0);
+        artistV = U.text(this, "", U.tv ? 20 : 17, 0xFFC9CCE0);
         artistV.setMaxLines(1); artistV.setEllipsize(TextUtils.TruncateAt.END);
         info.addView(artistV);
         group = U.text(this, "", 12, U.MUTED);
@@ -56,24 +70,34 @@ public class PlayerActivity extends Activity {
 
         LinearLayout btns = new LinearLayout(this);
         info.addView(btns);
+        LinearLayout btns2 = btns;
+        if (!U.tv) {   // Handy: Zurueck/Weiter als eigene Knoepfe, zweite Reihe fuer Favorit und Timer
+            pill(btns, "⏮", new Runnable() { public void run() { step(-1); } });
+        }
         playBtn = pill(btns, "Pause", new Runnable() { public void run() { PlayerService.toggle(PlayerActivity.this); } });
-        favBtn = pill(btns, "♡  Favorit", new Runnable() { public void run() {
+        if (!U.tv) {
+            pill(btns, "⏭", new Runnable() { public void run() { step(1); } });
+            btns2 = new LinearLayout(this);
+            LinearLayout.LayoutParams b2 = new LinearLayout.LayoutParams(-2, -2); b2.topMargin = U.px(10);
+            info.addView(btns2, b2);
+        }
+        favBtn = pill(btns2, "♡  Favorit", new Runnable() { public void run() {
             PlayerService ps = PlayerService.inst; if (ps == null || ps.station == null) return;
             Catalog.toggleFav(PlayerActivity.this, ps.station); update(); } });
-        sleepBtn = pill(btns, "Einschlaf-Timer", new Runnable() { public void run() {
+        sleepBtn = pill(btns2, "Einschlaf-Timer", new Runnable() { public void run() {
             PlayerService ps = PlayerService.inst; if (ps == null) return;
             sleepIdx = ps.sleepLeft() > 0 ? (sleepIdx + 1) % SLEEP.length : 1;
             int next = SLEEP[sleepIdx];
             ps.sleep(next); update(); } });
-        pill(btns, "Senderliste", new Runnable() { public void run() { finish(); } });
-        playBtn.requestFocus();
+        if (U.tv) pill(btns, "Senderliste", new Runnable() { public void run() { finish(); } });
+        if (U.tv) playBtn.requestFocus();
 
         TextView hh = U.text(this, "ZULETZT GESPIELT", 11, U.MUTED); hh.setLetterSpacing(0.22f);
         hh.setPadding(0, U.px(30), 0, U.px(8));
         info.addView(hh);
         hist = new LinearLayout(this); hist.setOrientation(LinearLayout.VERTICAL);
         info.addView(hist);
-        TextView tip = U.text(this, "◀  ▶  Sender wechseln", 11, 0x668A8FA8);
+        TextView tip = U.text(this, U.tv ? "◀  ▶  Sender wechseln" : "", 11, 0x668A8FA8);
         tip.setPadding(0, U.px(18), 0, 0);
         info.addView(tip);
 

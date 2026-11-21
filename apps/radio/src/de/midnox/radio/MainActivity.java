@@ -34,12 +34,23 @@ public class MainActivity extends Activity {
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
         U.init(this); Img.init(this);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        if (b != null) restoreId = b.getString("nav");
+        if (U.tv) {
+            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            if (Build.VERSION.SDK_INT >= 21) { getWindow().setStatusBarColor(U.BG); getWindow().setNavigationBarColor(U.BG); }
+            askNotify();
+        }
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        portrait = !U.tv && dm.heightPixels > dm.widthPixels;
         FrameLayout root = new FrameLayout(this);
         bg = new Ui.Bg();
         root.setBackground(bg);
 
         LinearLayout main = new LinearLayout(this);
+        if (portrait) main.setOrientation(LinearLayout.VERTICAL);
         root.addView(main, new FrameLayout.LayoutParams(-1, -1));
 
         // ---------------- links: Kategorien
@@ -47,7 +58,8 @@ public class MainActivity extends Activity {
         left.setOrientation(LinearLayout.VERTICAL);
         left.setPadding(U.px(26), U.px(26), U.px(10), U.px(16));
         left.setBackgroundColor(0x660B0A14);
-        main.addView(left, new LinearLayout.LayoutParams(U.px(250), -1));
+        if (portrait) { left.setOrientation(LinearLayout.HORIZONTAL); left.setGravity(Gravity.CENTER_VERTICAL); left.setPadding(U.px(18), U.px(14), U.px(10), U.px(6)); main.addView(left, new LinearLayout.LayoutParams(-1, -2)); }
+        else main.addView(left, new LinearLayout.LayoutParams(U.px(U.tv ? 250 : 210), -1));
         LinearLayout brand = new LinearLayout(this);
         brand.setGravity(Gravity.CENTER_VERTICAL);
         brand.setPadding(U.px(6), 0, 0, U.px(16));
@@ -56,24 +68,30 @@ public class MainActivity extends Activity {
         brand.addView(m);
         TextView r = Ui.gradient(this, " Radio", 24);
         brand.addView(r);
-        left.addView(brand);
+        if (portrait) brand.setPadding(0, 0, 0, 0);
+        left.addView(brand, portrait ? new LinearLayout.LayoutParams(0, -2, 1f) : new LinearLayout.LayoutParams(-2, -2));
+        if (portrait) {   // Handy hochkant: Suche und Kategorien als Knoepfe oben
+            left.addView(iconBtn("🔍", new Runnable() { public void run() { openSearch(); } }));
+            left.addView(iconBtn("☰", new Runnable() { public void run() { pickCategory(); } }));
+        }
         side = new ListView(this);
         side.setDivider(null);
         side.setSelector(new ColorDrawableNone());
         side.setVerticalScrollBarEnabled(false);
         side.setItemsCanFocus(false);
-        left.addView(side, new LinearLayout.LayoutParams(-1, 0, 1f));
+        if (!portrait) left.addView(side, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         // ---------------- rechts: Sender
         LinearLayout right = new LinearLayout(this);
         right.setOrientation(LinearLayout.VERTICAL);
-        right.setPadding(U.px(30), U.px(26), U.px(30), 0);
-        main.addView(right, new LinearLayout.LayoutParams(0, -1, 1f));
+        right.setPadding(U.px(U.tv ? 30 : 16), U.px(U.tv ? 26 : (portrait ? 4 : 18)), U.px(U.tv ? 30 : 16), 0);
+        main.addView(right, portrait ? new LinearLayout.LayoutParams(-1, 0, 1f) : new LinearLayout.LayoutParams(0, -1, 1f));
         LinearLayout head = new LinearLayout(this);
         head.setGravity(Gravity.BOTTOM);
         right.addView(head, new LinearLayout.LayoutParams(-1, U.px(44)));
-        title = U.text(this, "", 26, 0xFFFFFFFF);
+        title = U.text(this, "", U.tv ? 26 : 22, 0xFFFFFFFF);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        if (portrait) title.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { pickCategory(); } });
         head.addView(title);
         count = U.text(this, "", 13, U.MUTED);
         count.setPadding(U.px(14), 0, 0, U.px(4));
@@ -94,8 +112,9 @@ public class MainActivity extends Activity {
         hint.setPadding(0, U.px(16), 0, 0);
         right.addView(hint);
         grid = new GridView(this);
-        grid.setNumColumns(5);
-        grid.setVerticalSpacing(U.px(14)); grid.setHorizontalSpacing(U.px(14));
+        if (U.tv) grid.setNumColumns(5);
+        else { grid.setNumColumns(GridView.AUTO_FIT); grid.setColumnWidth(U.px(portrait ? 104 : 130)); grid.setStretchMode(GridView.STRETCH_COLUMN_WIDTH); }
+        grid.setVerticalSpacing(U.px(U.tv ? 14 : 10)); grid.setHorizontalSpacing(U.px(U.tv ? 14 : 10));
         grid.setSelector(new ColorDrawableNone());
         grid.setClipToPadding(false);
         grid.setPadding(U.px(4), U.px(14), U.px(4), U.px(14));
@@ -104,7 +123,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams gl = new LinearLayout.LayoutParams(-1, 0, 1f);
         right.addView(grid, gl);
         bar = new NowBar(this);
-        LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, U.px(84)); bl.bottomMargin = U.px(18);
+        LinearLayout.LayoutParams bl = new LinearLayout.LayoutParams(-1, U.px(U.tv ? 84 : 76)); bl.bottomMargin = U.px(U.tv ? 18 : 10);
         right.addView(bar, bl);
 
         setContentView(root);
@@ -156,6 +175,43 @@ public class MainActivity extends Activity {
         }}).start();
     }
 
+    boolean portrait; String restoreId;
+    @Override protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); if (current != null) o.putString("nav", current.id); }
+
+    /** Runder Symbol-Knopf (Handy). */
+    View iconBtn(String sym, final Runnable r) {
+        TextView t = U.text(this, sym, 20, 0xFFFFFFFF);
+        t.setGravity(Gravity.CENTER); t.setBackground(new RoundBg());
+        t.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { r.run(); } });
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(U.px(44), U.px(44)); lp.leftMargin = U.px(8);
+        t.setLayoutParams(lp);
+        return t;
+    }
+    void openSearch() {
+        for (Nav n : nav) if ("search".equals(n.id)) { if (n != current) show(n); break; }
+        search.requestFocus(); showKeyboard();
+    }
+    /** Kategorien als Liste zum Antippen (Handy hochkant). */
+    void pickCategory() {
+        final android.app.Dialog d = new android.app.Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar);
+        ListView l = new ListView(this);
+        l.setDivider(null); l.setSelector(new ColorDrawableNone()); l.setAdapter(sideAdapter);
+        l.setBackgroundColor(U.BG); l.setPadding(U.px(16), U.px(16), U.px(16), U.px(16)); l.setClipToPadding(false);
+        int ci = current == null ? 0 : nav.indexOf(current);
+        l.setSelection(Math.max(0, ci - 3));
+        l.setOnItemClickListener(new AdapterView.OnItemClickListener() { public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
+            Nav n = nav.get(pos); if (n.header) return;
+            d.dismiss();
+            if ("search".equals(n.id)) openSearch(); else if (n != current) show(n);
+        }});
+        d.setContentView(l);
+        d.show();
+    }
+    void askNotify() {
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            try { requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1); } catch (Exception ignored) {}
+    }
+
     final ShowSel showSel = new ShowSel();
     final class ShowSel implements Runnable { Nav n; public void run() { if (n != null && n != current && !n.header) show(n); } }
 
@@ -164,6 +220,7 @@ public class MainActivity extends Activity {
         groups = g;
         buildNav();
         int pos = 0;
+        if (keep == null && restoreId != null) { keep = restoreId; restoreId = null; }
         for (int i = 0; i < nav.size(); i++) if (nav.get(i).id.equals(keep == null ? (Catalog.list(this, "favs").isEmpty() ? "g:midnox" : "favs") : keep)) pos = i;
         if (keep == null) for (int i = 0; i < nav.size(); i++) if (nav.get(i).id.equals("g:midnox")) { pos = i; break; }
         current = null;
@@ -207,7 +264,7 @@ public class MainActivity extends Activity {
         hint.setVisibility(View.GONE);
         bg.tint = n.color != 0 ? n.color : U.C1; bg.invalidateSelf();
         if (n.group != null) { setShown(n.group.stations, ""); return; }
-        if ("favs".equals(n.id)) { setShown(Catalog.list(this, "favs"), "Noch keine Favoriten.\nAuf einem Sender OK gedrückt halten (oder Menü-Taste) – dann landet er hier."); return; }
+        if ("favs".equals(n.id)) { setShown(Catalog.list(this, "favs"), U.tv ? "Noch keine Favoriten.\nAuf einem Sender OK gedrückt halten (oder Menü-Taste) – dann landet er hier." : "Noch keine Favoriten.\nEinen Sender lange antippen – dann landet er hier."); return; }
         if ("recent".equals(n.id)) { setShown(Catalog.list(this, "recent"), "Hier erscheinen die Sender, die du zuletzt gehört hast."); return; }
         if ("search".equals(n.id)) {
             setShown(new ArrayList<Station>(), "Über 50.000 Sender weltweit: Name, Stadt oder Musikrichtung eingeben.");
@@ -303,15 +360,15 @@ public class MainActivity extends Activity {
         if (e.getAction() == KeyEvent.ACTION_DOWN) {
             if (k == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE || k == KeyEvent.KEYCODE_MEDIA_PLAY || k == KeyEvent.KEYCODE_MEDIA_PAUSE) { PlayerService.toggle(this); return true; }
             if (k == KeyEvent.KEYCODE_MENU && grid.hasFocus() && grid.getSelectedItemPosition() >= 0 && grid.getSelectedItemPosition() < shown.size()) { fav(shown.get(grid.getSelectedItemPosition())); return true; }
-            if (k == KeyEvent.KEYCODE_DPAD_LEFT && grid.hasFocus() && grid.getSelectedItemPosition() % 5 == 0) { side.requestFocus(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_LEFT && grid.hasFocus() && grid.getSelectedItemPosition() % Math.max(1, grid.getNumColumns()) == 0) { side.requestFocus(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_RIGHT && side.hasFocus() && !shown.isEmpty()) { grid.requestFocus(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_DOWN && grid.hasFocus()) {
                 int p = grid.getSelectedItemPosition();
-                if (p + 5 >= shown.size() && hasNow()) { bar.requestFocus(); return true; }
+                if (p + Math.max(1, grid.getNumColumns()) >= shown.size() && hasNow()) { bar.requestFocus(); return true; }
             }
             if (k == KeyEvent.KEYCODE_DPAD_UP && bar.hasFocus() && !shown.isEmpty()) { grid.requestFocus(); return true; }
             if (k == KeyEvent.KEYCODE_DPAD_DOWN && search.hasFocus() && !shown.isEmpty()) { grid.requestFocus(); return true; }
-            if (k == KeyEvent.KEYCODE_DPAD_UP && grid.hasFocus() && grid.getSelectedItemPosition() < 5 && search.getVisibility() == View.VISIBLE) { search.requestFocus(); return true; }
+            if (k == KeyEvent.KEYCODE_DPAD_UP && grid.hasFocus() && grid.getSelectedItemPosition() < Math.max(1, grid.getNumColumns()) && search.getVisibility() == View.VISIBLE) { search.requestFocus(); return true; }
         }
         if (k == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP && (grid.hasFocus() || bar.hasFocus() || search.hasFocus())) { side.requestFocus(); return true; }
         if (k == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_DOWN && (grid.hasFocus() || bar.hasFocus() || search.hasFocus())) return true;
@@ -355,7 +412,7 @@ public class MainActivity extends Activity {
         Nav n; int pos;
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         SideRow(Context c) { super(c); t.setTypeface(U.POP); }
-        void set(Nav n, int pos) { this.n = n; this.pos = pos; setLayoutParams(new AbsListView.LayoutParams(-1, n.header ? U.px(40) : U.px(40))); invalidate(); }
+        void set(Nav n, int pos) { this.n = n; this.pos = pos; setLayoutParams(new AbsListView.LayoutParams(-1, n.header ? U.px(40) : U.px(U.tv ? 40 : 50))); invalidate(); }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), hh = getHeight(), dp = U.dp;
             if (n.header) {
@@ -385,7 +442,7 @@ public class MainActivity extends Activity {
     final class Card extends View {
         Station s; int pos;
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        Card(Context c) { super(c); t.setTypeface(U.POP); setLayoutParams(new AbsListView.LayoutParams(-1, U.px(178))); }
+        Card(Context c) { super(c); t.setTypeface(U.POP); setLayoutParams(new AbsListView.LayoutParams(-1, U.px(U.tv ? 178 : 146))); }
         void set(Station s, int pos) { this.s = s; this.pos = pos; invalidate(); }
         boolean isPlaying() { PlayerService ps = PlayerService.inst; return ps != null && ps.station != null && s != null && ps.station.id.equals(s.id) && (ps.playing || ps.preparing); }
         @Override protected void onDraw(Canvas c) {
@@ -397,8 +454,8 @@ public class MainActivity extends Activity {
             p.setColor(foc ? 0xFF201E33 : 0xB315141F);
             c.drawRoundRect(card, 16 * dp, 16 * dp, p);
             if (foc) { p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * dp); p.setShader(U.brand(card.left, card.right)); c.drawRoundRect(card, 16 * dp, 16 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL); }
-            float ls = Math.min(w - 40 * dp, hh - 66 * dp);
-            RectF lr = new RectF(w / 2 - ls / 2, 14 * dp, w / 2 + ls / 2, 14 * dp + ls);
+            float ls = Math.min(w - (U.tv ? 40 : 22) * dp, hh - (U.tv ? 66 : 52) * dp);
+            RectF lr = new RectF(w / 2 - ls / 2, (U.tv ? 14 : 10) * dp, w / 2 + ls / 2, (U.tv ? 14 : 10) * dp + ls);
             Bitmap b = Img.now(s.logo);
             if (s.logo != null && b == null) { final Station mine = s; Img.load(s.logo, 256, new Img.Cb() { public void done(Bitmap x) { if (x != null && s == mine) invalidate(); } }); }
             Ui.logo(c, lr, s, b, 14 * dp);
@@ -415,14 +472,14 @@ public class MainActivity extends Activity {
             }
             if (Catalog.isFav(MainActivity.this, s)) { t.setColor(0xFFEC4899); t.setTextSize(15 * dp); t.setTextAlign(Paint.Align.LEFT); c.drawText("♥", lr.left + 6 * dp, lr.top + 18 * dp, t); }
             t.setTextAlign(Paint.Align.CENTER);
-            t.setColor(0xFFFFFFFF); t.setTextSize(13.5f * dp); t.setFakeBoldText(foc);
+            t.setColor(0xFFFFFFFF); t.setTextSize((U.tv ? 13.5f : 12.5f) * dp); t.setFakeBoldText(foc);
             boolean chan = !s.sub.isEmpty() && current != null && current.group != null && "network".equals(current.group.type);
             String nm = chan ? s.sub : s.name;
-            c.drawText(Ui.ell(nm, t, w - 16 * dp), w / 2, lr.bottom + 22 * dp, t);
+            c.drawText(Ui.ell(nm, t, w - 12 * dp), w / 2, lr.bottom + (U.tv ? 22 : 19) * dp, t);
             t.setFakeBoldText(false);
-            t.setColor(U.MUTED); t.setTextSize(11 * dp);
+            t.setColor(U.MUTED); t.setTextSize((U.tv ? 11 : 10) * dp);
             String cap = chan ? current.group.name : s.caption();
-            c.drawText(Ui.ell(cap, t, w - 16 * dp), w / 2, lr.bottom + 39 * dp, t);
+            c.drawText(Ui.ell(cap, t, w - 12 * dp), w / 2, lr.bottom + (U.tv ? 39 : 34) * dp, t);
         }
     }
 
@@ -431,9 +488,13 @@ public class MainActivity extends Activity {
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG); final TextPaint t = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         NowBar(Context c) {
             super(c); setFocusable(true); setClickable(true); t.setTypeface(U.POP);
-            setOnClickListener(new OnClickListener() { public void onClick(View v) { if (hasNow()) openPlayer(); } });
+            setOnClickListener(new OnClickListener() { public void onClick(View v) {
+                if (!hasNow()) return;
+                if (!U.tv && lastX > getWidth() - 92 * U.dp) PlayerService.toggle(MainActivity.this); else openPlayer(); } });
             setOnFocusChangeListener(new OnFocusChangeListener() { public void onFocusChange(View v, boolean f) { invalidate(); } });
         }
+        float lastX;
+        @Override public boolean onTouchEvent(MotionEvent e) { lastX = e.getX(); return super.onTouchEvent(e); }
         @Override protected void onDraw(Canvas c) {
             PlayerService ps = PlayerService.inst;
             Station s = ps == null ? null : ps.station;
@@ -444,7 +505,7 @@ public class MainActivity extends Activity {
             if (isFocused()) { p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.5f * dp); p.setShader(U.brand(0, w)); c.drawRoundRect(r, 18 * dp, 18 * dp, p); p.setShader(null); p.setStyle(Paint.Style.FILL); }
             if (s == null) {
                 t.setColor(U.MUTED); t.setTextSize(13 * dp); t.setTextAlign(Paint.Align.LEFT);
-                c.drawText("Sender wählen und OK drücken  ·  OK lange drücken = Favorit  ·  Pause-Taste = Radio an/aus", 22 * dp, r.centerY() + 5 * dp, t);
+                c.drawText(Ui.ell(U.tv ? "Sender wählen und OK drücken  ·  OK lange drücken = Favorit  ·  Pause-Taste = Radio an/aus" : "Sender antippen  ·  lange antippen = Favorit", t, w - 44 * dp), 22 * dp, r.centerY() + 5 * dp, t);
                 return;
             }
             float ls = r.height() - 16 * dp;
@@ -457,20 +518,20 @@ public class MainActivity extends Activity {
             t.setColor(U.MUTED); t.setTextSize(11 * dp); t.setLetterSpacing(0.12f);
             String state = ps.preparing ? "VERBINDE …" : ps.playing ? "LÄUFT GERADE" : ps.error != null ? "GESTOPPT · " + ps.error.toUpperCase(Locale.GERMANY) : "PAUSIERT";
             if (ps.sleepLeft() > 0) state += "   ·   AUS IN " + ps.sleepLeft() + " MIN.";
-            c.drawText(Ui.ell(state, t, w - x - 120 * dp), x, r.top + 24 * dp, t);
+            c.drawText(Ui.ell(state, t, w - x - (w > 420 * dp ? 120 : 70) * dp), x, r.top + 24 * dp, t);
             t.setLetterSpacing(0);
             t.setColor(0xFFFFFFFF); t.setTextSize(16 * dp); t.setFakeBoldText(true);
             String song = ps.current != null && !ps.current.title.isEmpty() ? (ps.current.artist.isEmpty() ? ps.current.title : ps.current.artist + " – " + ps.current.title) : "";
-            c.drawText(Ui.ell(s.name, t, w - x - 120 * dp), x, r.top + 46 * dp, t);
+            c.drawText(Ui.ell(s.name, t, w - x - (w > 420 * dp ? 120 : 70) * dp), x, r.top + 46 * dp, t);
             t.setFakeBoldText(false);
             t.setColor(0xFFC9CCE0); t.setTextSize(13 * dp);
-            if (!song.isEmpty()) c.drawText(Ui.ell(song, t, w - x - 120 * dp), x, r.top + 66 * dp, t);
+            if (!song.isEmpty()) c.drawText(Ui.ell(song, t, w - x - (w > 420 * dp ? 120 : 70) * dp), x, r.top + 66 * dp, t);
             // Play/Pause-Symbol rechts
             float cx = w - 46 * dp, cy = r.centerY();
             p.setShader(U.brand(cx - 22 * dp, cx + 22 * dp)); c.drawCircle(cx, cy, 22 * dp, p); p.setShader(null); p.setColor(0xFFFFFFFF);
             if (ps.playing || ps.preparing) { c.drawRoundRect(new RectF(cx - 8 * dp, cy - 9 * dp, cx - 3 * dp, cy + 9 * dp), 1.5f * dp, 1.5f * dp, p); c.drawRoundRect(new RectF(cx + 3 * dp, cy - 9 * dp, cx + 8 * dp, cy + 9 * dp), 1.5f * dp, 1.5f * dp, p); }
             else { Path tri = new Path(); tri.moveTo(cx - 6 * dp, cy - 10 * dp); tri.lineTo(cx + 10 * dp, cy); tri.lineTo(cx - 6 * dp, cy + 10 * dp); tri.close(); c.drawPath(tri, p); }
-            if (ps.playing) {
+            if (ps.playing && w > 420 * dp) {
                 p.setShader(U.brand(cx - 110 * dp, cx - 70 * dp));
                 long tm = System.currentTimeMillis();
                 for (int i = 0; i < 5; i++) {

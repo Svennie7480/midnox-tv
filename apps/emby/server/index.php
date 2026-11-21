@@ -34,7 +34,7 @@ declare(strict_types=1);
 error_reporting(0);
 
 // ===== Einstellungen =====
-const EMBY = '__EMBY_URL__';   // Adresse deines Emby- ODER Jellyfin-Servers (wird automatisch erkannt), wie er aus dem Internet erreichbar ist, z. B. https://emby.meinedomain.de
+const EMBY = 'https://volvic.spdns.eu';   // Adresse deines Emby- ODER Jellyfin-Servers (wird automatisch erkannt), wie er aus dem Internet erreichbar ist, z. B. https://emby.meinedomain.de
 const TOKEN_TTL = 43200;       // so lange (s) gilt eine erfolgreiche Token-Prüfung
 const CHAT_KEEP = 600;         // so viele Chat-Nachrichten aufheben
 const PARTY_IDLE = 25;         // Mitglied gilt nach so vielen s ohne Abfrage als weg

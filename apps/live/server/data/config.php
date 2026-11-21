@@ -1,0 +1,2 @@
+<?php http_response_code(403); exit; ?>
+{"hash":"$2y$10$dZEdpGObOw5ZwkwxzzVxiOMo2Ctk.jUhmtCPwLvC4NhAi.by.Cdbi","secret":"d76e19e6ec342a593cf888c4fe3b53c948ecff7c63b6e0483d44ca54b9456ed5","created":1793580244}

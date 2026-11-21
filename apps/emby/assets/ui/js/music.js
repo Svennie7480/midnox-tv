@@ -5,6 +5,7 @@ const MUSIC = {
   async play(list, idx, shuffle) {
     if (window.THEMESONG) THEMESONG.stop();
     if (PLAYER.active) await PLAYER.stop('user');
+    if (window.TVP && TVP.active) TVP.stop(true);
     list = list.filter(x => x.Type === 'Audio'); if (!list.length) return;
     if (shuffle) { list = list.slice(); for (let i = list.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [list[i], list[j]] = [list[j], list[i]]; } idx = 0; }
     MUSIC.queue = list; MUSIC.idx = idx || 0; MUSIC.shuffled = !!shuffle;

@@ -1,6 +1,6 @@
 {
- "versionCode": 37,
- "versionName": "2.27",
+ "versionCode": 38,
+ "versionName": "2.28",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-live.apk",
- "notes": "Umschalten endlich schnell: Die Ausweich-Liste wird nicht mehr bei jedem Senderwechsel aus der kompletten Senderliste berechnet (das kostete bei großen Listen ~2,5 s), sondern einmal im Hintergrund als Index. Senderwechsel reagiert jetzt sofort."
+ "notes": "midnox Media kann jetzt deine Quellen, MACs, Favoriten und Senderzuordnungen direkt übernehmen (nur Apps mit derselben midnox-Signatur)."
 }

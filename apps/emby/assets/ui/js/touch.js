@@ -60,7 +60,7 @@ if (TOUCH) {
       let bar = $('#tabbar'); if (!bar) { bar = h('nav', ''); bar.id = 'tabbar'; document.body.appendChild(bar); }
       bar.innerHTML = '';
       const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']]
-        : [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['search', 'Suche', 'search'], ['more', 'Mehr', 'menu']];
+        : (window.LIVE && LIVE.enabled() ? [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['live', 'Live-TV', 'live'], ['more', 'Mehr', 'menu']] : [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['search', 'Suche', 'search'], ['more', 'Mehr', 'menu']]);
       for (const [id, label, icon] of items) {
         const b = h('div', 'tab', ic(icon) + '<span>' + label + '</span>'); b.dataset.id = id;
         b.addEventListener('click', (e) => { e.stopPropagation(); if (id === 'more') TABS.more(); else ROUTER.go(id, null, { root: true }); });
@@ -70,7 +70,7 @@ if (TOUCH) {
     },
     async more() {
       const v = await UI.choose('Mehr', [
-        { label: '🎵 Musik', value: 'music' }, { label: '💬 Community', value: 'community' }, { label: '💜 Was gucken wir heute?', value: 'match' },
+        { label: '🔎 Suche', value: 'search' }, { label: '🎵 Musik', value: 'music' }, { label: '💬 Community', value: 'community' }, { label: '💜 Was gucken wir heute?', value: 'match' },
         { label: '🏆 Mein midnox', value: 'me' }, { label: '📺 Auf dem Fernseher abspielen', value: 'cast' }, { label: '⚙️ Einstellungen', value: 'settings' }, { label: '👥 Profil wechseln', value: 'who' },
       ]);
       if (!v) return;
@@ -78,8 +78,8 @@ if (TOUCH) {
     },
     mark() {
       const top = ROUTER.top(); const name = top ? (ROUTER.stack[0] || top).name : '';
-      $$('#tabbar .tab').forEach(t => t.classList.toggle('cur', t.dataset.id === name || (t.dataset.id === 'more' && ['music', 'community', 'match', 'me', 'settings'].indexOf(name) >= 0)));
-      const hide = !EMBY.user || !top || top.noRail || (window.PLAYER && PLAYER.active) || ['connect', 'login', 'who', 'wrapped'].indexOf(top.name) >= 0;
+      $$('#tabbar .tab').forEach(t => t.classList.toggle('cur', t.dataset.id === name || (t.dataset.id === 'more' && ['music', 'community', 'match', 'me', 'settings', 'search'].indexOf(name) >= 0)));
+      const hide = !EMBY.user || !top || top.noRail || (window.PLAYER && PLAYER.active) || (window.TVP && TVP.active) || ['connect', 'login', 'who', 'wrapped'].indexOf(top.name) >= 0;
       document.body.classList.toggle('notabs', !!hide);
     },
   };

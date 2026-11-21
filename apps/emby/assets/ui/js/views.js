@@ -245,6 +245,7 @@ ROUTER.reg('home', async (scr) => {
     rows.innerHTML = '';
     const resumeIds = new Set((resume.Items || []).map(i => i.Id));
     if ((resume.Items || []).length) rows.appendChild(V.row('Weiterschauen', resume.Items, 'land', { focus }));
+    try { const lr = window.LIVE && LIVE.homeRow(); if (lr) rows.appendChild(lr); } catch (e) { console.error(e); }
     const nx = (next.Items || []).filter(i => !resumeIds.has(i.Id));
     if (nx.length) rows.appendChild(V.row('Nächste Folgen', nx, 'land', { focus }));
     const mo = new Date().getMonth(), dd = new Date().getDate();
@@ -580,6 +581,7 @@ ROUTER.reg('settings', async (scr) => {
   choice('Anti-Spoiler', 'spoiler', [[false, 'Aus'], [true, 'An – ungesehene Folgen ohne Bild-Details und Beschreibung']], 'eye');
   choice('Schaust du noch?', 'still', [[3, 'Nach 3 Folgen ohne Tastendruck fragen'], [2, 'Nach 2 Folgen'], [5, 'Nach 5 Folgen'], [0, 'Nie fragen']], 'moon');
   choice('Titelmusik auf Detailseiten', 'themeSongs', [[true, 'An (leise im Hintergrund)'], [false, 'Aus']], 'music');
+  if (window.HAS_LIVE || typeof window.Live !== 'undefined') choice('Live-TV im Menü', 'liveOn', [[true, 'An'], [false, 'Aus']], 'live');
   choice('Vorschaubilder beim Spulen', 'trick', [[true, 'An (wenn der Server sie erzeugt hat)'], [false, 'Aus']], 'tv');
   choice('Bildschirmschoner', 'saver', [[5, 'Nach 5 Minuten'], [3, 'Nach 3 Minuten'], [10, 'Nach 10 Minuten'], [20, 'Nach 20 Minuten'], [0, 'Aus (Fire-TV-eigener)']], 'tv');
   sect('Community');

@@ -808,3 +808,115 @@ body.kids .card.focused { box-shadow: 0 0 0 .35rem #fff, 0 0 0 .9rem rgba(251,19
 .modal .box.stillbox { text-align: center; width: 52rem; }
 .stillbox .still-ic { font-size: 5rem; margin-bottom: .6rem; }
 .stillbox .btns { justify-content: center; }
+
+/* ===================== Live-TV ===================== */
+.lvlogo { flex: none; width: 5.6rem; height: 3.6rem; border-radius: .7rem; background: rgba(255,255,255,.06); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.lvlogo img { max-width: 86%; max-height: 82%; object-fit: contain; }
+.lvlogo.ini span { font-weight: 800; font-size: 1.3rem; color: var(--mut); letter-spacing: .02em; }
+.lvlogo.big { width: 9rem; height: 6rem; border-radius: 1rem; }
+.lvlogo.big.ini span { font-size: 2rem; }
+.livepage .lvhead .lvbtns { display: flex; gap: 1rem; }
+.livepage .lvhead .warn { color: #fca5a5; }
+.lvbody { position: absolute; left: 9rem; right: 3rem; top: 9.6rem; bottom: 0; display: flex; gap: 2rem; }
+.lvgroups { width: 24rem; flex: none; overflow: hidden; position: relative; }
+.lvchans { flex: 1; min-width: 0; overflow: hidden; position: relative; }
+.lvgl, .lvcl { transition: transform .25s var(--ease); padding: .6rem .4rem 4rem; }
+.lvg { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.4rem; border-radius: 1rem; font-size: 1.35rem; color: var(--mut); margin-bottom: .2rem; }
+.lvg span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lvg small { font-size: 1.05rem; color: var(--dim); }
+.lvg.sel { color: var(--text); background: rgba(255,255,255,.07); font-weight: 700; }
+.lvg.focused { background: var(--grad); color: #fff; }
+.lvg.focused small { color: rgba(255,255,255,.8); }
+.lvrow { display: flex; align-items: center; gap: 1.4rem; padding: .9rem 1.2rem; border-radius: 1.1rem; margin-bottom: .4rem; background: rgba(255,255,255,.03); border: 1px solid transparent; }
+.lvrow .num { width: 3.4rem; text-align: right; font-size: 1.3rem; font-weight: 700; color: var(--dim); font-variant-numeric: tabular-nums; }
+.lvrow .txt { flex: 1; min-width: 0; }
+.lvrow .txt b { display: block; font-size: 1.45rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lvrow .star, .tvb .star { color: var(--gold); }
+.lvrow .now { font-size: 1.2rem; color: #d4d6e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .2rem; }
+.lvrow .now.mut { color: var(--dim); }
+.lvrow .now .tm { color: var(--hl); font-weight: 700; margin-right: .6rem; }
+.lvrow .nx { font-size: 1.05rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .1rem; }
+.pb { display: block; height: .3rem; border-radius: .2rem; background: rgba(255,255,255,.12); margin-top: .5rem; overflow: hidden; max-width: 30rem; }
+.pb em { display: block; height: 100%; background: var(--grad); }
+.lvrow.focused { background: rgba(255,255,255,.1); border-color: rgba(var(--g4),.55); box-shadow: 0 .8rem 2.4rem rgba(0,0,0,.35); }
+.lvrow.focused .num { color: var(--hl); }
+.lvmore { padding: 1.4rem; text-align: center; color: var(--dim); font-size: 1.2rem; }
+.empty.small { padding: 3rem 1rem; font-size: 1.35rem; }
+.lvsetup { position: absolute; left: 9rem; right: 4rem; top: 12rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.2rem; }
+.lvsetup .big { font-size: 7rem; }
+.lvsetup h2 { font-size: 2.6rem; }
+.lvsetup p { color: var(--mut); font-size: 1.4rem; max-width: 60rem; line-height: 1.5; }
+.lvsetup .btns { display: flex; gap: 1rem; margin-top: 1.4rem; flex-wrap: wrap; justify-content: center; }
+.lvsrc small { display: block; color: var(--mut); font-size: 1.1rem; margin-top: .2rem; }
+/* Startseite */
+.card.lvcard { display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(var(--g1),.25), rgba(var(--g2),.12)), var(--card); }
+.card.lvcard .lvlogo.big { background: transparent; width: 70%; height: 55%; }
+.card.lvcard .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: .8rem 1.1rem 1rem; background: linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,0)); }
+.card.lvcard .cap b { display: block; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.lvcard .cap span { display: block; font-size: 1rem; color: #cfd2e4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.lvcard .cap i { display: block; height: .25rem; background: rgba(255,255,255,.2); border-radius: .2rem; margin-top: .4rem; overflow: hidden; }
+.card.lvcard .cap i em { display: block; height: 100%; background: var(--grad); }
+/* Programmführer */
+.guidepage { --gdch: 22rem; }
+.gdhead { position: absolute; left: 9rem; right: 2rem; top: 2.6rem; height: 6rem; display: flex; align-items: flex-end; }
+.gdhead .gdt { width: var(--gdch); flex: none; padding-bottom: .6rem; }
+.gdhead .gdt b { display: block; font-size: 2rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gdhead .gdt small { color: var(--mut); font-size: 1.1rem; }
+.gdtimes { display: flex; overflow: hidden; }
+.gdtimes span { flex: none; font-size: 1.15rem; color: var(--mut); border-left: 1px solid var(--line); padding: 0 0 .6rem .6rem; }
+.gdgrid { position: absolute; left: 9rem; right: 2rem; top: 9rem; bottom: 0; overflow: hidden; }
+.gdrows { transition: transform .25s var(--ease); padding-bottom: 4rem; }
+.gdrow { display: flex; height: 5.6rem; margin-bottom: .4rem; }
+.gdch { width: var(--gdch); flex: none; display: flex; align-items: center; gap: 1rem; padding-right: 1rem; }
+.gdch .lvlogo { width: 5rem; height: 3.4rem; }
+.gdch span { font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gdch span i { font-style: normal; color: var(--dim); margin-right: .6rem; }
+.gdtl { display: flex; flex: 1; min-width: 0; overflow: hidden; }
+.gdp { flex: none; margin-right: .3rem; border-radius: .7rem; background: rgba(255,255,255,.05); padding: .7rem 1rem; overflow: hidden; border: 1px solid transparent; }
+.gdp b { display: block; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gdp small { font-size: 1rem; color: var(--dim); white-space: nowrap; }
+.gdp.live { background: rgba(var(--g2),.18); }
+.gdp.empty b { color: var(--mut); font-weight: 600; }
+.gdp.focused { background: var(--grad); border-color: rgba(255,255,255,.3); }
+.gdp.focused small { color: rgba(255,255,255,.85); }
+.gdgap { flex: none; }
+.gdnow { position: absolute; top: 0; bottom: 0; width: .2rem; background: var(--red); box-shadow: 0 0 .8rem var(--red); z-index: 2; pointer-events: none; }
+/* Live-Player */
+#osd.tv { pointer-events: auto; }
+#osd.tv .tvb { position: absolute; left: 4rem; right: 4rem; bottom: 3rem; display: flex; align-items: center; gap: 2.2rem; padding: 2rem 2.6rem; border-radius: 2rem;
+  background: linear-gradient(120deg, rgba(14,12,26,.9), rgba(20,18,36,.82)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 2rem 5rem rgba(0,0,0,.5); transition: opacity .35s, transform .35s; }
+#osd.tv.hid .tvb { opacity: 0; transform: translateY(2rem); }
+#osd.tv .tvt { flex: 1; min-width: 0; }
+#osd.tv .l1 { display: flex; align-items: baseline; gap: 1.2rem; }
+#osd.tv .l1 .no { font-size: 2.2rem; font-weight: 800; color: var(--hl); font-variant-numeric: tabular-nums; }
+#osd.tv .l1 b { font-size: 2.4rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#osd.tv .l1 .clock { margin-left: auto; font-size: 1.6rem; color: var(--mut); font-variant-numeric: tabular-nums; }
+#osd.tv .l2 { font-size: 1.6rem; margin-top: .5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#osd.tv .l2 .tm { color: var(--hl); font-weight: 700; margin-right: 1rem; }
+#osd.tv .l2.mut { color: var(--mut); }
+#osd.tv .pb { max-width: none; height: .4rem; }
+#osd.tv .l3 { font-size: 1.25rem; color: var(--mut); margin-top: .6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#osd.tv .l4 { display: flex; gap: 1.6rem; font-size: 1.05rem; color: var(--dim); margin-top: .8rem; }
+#osd.tv .l4 .tvstat { color: #fcd34d; }
+#osd.tv .l4 .hint { margin-left: auto; }
+#osd.tv .tvspin { position: absolute; left: 50%; top: 42%; width: 6rem; height: 6rem; margin: -3rem 0 0 -3rem; opacity: 0; transition: opacity .2s; }
+#osd.tv .tvspin i { display: block; width: 100%; height: 100%; border-radius: 50%; border: .5rem solid rgba(255,255,255,.15); border-top-color: var(--hl); animation: spin 1s linear infinite; }
+#osd.tv.loading .tvspin { opacity: 1; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#osd.tv .tvlist { position: absolute; left: 0; top: 0; bottom: 0; width: 46rem; padding: 3rem 1.6rem 3rem 3rem; background: linear-gradient(90deg, rgba(8,7,16,.96), rgba(8,7,16,.88) 80%, rgba(8,7,16,0)); overflow: hidden; }
+#osd.tv .tvll { transition: transform .2s var(--ease); }
+#osd.tv .tvli { display: flex; align-items: center; gap: 1.2rem; padding: .8rem 1rem; border-radius: 1rem; margin-bottom: .3rem; }
+#osd.tv .tvli .txt { min-width: 0; flex: 1; }
+#osd.tv .tvli b { display: block; font-size: 1.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#osd.tv .tvli b i { font-style: normal; color: var(--dim); margin-right: .7rem; }
+#osd.tv .tvli small { display: block; font-size: 1.05rem; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#osd.tv .tvli.cur b { color: var(--hl); }
+#osd.tv .tvli.focused { background: var(--grad); }
+#osd.tv .tvli.focused small, #osd.tv .tvli.focused b i { color: rgba(255,255,255,.85); }
+#osd.tv .tvtouch { display: flex; gap: .8rem; }
+#osd.tv.listing .tvb { opacity: 0; }
+.lvlogo.mx { background: var(--grad); flex-direction: column; gap: .1rem; }
+.lvlogo.mx span { font-size: 1.7rem; line-height: 1; }
+.lvlogo.mx i { font-style: normal; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); }
+.lvlogo.big.mx span { font-size: 2.8rem; }
+.lvlogo.big.mx i { font-size: .95rem; }

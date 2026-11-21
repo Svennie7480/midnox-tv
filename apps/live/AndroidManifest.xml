@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.live" android:versionCode="37" android:versionName="2.27">
+    package="de.midnox.live" android:versionCode="38" android:versionName="2.28">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="28"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
   <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+  <permission android:name="de.midnox.permission.SHARE" android:protectionLevel="signature"/>
   <uses-feature android:name="android.software.leanback" android:required="false"/>
   <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
   <application android:label="midnox Live" android:icon="@drawable/icon" android:banner="@drawable/banner"
@@ -25,5 +26,6 @@
     </activity>
     <provider android:name=".UpdateProvider" android:authorities="de.midnox.live.apk" android:exported="false" android:grantUriPermissions="true"/>
     <provider android:name=".SearchProvider" android:authorities="de.midnox.live.search" android:exported="true"/>
+      <provider android:name=".ExportProvider" android:authorities="de.midnox.live.export" android:exported="true" android:permission="de.midnox.permission.SHARE"/>
   </application>
 </manifest>

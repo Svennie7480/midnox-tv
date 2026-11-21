@@ -33,6 +33,10 @@ const IC = {
   fwd30: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><text x="12" y="15.5" font-size="7" text-anchor="middle" fill="currentColor" stroke="none" font-weight="800">30</text>',
   next: '<path d="M5 4.5v15l11-7.5z" fill="currentColor" stroke="none"/><path d="M19 5v14"/>',
   prev: '<path d="M19 4.5v15L8 12z" fill="currentColor" stroke="none"/><path d="M5 5v14"/>',
+  grid: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M3 15h18M9 4v16"/>',
+  download: '<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>',
+  wifi: '<path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/>',
+  live: '<rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="m8 2 4 4 4-4"/><circle cx="7" cy="12.5" r="1.6" fill="currentColor" stroke="none"/><path d="M11 11h6M11 14h4"/>',
   heart: '<path d="M12 20.5s-8-4.6-8-10.4A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 3.1c0 5.8-8 10.4-8 10.4z"/>',
   heartf: '<path d="M12 20.5s-8-4.6-8-10.4A4.6 4.6 0 0 1 12 7a4.6 4.6 0 0 1 8 3.1c0 5.8-8 10.4-8 10.4z" fill="currentColor"/>',
   check: '<path d="m4.5 12.5 5 5 10-11"/>',
@@ -126,12 +130,13 @@ const NAV = {
   cur: null, lastMove: 0,
   root() {
     const m = $$('#layer .modal'); if (m.length) return m[m.length - 1];
+    if (window.TVP && TVP.active) return $('#osd');
     if (window.PLAYER && PLAYER.active && PLAYER.navRoot) return PLAYER.navRoot();
     return ROUTER.top() ? ROUTER.top().el : document.body;
   },
   scope() {
     const r = NAV.root(); const out = [r];
-    if (!$('#layer .modal') && !(window.PLAYER && PLAYER.active) && !$('#rail').classList.contains('hidden') && ROUTER.top() && !ROUTER.top().noRail) out.push($('#rail'));
+    if (!$('#layer .modal') && !(window.PLAYER && PLAYER.active) && !(window.TVP && TVP.active) && !$('#rail').classList.contains('hidden') && ROUTER.top() && !ROUTER.top().noRail) out.push($('#rail'));
     return out;
   },
   items() {
@@ -223,6 +228,7 @@ window.KEY = function (k, repeat) {
     if (TEXT.active && TEXT.key(k)) return;
     const modals = $$('#layer .modal'); const m = modals[modals.length - 1];
     if (m) { if (m._key && m._key(k)) return; if (k === 'back') { m._close(null); return; } if (k === 'ok') { if (NAV.cur && NAV.cur._ok) NAV.cur._ok(); return; } if (['up', 'down', 'left', 'right'].includes(k)) NAV.move(k); return; }
+    if (window.TVP && TVP.active) { TVP.key(k, repeat); return; }
     if (window.PLAYER && PLAYER.active) { PLAYER.key(k, repeat); return; }
     const s = ROUTER.top();
     if (s && s.key && s.key(k, repeat)) return;
@@ -280,12 +286,13 @@ const ROUTER = {
 
 // ---------- Navigationsleiste ----------
 const RAIL = {
-  items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['match', 'Was gucken?', 'heart'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
+  items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['live', 'Live-TV', 'live'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['match', 'Was gucken?', 'heart'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
   build() {
     const r = $('#rail'); r.innerHTML = '<div class="logo">m</div><div class="lt">midnox <b>' + (KIDS.on ? 'Kids' : 'Media') + '</b></div>';
     const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']] : RAIL.items;
     for (const [id, label, icon] of items) {
       if (id === 'music' && !EMBY.hasMusic) continue;
+      if (id === 'live' && !(window.LIVE && LIVE.enabled())) continue;
       const el = h('div', 'ri', ic(icon) + '<span>' + label + '</span>'); el.dataset.id = id;
       onOk(el, () => { if (ROUTER.top() && ROUTER.top().name === id && ROUTER.stack.length === 1) { ROUTER.backFromRail(); return; } ROUTER.go(id, null, { root: true }); });
       r.appendChild(el);

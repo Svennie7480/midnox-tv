@@ -60,6 +60,7 @@ public class MainActivity extends Activity {
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         web.setFocusable(true); web.setFocusableInTouchMode(true);
         web.addJavascriptInterface(new Bridge(), "Android");
+        web.addJavascriptInterface(new de.midnox.emby.live.LiveBridge(this, new de.midnox.emby.live.LiveBridge.Out() { public void js(final String code) { h.post(new Runnable() { public void run() { MainActivity.this.js(code); } }); } }), "Live");
         web.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onConsoleMessage(ConsoleMessage m) { android.util.Log.i("midnox-emby", m.message() + " @" + m.lineNumber()); return true; }
         });
@@ -87,7 +88,7 @@ public class MainActivity extends Activity {
     // ===================== Player =====================
     void initPlayer() {
         DefaultLoadControl lc = new DefaultLoadControl.Builder().setBufferDurationsMs(4000, 50000, 900, 2500).setPrioritizeTimeOverSizeThresholds(true).build();
-        DefaultHttpDataSource.Factory ds = new DefaultHttpDataSource.Factory().setUserAgent("midnoxEmby/" + U.versionName(this))
+        ds = new DefaultHttpDataSource.Factory().setUserAgent("midnoxEmby/" + U.versionName(this))
             .setConnectTimeoutMs(10000).setReadTimeoutMs(30000).setAllowCrossProtocolRedirects(true);
         player = new ExoPlayer.Builder(this).setLoadControl(lc).setMediaSourceFactory(new DefaultMediaSourceFactory(ds)).build();
         player.setVideoSurfaceView(surface);
@@ -155,8 +156,14 @@ public class MainActivity extends Activity {
         return "{\"e\":\"tracks\",\"list\":" + a + "}";
     }
 
+    DefaultHttpDataSource.Factory ds;
     void play(JSONObject o) throws JSONException {
         String url = o.getString("url");
+        // Live-TV: eigener User-Agent (z. B. MAG-Box fuer Stalker-Portale) und Referer
+        ds.setUserAgent(o.optString("ua", "").isEmpty() ? "midnoxEmby/" + U.versionName(this) : o.optString("ua"));
+        Map<String, String> hd = new HashMap<>();
+        if (!o.optString("ref", "").isEmpty()) hd.put("Referer", o.optString("ref"));
+        ds.setDefaultRequestProperties(hd);
         MediaItem.Builder mb = new MediaItem.Builder().setUri(Uri.parse(url));
         if (o.optBoolean("hls") || url.contains(".m3u8")) mb.setMimeType(MimeTypes.APPLICATION_M3U8);
         JSONArray subs = o.optJSONArray("subs");

@@ -246,3 +246,25 @@ body.touch .detail .epinfo { display: none; }
 body.touch .card.ep { margin-bottom: 4.4rem; }
 body.touch .card.ep .eptitle { position: absolute; left: 0; right: 0; top: calc(100% + .6rem); font-size: 1.2rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body.touch .card.ep .eptitle small { display: block; font-size: 1.05rem; color: var(--mut); font-weight: 500; }
+
+/* ===================== Live-TV (Touch) ===================== */
+body.touch .lvbody { position: static; display: block; padding: 0 1rem; }
+body.touch .livepage .lvhead { position: static; flex-wrap: wrap; padding: 1rem 1.2rem .4rem; }
+body.touch .livepage .lvhead .lvbtns { width: 100%; overflow-x: auto; }
+body.touch .lvgroups { width: auto; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+body.touch .lvgl { display: flex; gap: .6rem; padding: .4rem 0 .8rem; transform: none !important; }
+body.touch .lvg { flex: none; padding: .7rem 1.2rem; background: rgba(255,255,255,.06); }
+body.touch .lvchans { overflow-y: auto; height: calc(100vh - 17rem); -webkit-overflow-scrolling: touch; }
+body.touch .lvcl { transform: none !important; }
+body.touch .lvrow .num { display: none; }
+body.touch .lvsetup { position: static; padding: 3rem 1.6rem; }
+body.touch .gdhead { position: static; padding: 1rem; height: auto; }
+body.touch .gdgrid { position: static; overflow: auto; height: calc(100vh - 12rem); }
+body.touch .gdrows { transform: none !important; }
+body.touch .guidepage { --gdch: 12rem; }
+body.touch #osd.tv .tvb { left: 1rem; right: 1rem; bottom: 1rem; flex-wrap: wrap; gap: 1.2rem; padding: 1.4rem; }
+body.touch #osd.tv .lvlogo.big { width: 6rem; height: 4rem; }
+body.touch #osd.tv .tvtouch { width: 100%; justify-content: space-between; }
+body.touch #osd.tv .tvtouch .btn { flex: 1; justify-content: center; }
+body.touch #osd.tv .tvlist { width: 100%; overflow-y: auto; }
+body.touch #osd.tv .tvll { transform: none !important; }

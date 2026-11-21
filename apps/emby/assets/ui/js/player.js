@@ -80,6 +80,7 @@ const PLAYER = {
     if (window.THEMESONG) THEMESONG.stop();
     opts = opts || {};
     if (window.MUSIC) MUSIC.stop(true);
+    if (window.TVP && TVP.active) TVP.stop(true);
     if (PLAYER.active) await PLAYER.stop('switch');
     PLAYER.active = true; PLAYER.ended = false; PLAYER.ready = false; PLAYER.upNextShown = false; PLAYER.nextItem = null; PLAYER.fallback = false;
     PLAYER.party = opts.party || null; PLAYER.isTrailer = !!opts.trailer; PLAYER.pos = opts.startMs || 0; PLAYER.dur = (item.RunTimeTicks || 0) / 10000;
@@ -164,6 +165,7 @@ const PLAYER = {
 
   // ---------- Ereignisse vom nativen Player ----------
   ev(e) {
+    if (window.TVP && TVP.active) { TVP.ev(e); return; }
     if (!PLAYER.active && !(window.MUSIC && MUSIC.active)) return;
     if (window.MUSIC && MUSIC.active && !PLAYER.active) { MUSIC.ev(e); return; }
     switch (e.e) {

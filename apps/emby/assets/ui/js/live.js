@@ -7,13 +7,19 @@ const FAVG = '★ Favoriten', ALLG = 'Alle Sender';
 const LIVE = {
   ch: [], byId: {}, groups: [], favs: [], names: {}, st: {}, ver: 0, epgC: {},
   enabled() { return HAS_LIVE && EMBY.settings().liveOn !== false && !(window.KIDS && KIDS.on); },
-  load() {
+  byGroup: {}, _jv: -1, _mv: -1,
+  /** Senderliste holen – nur wenn sie sich geändert hat (große Portale haben zehntausende Sender). */
+  load(force) {
     if (!HAS_LIVE) return;
     try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (e) { LIVE.st = {}; }
+    const jv = Live.ver ? Live.ver() : 0, mv = window.MXTV ? MXTV.ver : 0;
+    if (!force && jv === LIVE._jv && mv === LIVE._mv && (LIVE.ch.length || !LIVE.st.count)) { if (window.MXTV && !MXTV.ch.length && !MXTV.building && window.EMBY && EMBY.user) MXTV.init(); return; }
+    LIVE._jv = jv; LIVE._mv = mv;
     let raw = []; try { raw = JSON.parse(Live.channels() || '[]'); } catch (e) {}
     LIVE.ch = raw.map(r => ({ id: r[0], name: r[1], group: r[2], num: r[3], logos: r[4] ? r[4].split('|').filter(Boolean) : [], src: r[5] }));
     if (window.MXTV) { if (!MXTV.ch.length && !MXTV.building && window.EMBY && EMBY.user) MXTV.init(); LIVE.ch = MXTV.ch.concat(LIVE.ch); }   // eigene Kanäle zuerst
-    LIVE.byId = {}; for (const c of LIVE.ch) LIVE.byId[c.id] = c;
+    LIVE.byId = {}; LIVE.byGroup = {};
+    for (const c of LIVE.ch) { LIVE.byId[c.id] = c; (LIVE.byGroup[c.group] || (LIVE.byGroup[c.group] = [])).push(c); }
     try { LIVE.groups = JSON.parse(Live.groups() || '[]'); } catch (e) { LIVE.groups = []; }
     if (window.MXTV && MXTV.ch.length) LIVE.groups.unshift(MXG);
     try { LIVE.favs = JSON.parse(Live.favs() || '[]'); } catch (e) { LIVE.favs = []; }
@@ -24,7 +30,10 @@ const LIVE = {
     switch (e.e) {
       case 'cache': case 'channels': LIVE.load(); LIVE.refresh(); break;
       case 'loading': try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} LIVE.refresh(true); break;
-      case 'epg': if (e.id) delete LIVE.epgC[e.id]; else LIVE.epgC = {}; try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} LIVE.refresh(true); if (TVP.active) TVP.banner(false); break;
+      case 'epg':
+        if (e.id) delete LIVE.epgC[e.id]; else { LIVE.epgC = {}; try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} if (!e.id && Live.ver && Live.ver() !== LIVE._jv) LIVE.load(); }
+        clearTimeout(LIVE._et); LIVE._et = setTimeout(() => { LIVE.refresh(true); if (TVP.active && !TVP.listOn) TVP.banner(false); }, e.id ? 800 : 200);   // gebündelt statt bei jedem Sender
+        break;
       case 'tune': TVP.onTune(e); break;
       case 'import': if (LIVE._imp) { const f = LIVE._imp; LIVE._imp = null; f(e); } else UI.toast(e.msg, { icon: e.ok ? '📺' : '⚠️' }); break;
       case 'peers': if (LIVE._peers) { const f = LIVE._peers; LIVE._peers = null; f(e.list || []); } break;
@@ -39,7 +48,7 @@ const LIVE = {
   list(group) {
     if (group === FAVG) return LIVE.favs.map(id => LIVE.byId[id]).filter(Boolean);
     if (!group || group === ALLG) return LIVE.ch;
-    return LIVE.ch.filter(c => c.group === group);
+    return LIVE.byGroup[group] || [];
   },
   // ---- Programm (gecacht) ----
   fetchEpg(ids) {
@@ -135,7 +144,7 @@ ROUTER.reg('live', async (scr, arg) => {
       const n = g.indexOf('🔎') === 0 ? cur.length : LIVE.list(g).length;
       const e = h('div', 'lvg' + (g === grp ? ' sel' : ''), '<span>' + esc(g) + '</span><small>' + n + '</small>'); e.setAttribute('data-vsi', '');
       onOk(e, () => { pick(g); const f = ll.querySelector('.f'); if (f) NAV.focus(f); });
-      e._focus = () => { clearTimeout(scr._gt); scr._gt = setTimeout(() => { if (NAV.cur === e && grp !== g) pick(g); }, 350); };
+      e._focus = () => { clearTimeout(scr._gt); scr._gt = setTimeout(() => { if (NAV.cur === e && grp !== g) pick(g); }, 600); };
       gl.appendChild(e); if (g === grp) selEl = e;
     }
     scr.gsel = selEl;
@@ -180,7 +189,7 @@ ROUTER.reg('live', async (scr, arg) => {
     }
     more();
   };
-  const softUpdate = () => { $$('.lvrow', ll).forEach(r => { const c = LIVE.byId[r.dataset.id]; if (!c) return; const nn = LIVE.nowNext(c.id); const n = $('.now', r); if (n && nn.now) { n.innerHTML = '<span class="tm">' + LIVE.hm(nn.now[0]) + '</span>' + esc(nn.now[2]); n.classList.remove('mut'); let pb = $('.pb', r); if (!pb) { pb = h('i', 'pb', '<em></em>'); n.after(pb); } $('em', pb).style.width = LIVE.pct(nn.now) + '%'; } const x = $('.nx', r); if (nn.next) { if (x) x.textContent = LIVE.hm(nn.next[0]) + ' · ' + nn.next[2]; else $('.txt', r).appendChild(h('div', 'nx', LIVE.hm(nn.next[0]) + ' · ' + esc(nn.next[2]))); } }); };
+  const softUpdate = () => { const rows = $$('.lvrow', ll); LIVE.fetchEpg(rows.map(r => r.dataset.id)); rows.forEach(r => { const c = LIVE.byId[r.dataset.id]; if (!c) return; const nn = LIVE.nowNext(c.id); const n = $('.now', r); if (n && nn.now) { n.innerHTML = '<span class="tm">' + LIVE.hm(nn.now[0]) + '</span>' + esc(nn.now[2]); n.classList.remove('mut'); let pb = $('.pb', r); if (!pb) { pb = h('i', 'pb', '<em></em>'); n.after(pb); } $('em', pb).style.width = LIVE.pct(nn.now) + '%'; } const x = $('.nx', r); if (nn.next) { if (x) x.textContent = LIVE.hm(nn.next[0]) + ' · ' + nn.next[2]; else $('.txt', r).appendChild(h('div', 'nx', LIVE.hm(nn.next[0]) + ' · ' + esc(nn.next[2]))); } }); };
 
   const build = () => {
     lastVer = LIVE.ver;

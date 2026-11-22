@@ -311,8 +311,11 @@ ROUTER.reg('community', async (scr) => {
   let cur = scr.arg || 'chat';
   const show = async (id) => {
     cur = id; $$('.chip', tabs).forEach(c => c.classList.toggle('sel', c.dataset.id === id));
-    clearTimeout(scr.chatT); body.innerHTML = '<div class="loading"><div class="spin"></div></div>';
-    try { await COMM_TABS[id](body, scr); } catch (e) { body.innerHTML = '<div class="empty" style="padding:2rem 0">' + esc(e.message) + '</div>'; }
+    clearTimeout(scr.chatT);
+    // Jeder Reiter bekommt einen eigenen Bereich: Lädt ein alter Reiter noch nach, landet er nicht mehr auf dem Bildschirm
+    const pane = h('div', 'cpane'); pane.style.display = 'contents'; pane.innerHTML = '<div class="loading"><div class="spin"></div></div>';
+    body.innerHTML = ''; body.appendChild(pane);
+    try { await COMM_TABS[id](pane, scr); } catch (e) { pane.innerHTML = '<div class="empty" style="padding:2rem 0">' + esc(e.message) + '</div>'; }
   };
   for (const [id, label] of T) { const c = onOk(h('div', 'chip', esc(label)), () => show(id)); c.dataset.id = id; tabs.appendChild(c); }
   scr.leave = () => { clearTimeout(scr.chatT); BG.dim(false); };

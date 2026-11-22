@@ -18,6 +18,8 @@ public class LiveBridge {
     public interface Out { void js(String code); }
     final Context c; final Out out;
     volatile boolean ready;
+    volatile int ver = 1;          // steigt, wenn sich die Senderliste aendert
+    String chJson; int chVer = -1;  // fertige Senderliste fuer die Oberflaeche
 
     public LiveBridge(Context ctx, Out o) {
         c = ctx.getApplicationContext(); out = o;
@@ -26,7 +28,7 @@ public class LiveBridge {
             Lib.loadCache(c);
             for (Model.Source s : Lib.sources(c)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(c).getInt("mac_" + s.id, 0));
             Epg.loadOverrides(c); Epg.loadCache(c); Logos.load(c);
-            ready = true;
+            ready = true; ver++; channels();   // Liste schon im Hintergrund vorbereiten
             ev("{\"e\":\"cache\"}");
             if (Lib.sources(c).isEmpty()) importLocal(true);                    // erster Start: still aus midnox Live uebernehmen
             else if (Lib.channels.isEmpty() || Lib.stale()) reloadAll();
@@ -54,14 +56,18 @@ public class LiveBridge {
     }
 
     /** Alle sichtbaren Sender: [id, name, gruppe, nummer, logos (mit | getrennt), quelle]. */
-    @JavascriptInterface public String channels() {
+    @JavascriptInterface public int ver() { return ver; }
+    @JavascriptInterface public synchronized String channels() {
+        if (chJson != null && chVer == ver) return chJson;
+        int v = ver;
         JSONArray a = new JSONArray();
         for (Model.Channel ch : Lib.channels) {
             JSONArray r = new JSONArray();
             r.put(ch.id).put(ch.name).put(ch.group).put(ch.num).put(android.text.TextUtils.join("|", Logos.candidates(ch))).put(ch.src);
             a.put(r);
         }
-        return a.toString();
+        chJson = a.toString(); chVer = v;
+        return chJson;
     }
     @JavascriptInterface public String groups() { return new JSONArray(Lib.groups).toString(); }
     @JavascriptInterface public String sourceNames() { return new JSONObject(Lib.srcNames).toString(); }
@@ -83,21 +89,26 @@ public class LiveBridge {
         return o.toString();
     }
     /** Kurz-EPG vom Portal nachladen (Stalker, wenn kein XMLTV passt) – meldet sich mit {e:"epg"}. */
+    final java.util.concurrent.ExecutorService shortPool = java.util.concurrent.Executors.newFixedThreadPool(2);   // hoechstens 2 Portal-Anfragen gleichzeitig
+    final Set<String> shortAsked = Collections.synchronizedSet(new HashSet<String>());
     @JavascriptInterface public void shortEpg(String id) {
         final Model.Channel ch = Lib.byId(id); if (ch == null) return;
-        if (!Epg.list(ch).isEmpty()) return;
-        Epg.ensureShort(c, ch, new Runnable() { public void run() { ev("{\"e\":\"epg\",\"id\":" + q(ch.id) + "}"); } });
+        if (!ch.tvgId.startsWith("stalker:") || !Epg.list(ch).isEmpty() || !shortAsked.add(ch.id)) return;
+        final Model.Source s = Lib.source(c, ch.src); if (s == null) return;
+        shortPool.submit(new Runnable() { public void run() {
+            try { Epg.shortCache.put(ch.id, Stalker.shortEpg(s, ch)); ev("{\"e\":\"epg\",\"id\":" + q(ch.id) + "}"); } catch (Exception ignored) {}
+        }});
     }
 
     // ------------------------------------------------------------ Laden
     @JavascriptInterface public void reload() { new Thread(new Runnable() { public void run() { reloadAll(); } }).start(); }
     void reloadAll() {
         ev("{\"e\":\"loading\"}");
-        Lib.reload(c);
+        Lib.reload(c); ver++; channels();
         ev("{\"e\":\"channels\"}");
         reloadEpg();
     }
-    void reloadEpg() { Epg.reload(c); ev("{\"e\":\"epg\"}"); }
+    void reloadEpg() { Epg.reload(c); ver++; channels(); ev("{\"e\":\"epg\"}"); }   // neue Logos aus dem EPG
 
     // ------------------------------------------------------------ Abspielen
     static final class Try { Model.Channel ch; int mac; String label; }

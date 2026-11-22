@@ -53,7 +53,9 @@ const MXTV = {
       if (window.LIVE) { LIVE.load(); LIVE.refresh(); }
     } finally { MXTV.building = false; }
   },
+  ver: 0,
   set(list) {
+    MXTV.ver++;
     MXTV.ch = list.map((c, k) => Object.assign({ id: 'mx:' + c.key, num: '', group: MXG, logos: [], src: 'mx' }, c));
     MXTV.byId = {}; for (const c of MXTV.ch) { MXTV.byId[c.id] = c; c._plan = null; }
   },

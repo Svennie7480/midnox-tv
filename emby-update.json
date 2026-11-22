@@ -1,6 +1,6 @@
 {
- "versionCode": 12,
- "versionName": "2.2",
+ "versionCode": 13,
+ "versionName": "2.2.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neu: Live-TV direkt in midnox Media – deine Stalker-Portale, Xtream- und M3U-Sender mit Programmführer, Favoriten und Zappen (▲▼). Einstellungen werden mit einem Klick aus midnox Live übernommen. Dazu „midnox TV“: eigene Fernsehsender aus deiner Sammlung (Serien-Marathon, Filmabend, Action, Spannung …), die rund um die Uhr laufen – einschalten und es läuft schon etwas."
+ "notes": "Live-TV deutlich schneller: Die Senderliste wird nur noch einmal vorbereitet statt bei jedem Öffnen, Gruppen wechseln ohne Hänger, Programminfos werden gebündelt geladen. Community: Beim schnellen Wechseln der Reiter erscheinen keine zwei Bereiche mehr übereinander."
 }

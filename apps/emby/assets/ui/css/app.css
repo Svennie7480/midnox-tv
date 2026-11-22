@@ -920,3 +920,13 @@ body.kids .card.focused { box-shadow: 0 0 0 .35rem #fff, 0 0 0 .9rem rgba(251,19
 .lvlogo.mx i { font-style: normal; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); }
 .lvlogo.big.mx span { font-size: 2.8rem; }
 .lvlogo.big.mx i { font-size: .95rem; }
+
+/* Mein midnox – Live-TV */
+.card.lvst { width: 30rem; height: 11rem; display: flex; flex-direction: column; justify-content: center; gap: .3rem; padding: 1.4rem 1.8rem; background: rgba(255,255,255,.05); border: .1rem solid var(--line); }
+.card.lvst > b { font-size: 2.6rem; font-weight: 850; letter-spacing: -.02em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.card.lvst small { font-size: 1.1rem; color: var(--mut); line-height: 1.35; }
+.card.lvst.ch { flex-direction: row; align-items: center; justify-content: flex-start; gap: 1.2rem; width: 32rem; }
+.card.lvst.ch .pl { font-size: 2rem; width: 3rem; text-align: center; font-weight: 800; }
+.card.lvst.ch .lvlogo { width: 7rem; height: 5rem; flex: none; }
+.card.lvst.ch .tx b { display: block; font-size: 1.5rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 17rem; }
+.wslide.s-live .bars { width: 80rem; } .wslide.s-live .br span { width: 26rem; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .wslide.s-live .br i { max-width: calc(100% - 27.6rem); }

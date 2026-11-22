@@ -539,3 +539,87 @@ const TVP = {
   },
 };
 window.LIVE = LIVE; window.TVP = TVP; window.LIVESET = LIVESET;
+
+// ---------------------------------------------------------------- Live-TV-Statistik & Errungenschaften
+/** Zählt nur auf dem Gerät mit, was live geschaut wird (je Jahr): Sender, Uhrzeit, Sparte, Umschalten. */
+const LVSTAT = {
+  CATS: {
+    sport: ['sport', 'bundesliga', 'fußball', 'fussball', 'dazn', 'eurosport', 'tennis', 'formel 1', 'formel1', 'f1 ', 'motogp', 'handball', 'basketball', 'eishockey', 'nfl', 'nba', 'nhl', 'champions league', 'europa league', 'dfb', 'pokal', 'boxen', 'ufc', 'darts', 'biathlon', 'skispringen', 'olympia', 'wm ', 'em ', 'liga', 'radsport', 'tour de france', 'magenta sport', 'sportschau', 'sportstudio'],
+    news: ['nachrichten', 'news', 'tagesschau', 'tagesthemen', 'heute journal', 'heute-journal', 'n-tv', 'ntv', 'welt', 'phoenix', 'cnn', 'bbc', 'euronews', 'brennpunkt', 'pressekonferenz', 'wetter', 'rtl aktuell', 'sat.1 nachrichten'],
+    kids: ['kinder', 'kids', 'kika', 'nick', 'disney', 'toggo', 'super rtl', 'cartoon', 'junior', 'maus', 'sesamstraße', 'peppa', 'paw patrol', 'boomerang', 'baby'],
+    doc: ['doku', 'documentary', 'discovery', 'dmax', 'n24', 'history', 'terra x', 'national geographic', 'nat geo', 'natgeo', 'galileo', 'planet', 'universum', 'wissen', 'animal', 'spiegel tv', 'zdfinfo', 'ard-alpha', 'curiosity'],
+    music: ['musik', 'music', 'mtv', 'viva', 'deluxe', 'konzert', 'schlager', 'radio', 'hits', 'vh1'],
+    movie: ['film', 'kino', 'cinema', 'movie', 'spielfilm', 'tnt', 'sky cinema', 'filmabend', 'tatort'],
+  },
+  NAMES: { sport: 'Sport', news: 'Nachrichten', kids: 'Kinder', doc: 'Doku & Wissen', music: 'Musik', movie: 'Filme', show: 'Shows & Serien' },
+  d: null, key: '', sessId: '', sessS: 0, t: 0,
+  store() {
+    const k = 'lvst_' + ((window.EMBY && EMBY.user && EMBY.user.id) || 'x');
+    if (LVSTAT.key !== k) { LVSTAT.key = k; try { LVSTAT.d = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { LVSTAT.d = null; } if (!LVSTAT.d || !LVSTAT.d.y) LVSTAT.d = { y: {}, maxSess: 0 }; }
+    return LVSTAT.d;
+  },
+  save() { try { localStorage.setItem(LVSTAT.key, JSON.stringify(LVSTAT.d)); } catch (e) {} },
+  year(d) { const y = String(new Date().getFullYear()); return d.y[y] || (d.y[y] = { s: 0, ch: {}, h: new Array(24).fill(0), cat: {}, zaps: 0, pt: {}, am: {}, mx: 0 }); },
+  cat(c, p) {
+    const has = (txt, list) => { txt = ' ' + (txt || '').toLowerCase() + ' '; return list.some(w => txt.indexOf(w) >= 0); };
+    for (const src of [c.group + ' ' + c.name, p ? p[2] + ' ' + (p[3] || '').slice(0, 120) : ''])   // Spartensender zuerst, sonst die laufende Sendung
+      for (const k of ['sport', 'news', 'kids', 'doc', 'music', 'movie']) if (src.trim() && has(src, LVSTAT.CATS[k])) return k;
+    return 'show';
+  },
+  /** alle 10 s während Live-TV läuft */
+  tick() {
+    const now = Date.now(), dt = Math.min(15, (now - (LVSTAT.t || now)) / 1000); LVSTAT.t = now;
+    if (!TVP.active || !TVP.ready || document.hidden || (window.ADAPTER && ADAPTER.playing === false) || !EMBY.user || !dt) return;
+    const id = TVP.id, c = LIVE.byId[id]; if (!c) return;
+    const d = LVSTAT.store(), y = LVSTAT.year(d), dt0 = new Date(), hr = dt0.getHours(), day = STATS.dayKey(dt0);
+    const p = LIVE.nowNext(id).now, k = LVSTAT.cat(c, p);
+    y.s += dt; y.h[hr] += dt; y.cat[k] = (y.cat[k] || 0) + dt;
+    const e = y.ch[id] || (y.ch[id] = { n: c.name, s: 0 }); e.s += dt; e.n = c.name;
+    if (c.src === 'mx') y.mx += dt;
+    if (hr >= 20 && hr < 23) y.pt[day] = (y.pt[day] || 0) + dt;
+    if (hr >= 6 && hr < 9) y.am[day] = (y.am[day] || 0) + dt;
+    if (LVSTAT.sessId !== id) { LVSTAT.sessId = id; LVSTAT.sessS = 0; }
+    LVSTAT.sessS += dt; if (LVSTAT.sessS > d.maxSess) d.maxSess = LVSTAT.sessS;
+    if ((LVSTAT._n = (LVSTAT._n || 0) + 1) % 3 === 0) { LVSTAT.save(); STATS.soon(); }
+  },
+  zap() { const d = LVSTAT.store(); LVSTAT.year(d).zaps++; },
+  /** Kennzahlen für ein Jahr (0 = insgesamt) */
+  calc(year) {
+    const d = LVSTAT.store(), ys = year ? [d.y[String(year)]].filter(Boolean) : Object.values(d.y);
+    const r = { s: 0, ch: {}, h: new Array(24).fill(0), cat: {}, zaps: 0, pt: 0, am: 0, mx: 0 };
+    for (const y of ys) {
+      r.s += y.s; r.zaps += y.zaps; r.mx += y.mx || 0;
+      for (const i in y.ch) { const e = r.ch[i] || (r.ch[i] = { id: i, n: y.ch[i].n, s: 0 }); e.s += y.ch[i].s; }
+      y.h.forEach((v, i) => { r.h[i] += v; }); for (const k in y.cat) r.cat[k] = (r.cat[k] || 0) + y.cat[k];
+      r.pt += Object.values(y.pt).filter(v => v >= 900).length; r.am += Object.values(y.am).filter(v => v >= 600).length;
+    }
+    r.top = Object.values(r.ch).sort((a, b) => b.s - a.s);
+    r.cats = Object.keys(r.cat).map(k => ({ k, n: LVSTAT.NAMES[k] || k, s: r.cat[k] })).sort((a, b) => b.s - a.s);
+    let ph = 0; r.h.forEach((v, i) => { if (v > r.h[ph]) ph = i; }); r.peak = r.s ? ph : -1;
+    r.H = (x) => Math.floor(x / 3600);
+    r.hours = r.H(r.s); r.chans = r.top.filter(c => c.s >= 300).length; r.fav = r.top[0] ? r.H(r.top[0].s) : 0;
+    r.maxSess = d.maxSess || 0;
+    return r;
+  },
+  /** Uhrzeit als Wort */
+  when(h) { return h < 0 ? '–' : h < 6 ? 'nachts' : h < 11 ? 'morgens' : h < 14 ? 'mittags' : h < 18 ? 'nachmittags' : h < 23 ? 'abends' : 'spätabends'; },
+};
+window.LVSTAT = LVSTAT;
+if (HAS_LIVE) {
+  setInterval(LVSTAT.tick, 10000);
+  const z0 = TVP.zap; TVP.zap = function (d) { LVSTAT.zap(); return z0.apply(this, arguments); };
+  const L = (y) => LVSTAT.calc(y);
+  ACH.push(
+    { id: 'live', live: 1, icon: '📡', name: 'Fernsehgucker', d: '{n} Stunden Live-TV geschaut', lv: [2, 10, 50, 150], v: () => L(0).hours },
+    { id: 'livesport', live: 1, icon: '⚽', name: 'Stadionstimme', d: '{n} Stunden Sport live', lv: [1, 5, 20, 60], v: () => L(0).H(L(0).cat.sport || 0) },
+    { id: 'livenews', live: 1, icon: '📰', name: 'Bestens informiert', d: '{n} Stunden Nachrichten live', lv: [1, 5, 15, 40], v: () => L(0).H(L(0).cat.news || 0) },
+    { id: 'livedoku', live: 1, icon: '🌍', name: 'Wissensdurst', d: '{n} Stunden Dokus & Wissen live', lv: [1, 5, 15, 40], v: () => L(0).H(L(0).cat.doc || 0) },
+    { id: 'livesender', live: 1, icon: '🗺️', name: 'Senderjäger', d: '{n} verschiedene Sender geschaut (je 5 Min.)', lv: [5, 20, 50, 100], v: () => L(0).chans },
+    { id: 'stammsender', live: 1, icon: '❤️', name: 'Stammsender', d: '{n} Stunden auf deinem Lieblingssender', lv: [3, 15, 50, 120], v: () => L(0).fav },
+    { id: 'zapper', live: 1, icon: '🔀', name: 'Zapper', d: '{n}× umgeschaltet', lv: [25, 150, 500, 1500], v: () => L(0).zaps },
+    { id: 'primetime', live: 1, icon: '🌙', name: 'Primetime', d: '{n} Abende live zwischen 20 und 23 Uhr', lv: [3, 10, 30, 80], v: () => L(0).pt },
+    { id: 'fruehstueck', live: 1, icon: '☕', name: 'Frühstücksfernsehen', d: '{n} Morgen live zwischen 6 und 9 Uhr', lv: [1, 5, 15, 40], v: () => L(0).am },
+    { id: 'sitzfleisch', live: 1, icon: '🪑', name: 'Sitzfleisch', d: '{n} Stunden am Stück auf einem Sender', lv: [1, 2, 3, 5], v: () => Math.floor(L(0).maxSess / 3600) },
+    { id: 'mxtv', live: 1, icon: '📼', name: 'Dauersender', d: '{n} Stunden auf den midnox TV-Kanälen', lv: [1, 5, 20, 50], v: () => L(0).H(L(0).mx) },
+  );
+}

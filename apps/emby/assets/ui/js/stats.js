@@ -186,7 +186,7 @@ const STATS = {
     }
     STATS.got = got; STORE.set('ach_' + EMBY.user.id, got); STORE.set('ach_init_' + EMBY.user.id, true);
     const y = STATS.calc(STATS.data.year);
-    if (COMM.ok) COMM.call('ach', { got, year: STATS.data.year, sum: { hours: y.hours, movies: y.movies, episodes: y.episodes, binge: y.binge, streak: y.streak, topGenre: (y.genres[0] || {}).g || '', persona: y.persona.t, topSeries: (y.topSeries[0] || {}).name || '' } }).catch(() => {});
+    if (COMM.ok) COMM.call('ach', { got, year: STATS.data.year, sum: { hours: y.hours, movies: y.movies, episodes: y.episodes, binge: y.binge, streak: y.streak, topGenre: (y.genres[0] || {}).g || '', persona: y.persona.t, topSeries: (y.topSeries[0] || {}).name || '', liveH: window.LVSTAT ? LVSTAT.calc(STATS.data.year).hours : 0, topChannel: window.LVSTAT ? ((LVSTAT.calc(STATS.data.year).top[0] || {}).n || '') : '' } }).catch(() => {});
     if (!fresh.length) return;
     if (first) { UI.toast(fresh.length + ' Errungenschaften aus deiner Emby-Historie freigeschaltet!', { icon: '🏆' }); return; }
     for (const f of fresh) STATS.fresh.push(f);

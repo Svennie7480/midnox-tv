@@ -1,6 +1,6 @@
 {
- "versionCode": 13,
- "versionName": "2.2.1",
+ "versionCode": 14,
+ "versionName": "2.3",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Live-TV deutlich schneller: Die Senderliste wird nur noch einmal vorbereitet statt bei jedem Öffnen, Gruppen wechseln ohne Hänger, Programminfos werden gebündelt geladen. Community: Beim schnellen Wechseln der Reiter erscheinen keine zwei Bereiche mehr übereinander."
+ "notes": "Neu: Live-TV-Errungenschaften – Fernsehgucker, Stadionstimme (Sport), Bestens informiert (Nachrichten), Wissensdurst (Dokus), Senderjäger, Stammsender, Zapper, Primetime, Frühstücksfernsehen, Sitzfleisch und Dauersender. Unter „Mein midnox“ siehst du deine meistgeschauten Sender, deine Lieblingszeit und Lieblingssparte, und der Jahresrückblick hat eine eigene Live-TV-Folie. Außerdem startet die App schneller: Die Senderliste blockiert die Oberfläche nicht mehr."
 }

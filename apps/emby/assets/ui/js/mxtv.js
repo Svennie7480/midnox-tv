@@ -48,8 +48,9 @@ const MXTV = {
         out.push({ key: d.key, name: d.name, emoji: d.emoji, mode: d.mode || '', items: pool.map(slim) });
       }
       // „Filmabend“ weglassen, wenn es nur einen Filmkanal gäbe, der identisch wäre
-      localStorage.setItem(ck, JSON.stringify({ at: Date.now(), ch: out }));
       MXTV.set(out);
+      try { localStorage.setItem(ck, JSON.stringify({ at: Date.now(), ch: out })); }   // große Sammlungen: Speicher kann voll sein
+      catch (e) { try { localStorage.setItem(ck, JSON.stringify({ at: Date.now(), ch: out.map(c => Object.assign({}, c, { items: c.items.map(i => Object.assign({}, i, { o: '' })) })) })); } catch (x) {} }
       if (window.LIVE) { LIVE.load(); LIVE.refresh(); }
     } finally { MXTV.building = false; }
   },

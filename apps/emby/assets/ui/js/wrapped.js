@@ -76,6 +76,26 @@ ROUTER.reg('me', async (scr) => {
     grid.appendChild(c);
   }
   rows.appendChild(ar);
+  // Live-TV
+  if (window.LVSTAT && HAS_LIVE) {
+    const L = LVSTAT.calc(0);
+    if (L.s >= 600) {
+      const lr = h('div', 'row lvme'); lr.setAttribute('data-vsi', ''); lr.setAttribute('data-mem', '');
+      lr.appendChild(h('h2', '', 'Dein Live-TV <small>wird auf diesem Gerät mitgezählt</small>'));
+      const tr = h('div', 'track');
+      const hrs = (x) => x >= 3600 ? fmtN(x / 3600) + ' Std.' : fmtN(x / 60) + ' Min.';
+      const card = (html) => tr.appendChild(h('div', 'card lvst f', html));
+      card('<small>Live geschaut</small><b>' + hrs(L.s) + '</b><small>' + fmtN(L.chans) + ' Sender · ' + fmtN(L.zaps) + '× umgeschaltet</small>');
+      card('<small>Lieblingszeit</small><b>' + (L.peak >= 0 ? L.peak + '–' + (L.peak + 1) + ' Uhr' : '–') + '</b><small>meistens ' + LVSTAT.when(L.peak) + '</small>');
+      if (L.cats[0]) card('<small>Lieblingssparte</small><b>' + esc(L.cats[0].n) + '</b><small>' + L.cats.slice(0, 3).map(c => esc(c.n) + ' ' + Math.round(c.s / L.s * 100) + ' %').join(' · ') + '</small>');
+      L.top.slice(0, 5).forEach((c, i) => {
+        const ch = LIVE.byId[c.id]; const e = h('div', 'card lvst ch f', '<div class="pl">' + (['🥇', '🥈', '🥉'][i] || (i + 1) + '.') + '</div><div class="tx"><b>' + esc(c.n) + '</b><small>' + hrs(c.s) + '</small></div>');
+        if (ch) e.insertBefore(LIVE.logo(ch), e.querySelector('.tx'));
+        if (ch) e._ok = () => TVP.play(c.id, L.top.map(x => x.id).filter(x => LIVE.byId[x])); tr.appendChild(e);
+      });
+      lr.appendChild(tr); rows.appendChild(lr);
+    }
+  }
   // Rangliste
   if (COMM.ok) {
     try {
@@ -147,6 +167,13 @@ ROUTER.reg('wrapped', async (scr, arg) => {
     add('s-comm', '<div class="kick">Du und die Runde</div><h1>Allein gucken ist <span>nur halb so schön.</span></h1><div class="grid4">'
       + [[s.ratings, 'Bewertungen', '⭐'], [s.chat, 'Chat-Nachrichten', '💬'], [s.partyHost + s.partyJoin, 'Watch-Partys', '🍿'], [s.matches, 'Matches ausgesucht', '💜']].map(x => '<div><span>' + x[2] + '</span><b class="cnt" data-n="' + x[0] + '">0</b><small>' + x[1] + '</small></div>').join('') + '</div>'
       + (s.bestRating && s.bestRating.name ? '<p>Deine Top-Bewertung: <b>' + esc(s.bestRating.name) + '</b> mit ' + '★'.repeat(Math.round(s.bestRating.s / 2)) + (s.bestRating.c ? ' – „' + esc(s.bestRating.c) + '“' : '') + '</p>' : ''));
+  }
+  if (window.LVSTAT && HAS_LIVE) {
+    const L = LVSTAT.calc(year);
+    if (L.s >= 3600) {
+      const tc = L.top.slice(0, 5), mxs = tc[0] ? tc[0].s : 1;
+      add('s-genre s-live', '<div class="kick">Live-TV</div><h1>' + count(L.hours) + ' Stunden live – am liebsten <span>' + esc(tc[0].n) + '</span></h1><div class="bars">' + tc.map((c, i) => '<div class="br"><span>' + esc(c.n) + '</span><i style="--w:' + Math.max(6, c.s / mxs * 100) + '%;--d:' + i * .12 + 's"></i></div>').join('') + '</div><p>' + (L.cats[0] ? 'Lieblingssparte: ' + esc(L.cats[0].n) + '. ' : '') + fmtN(L.zaps) + '× umgeschaltet' + (L.peak >= 0 ? ', meistens ' + LVSTAT.when(L.peak) + '.' : '.') + '</p>');
+    }
   }
   add('s-persona', '<div class="kick">Dein Gucker-Typ ' + year + '</div><div class="pe">' + s.persona.e + '</div><h1><span>' + esc(s.persona.t) + '</span></h1><p>' + esc(s.persona.d) + '</p>');
   const gotY = Object.keys(STATS.got).filter(k => new Date(STATS.got[k].t * 1000).getFullYear() === year).map(k => ({ a: ACH.find(a => a.id === k), l: STATS.got[k].lv })).filter(x => x.a).sort((a, b) => b.l - a.l);

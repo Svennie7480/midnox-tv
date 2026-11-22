@@ -19,7 +19,7 @@ public class LiveBridge {
     final Context c; final Out out;
     volatile boolean ready;
     volatile int ver = 1;          // steigt, wenn sich die Senderliste aendert
-    String chJson; int chVer = -1;  // fertige Senderliste fuer die Oberflaeche
+    volatile String chJson; volatile int chVer = -1; final Object buildLock = new Object();  // fertige Senderliste fuer die Oberflaeche
 
     public LiveBridge(Context ctx, Out o) {
         c = ctx.getApplicationContext(); out = o;
@@ -28,7 +28,7 @@ public class LiveBridge {
             Lib.loadCache(c);
             for (Model.Source s : Lib.sources(c)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(c).getInt("mac_" + s.id, 0));
             Epg.loadOverrides(c); Epg.loadCache(c); Logos.load(c);
-            ready = true; ver++; channels();   // Liste schon im Hintergrund vorbereiten
+            ready = true; ver++; build();   // Liste schon im Hintergrund vorbereiten
             ev("{\"e\":\"cache\"}");
             if (Lib.sources(c).isEmpty()) importLocal(true);                    // erster Start: still aus midnox Live uebernehmen
             else if (Lib.channels.isEmpty() || Lib.stale()) reloadAll();
@@ -56,9 +56,12 @@ public class LiveBridge {
     }
 
     /** Alle sichtbaren Sender: [id, name, gruppe, nummer, logos (mit | getrennt), quelle]. */
-    @JavascriptInterface public int ver() { return ver; }
-    @JavascriptInterface public synchronized String channels() {
-        if (chJson != null && chVer == ver) return chJson;
+    /** Stand der fertigen Liste – die Oberflaeche wartet nie auf einen Neuaufbau. */
+    @JavascriptInterface public int ver() { return chVer; }
+    @JavascriptInterface public String channels() { String j = chJson; if (j == null) { build(); j = chJson; } return j; }
+    void build() { synchronized (buildLock) { buildLocked(); } }
+    private void buildLocked() {
+        if (chJson != null && chVer == ver) return;
         int v = ver;
         JSONArray a = new JSONArray();
         for (Model.Channel ch : Lib.channels) {
@@ -67,7 +70,6 @@ public class LiveBridge {
             a.put(r);
         }
         chJson = a.toString(); chVer = v;
-        return chJson;
     }
     @JavascriptInterface public String groups() { return new JSONArray(Lib.groups).toString(); }
     @JavascriptInterface public String sourceNames() { return new JSONObject(Lib.srcNames).toString(); }
@@ -104,11 +106,11 @@ public class LiveBridge {
     @JavascriptInterface public void reload() { new Thread(new Runnable() { public void run() { reloadAll(); } }).start(); }
     void reloadAll() {
         ev("{\"e\":\"loading\"}");
-        Lib.reload(c); ver++; channels();
+        Lib.reload(c); ver++; build();
         ev("{\"e\":\"channels\"}");
         reloadEpg();
     }
-    void reloadEpg() { Epg.reload(c); ver++; channels(); ev("{\"e\":\"epg\"}"); }   // neue Logos aus dem EPG
+    void reloadEpg() { Epg.reload(c); ver++; build(); ev("{\"e\":\"epg\"}"); }   // neue Logos aus dem EPG
 
     // ------------------------------------------------------------ Abspielen
     static final class Try { Model.Channel ch; int mac; String label; }

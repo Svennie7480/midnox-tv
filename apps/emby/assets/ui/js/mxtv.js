@@ -21,17 +21,25 @@ const MXTV = {
   MIN_ITEMS: 5, MIN_HOURS: 6, MIN_MOVIE: 20 * 60e3, MIN_EP: 5 * 60e3,
 
   /** Kanäle aus der Bibliothek zusammenstellen (einmal am Tag, im Speicher des Geräts). */
+  /** nacheinander statt gleichzeitig – der Emby-Server bleibt für die Startseite frei */
+  async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
     const ck = 'mxtv_' + EMBY.user.id;
-    if (!force) { try { const c = JSON.parse(localStorage.getItem(ck) || 'null'); if (c && Date.now() - c.at < 20 * 3600e3) { MXTV.set(c.ch); return; } } catch (e) {} }
+    if (!force) {
+      try {
+        const c = JSON.parse(localStorage.getItem(ck) || 'null');
+        // vorhandenen Plan sofort nutzen; ist er älter als einen Tag, später in Ruhe neu bauen
+        if (c && c.ch) { MXTV.set(c.ch); if (Date.now() - c.at > 24 * 3600e3) setTimeout(() => MXTV.init(true), 3 * 60e3); return; }
+      } catch (e) {}
+    }
     MXTV.building = true;
     try {
-      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Overview', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false };
-      const [mv, ep, se] = await Promise.all([
-        EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
-        EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
-        EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres', Limit: 4000 }).catch(() => ({})),
+      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
+      const [mv, ep, se] = await MXTV.seq([
+        () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
+        () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
+        () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres', Limit: 4000 }).catch(() => ({})),
       ]);
       const sg = {}; for (const s of (se.Items || [])) sg[s.Id] = s.Genres || [];
       const slim = (i) => ({ i: i.Id, n: i.Name, s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '' });
@@ -95,7 +103,7 @@ const MXTV = {
   progs(id, from, to) {
     const c = MXTV.byId[id]; if (!c) return [];
     const out = []; let t = from, guard = 0;
-    while (t < to && guard++ < 4000) { const a = MXTV.at(c, t); if (!a) break; out.push([a.start, a.stop, a.it.n, (a.it.s ? a.it.s + ' – ' : '') + a.it.o]); t = a.stop + 1; }
+    while (t < to && guard++ < 4000) { const a = MXTV.at(c, t); if (!a) break; out.push([a.start, a.stop, a.it.n, (a.it.s || '') + (a.it.s && a.it.o ? ' – ' : '') + (a.it.o || '')]); t = a.stop + 1; }
     return out;
   },
   // ---- Abspielen (über den Live-Player) ----

@@ -7,17 +7,22 @@ const FAVG = '★ Favoriten', ALLG = 'Alle Sender';
 const LIVE = {
   ch: [], byId: {}, groups: [], favs: [], names: {}, st: {}, ver: 0, epgC: {},
   enabled() { return HAS_LIVE && EMBY.settings().liveOn !== false && !(window.KIDS && KIDS.on); },
-  byGroup: {}, _jv: -1, _mv: -1,
+  byGroup: {}, _jv: -1, _mv: -1, want: false,
+  /** midnox-TV-Kanäle (fragen die ganze Emby-Bibliothek ab) erst bauen, wenn Live-TV geöffnet wird */
+  wantMx() { LIVE.want = true; if (window.MXTV && !MXTV.ch.length && !MXTV.building && !MXTV.tried && window.EMBY && EMBY.user) { MXTV.tried = true; MXTV.init(); } },
+  /** Live-TV wird gleich gebraucht: Daten im Hintergrund vorbereiten */
+  open() { LIVE.want = true; if (HAS_LIVE && Live.warm) Live.warm(); LIVE.load(); },
   /** Senderliste holen – nur wenn sie sich geändert hat (große Portale haben zehntausende Sender). */
   load(force) {
     if (!HAS_LIVE) return;
     try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (e) { LIVE.st = {}; }
     const jv = Live.ver ? Live.ver() : 0, mv = window.MXTV ? MXTV.ver : 0;
-    if (!force && jv === LIVE._jv && mv === LIVE._mv && (LIVE.ch.length || !LIVE.st.count)) { if (window.MXTV && !MXTV.ch.length && !MXTV.building && window.EMBY && EMBY.user) MXTV.init(); return; }
+    if (LIVE.want) LIVE.wantMx();
+    if (!force && jv === LIVE._jv && mv === LIVE._mv && (LIVE.ch.length || !LIVE.st.count)) return;
     LIVE._jv = jv; LIVE._mv = mv;
     let raw = []; try { raw = JSON.parse(Live.channels() || '[]'); } catch (e) {}
     LIVE.ch = raw.map(r => ({ id: r[0], name: r[1], group: r[2], num: r[3], logos: r[4] ? r[4].split('|').filter(Boolean) : [], src: r[5] }));
-    if (window.MXTV) { if (!MXTV.ch.length && !MXTV.building && window.EMBY && EMBY.user) MXTV.init(); LIVE.ch = MXTV.ch.concat(LIVE.ch); }   // eigene Kanäle zuerst
+    if (window.MXTV) LIVE.ch = MXTV.ch.concat(LIVE.ch);   // eigene Kanäle zuerst
     LIVE.byId = {}; LIVE.byGroup = {};
     for (const c of LIVE.ch) { LIVE.byId[c.id] = c; (LIVE.byGroup[c.group] || (LIVE.byGroup[c.group] = [])).push(c); }
     try { LIVE.groups = JSON.parse(Live.groups() || '[]'); } catch (e) { LIVE.groups = []; }
@@ -28,7 +33,7 @@ const LIVE = {
   },
   ev(e) {
     switch (e.e) {
-      case 'cache': case 'channels': LIVE.load(); LIVE.refresh(); break;
+      case 'cache': case 'channels': LIVE.load(); LIVE.refresh(); { const t = ROUTER.top(); if (t && t.name === 'home' && window.APP) APP.dirty = true; } break;
       case 'loading': try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} LIVE.refresh(true); break;
       case 'epg':
         if (e.id) delete LIVE.epgC[e.id]; else { LIVE.epgC = {}; try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} if (!e.id && Live.ver && Live.ver() !== LIVE._jv) LIVE.load(); }
@@ -42,6 +47,11 @@ const LIVE = {
   refresh(soft) {
     const t = ROUTER.top(); if (t && (t.name === 'live' || t.name === 'liveguide') && t.refresh) t.refresh(soft);
     if (t && t.name === 'home' && window.APP) APP.dirty = true;
+  },
+  /** Startseiten-Reihe nachreichen, wenn die App ruhig läuft (nicht beim Start) */
+  later() {
+    if (LIVE._lt) return;
+    LIVE._lt = setTimeout(() => { if (HAS_LIVE && Live.warm) Live.warm(); }, 40000);
   },
   isFav(id) { return LIVE.favs.indexOf(id) >= 0; },
   toggleFav(id) { const on = Live.fav(id); LIVE.favs = JSON.parse(Live.favs() || '[]'); UI.toast(on ? 'Zu den Favoriten hinzugefügt' : 'Aus den Favoriten entfernt', { icon: on ? '★' : '☆' }); return on; },
@@ -82,8 +92,7 @@ const LIVE = {
   // ---- Startseite: Reihe „Live-TV · Läuft gerade“ ----
   homeRow(focus) {
     if (!LIVE.enabled()) return null;
-    if (!LIVE.ch.length) LIVE.load();
-    if (!LIVE.ch.length) return null;
+    if (!LIVE.ch.length) { LIVE.later(); return null; }
     let list = LIVE.favs.map(id => LIVE.byId[id]).filter(Boolean);
     const last = LIVE.last(); if (last && LIVE.byId[last] && list.indexOf(LIVE.byId[last]) < 0) list.unshift(LIVE.byId[last]);
     if (!list.length) list = LIVE.ch.slice(0, 12);
@@ -110,7 +119,7 @@ ROUTER.reg('live', async (scr, arg) => {
   BG.set(null); BG.dim(true);
   const el = scr.el; el.innerHTML = ''; el.classList.add('livepage');
   if (!HAS_LIVE) { el.innerHTML = '<div class="empty">Live-TV gibt es in der midnox-Media-App auf Fernseher, Handy und Tablet.</div>'; return; }
-  LIVE.load();
+  LIVE.open();
   let grp = localStorage.getItem('lv_grp') || '';
   let shown = 0, cur = [], lastVer = -1;
 
@@ -242,6 +251,7 @@ ROUTER.reg('liveguide', async (scr, arg) => {
   BG.set(null); BG.dim(true);
   const el = scr.el; el.innerHTML = ''; el.classList.add('guidepage');
   if (!HAS_LIVE) return;
+  LIVE.open();
   const SPAN = 3 * 3600e3; let PX = 0.3;   // 3 Stunden sichtbar; PX = rem pro Minute (passt sich der Breite an)
   let t0 = Math.floor((Date.now() - 30 * 60e3) / 1800e3) * 1800e3;
   const grp = (arg && arg.group) || localStorage.getItem('lv_grp') || ALLG;
@@ -312,7 +322,7 @@ ROUTER.reg('liveguide', async (scr, arg) => {
 // ======================================================================= Einrichtung
 const LIVESET = {
   open() {
-    LIVE.load();
+    LIVE.open();
     return UI.modal((box, close) => {
       box.style.minWidth = '64rem';
       box.appendChild(h('h2', '', 'Live-TV einrichten'));

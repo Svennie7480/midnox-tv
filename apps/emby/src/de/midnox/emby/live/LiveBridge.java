@@ -21,18 +21,26 @@ public class LiveBridge {
     volatile int ver = 1;          // steigt, wenn sich die Senderliste aendert
     volatile String chJson; volatile int chVer = -1; final Object buildLock = new Object();  // fertige Senderliste fuer die Oberflaeche
 
+    final Object wake = new Object(); volatile boolean woken;
+    /** von der Oberflaeche: Live-TV wird gebraucht → sofort laden */
+    @JavascriptInterface public void warm() { if (woken) return; synchronized (wake) { woken = true; wake.notifyAll(); } }
     public LiveBridge(Context ctx, Out o) {
         c = ctx.getApplicationContext(); out = o;
         U.init(c);
-        new Thread(new Runnable() { public void run() {
+        // Live-TV startet nicht mit der App: erst wenn die Oberflaeche danach fragt oder nach 45 s Ruhe – mit niedriger Prioritaet
+        new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+            synchronized (wake) { if (!woken) try { wake.wait(45000); } catch (InterruptedException ignored) {} }
             Lib.loadCache(c);
             for (Model.Source s : Lib.sources(c)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(c).getInt("mac_" + s.id, 0));
             Epg.loadOverrides(c); Epg.loadCache(c); Logos.load(c);
             ready = true; ver++; build();   // Liste schon im Hintergrund vorbereiten
             ev("{\"e\":\"cache\"}");
             if (Lib.sources(c).isEmpty()) importLocal(true);                    // erster Start: still aus midnox Live uebernehmen
-            else if (Lib.channels.isEmpty() || Lib.stale()) reloadAll();
-            else if (Epg.stale()) reloadEpg();
+            else if (Lib.channels.isEmpty()) reloadAll();
+            else {   // veraltete Listen/Programm erst auffrischen, wenn die App eine Weile laeuft
+                try { Thread.sleep(woken ? 20000 : 60000); } catch (InterruptedException ignored) {}
+                if (Lib.stale()) reloadAll(); else if (Epg.stale()) reloadEpg();
+            }
         }}, "live-init").start();
     }
 
@@ -58,7 +66,7 @@ public class LiveBridge {
     /** Alle sichtbaren Sender: [id, name, gruppe, nummer, logos (mit | getrennt), quelle]. */
     /** Stand der fertigen Liste – die Oberflaeche wartet nie auf einen Neuaufbau. */
     @JavascriptInterface public int ver() { return chVer; }
-    @JavascriptInterface public String channels() { String j = chJson; if (j == null) { build(); j = chJson; } return j; }
+    @JavascriptInterface public String channels() { warm(); String j = chJson; if (j == null) { if (!ready) return "[]"; build(); j = chJson; } return j; }
     void build() { synchronized (buildLock) { buildLocked(); } }
     private void buildLocked() {
         if (chJson != null && chVer == ver) return;
@@ -103,7 +111,7 @@ public class LiveBridge {
     }
 
     // ------------------------------------------------------------ Laden
-    @JavascriptInterface public void reload() { new Thread(new Runnable() { public void run() { reloadAll(); } }).start(); }
+    @JavascriptInterface public void reload() { new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY); reloadAll(); } }).start(); }
     void reloadAll() {
         ev("{\"e\":\"loading\"}");
         Lib.reload(c); ver++; build();
@@ -134,7 +142,7 @@ public class LiveBridge {
     }
     /** Abspiel-Adresse fuer Versuch k ermitteln; Antwort: {e:"tune", req, k, n, url, ua, ref, label} oder mit err. */
     @JavascriptInterface public void tune(final String req, final String id, final int k) {
-        new Thread(new Runnable() { public void run() {
+        new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
             try {
                 Model.Channel ch = Lib.byId(id);
                 if (ch == null) throw new Exception("Sender nicht gefunden");
@@ -201,7 +209,7 @@ public class LiveBridge {
     static final Uri LIVE_EXPORT = Uri.parse("content://de.midnox.live.export/all");
     boolean liveInstalled() { try { c.getPackageManager().getPackageInfo("de.midnox.live", 0); return true; } catch (Exception e) { return false; } }
     /** Liest die Einstellungen der midnox-Live-App auf diesem Geraet (gleiche Signatur noetig). */
-    @JavascriptInterface public void importLocal() { new Thread(new Runnable() { public void run() { importLocal(false); } }).start(); }
+    @JavascriptInterface public void importLocal() { new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY); importLocal(false); } }).start(); }
     void importLocal(boolean quiet) {
         String msg;
         try {
@@ -220,14 +228,14 @@ public class LiveBridge {
     }
     /** midnox-Live-Geraete im Netzwerk suchen (Quickübertragen). */
     @JavascriptInterface public void peers() {
-        new Thread(new Runnable() { public void run() {
+        new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
             JSONArray a = new JSONArray();
             for (LiveSync.Peer p : LiveSync.discover()) try { a.put(new JSONObject().put("name", p.name).put("ip", p.ip).put("port", p.port).put("count", p.count)); } catch (Exception ignored) {}
             ev("{\"e\":\"peers\",\"list\":" + a + "}");
         }}).start();
     }
     @JavascriptInterface public void pull(final String ip, final int port, final String pin) {
-        new Thread(new Runnable() { public void run() {
+        new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
             String msg; boolean ok = false;
             try { int n = LiveSync.pull(c, ip, port, pin); ok = true; msg = n == 0 ? "Schon aktuell" : n + (n == 1 ? " Quelle" : " Quellen") + " übernommen"; if (n > 0) reloadAll(); }
             catch (Exception e) { msg = e.getMessage(); }

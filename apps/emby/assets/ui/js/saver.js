@@ -8,7 +8,7 @@ const SAVER = {
   check() {
     const m = SAVER.minutes();
     if (SAVER.on) { if (Date.now() - SAVER.startedAt > 60 * 60000 && SAVER.awake) SAVER.keepAwake(false); return; }
-    if (!m || !EMBY.user || PLAYER.active || $('#layer .modal')) return;
+    if (!m || !EMBY.user || PLAYER.active || (window.TVP && TVP.active) || (window.ADAPTER && ADAPTER.playing) || $('#layer .modal')) return;   // nie während Live-TV / midnox TV / Wiedergabe
     if (Date.now() - SAVER.last > m * 60000) SAVER.start();
   },
   async start() {

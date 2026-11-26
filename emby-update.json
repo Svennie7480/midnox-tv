@@ -1,6 +1,6 @@
 {
- "versionCode": 20,
- "versionName": "2.6",
+ "versionCode": 21,
+ "versionName": "2.6.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Einstellungen → Live-TV: Jede Art von Live-TV einzeln ein- und ausschalten – Stalker-Portale, Xtream-Codes, M3U-Listen, midnox-TV-Kanäle und waipu.tv. Ausgeschaltete Arten werden gar nicht erst geladen. „Live-TV im Menü“ wirkt jetzt sofort, ohne Neustart; ist Live-TV aus, lädt die App im Hintergrund auch nichts mehr dafür."
+ "notes": "Der eigene Bildschirmschoner (Filmplakate) springt nicht mehr an, während Live-TV oder ein midnox-TV-Kanal läuft."
 }

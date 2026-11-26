@@ -349,6 +349,28 @@ public class MainActivity extends Activity {
             return android.util.Base64.encodeToString(b, s, e - s, android.util.Base64.NO_WRAP);
         }
         @JavascriptInterface public void bifClear() { bifId = ""; bifData = null; bifOff = null; }
+        /** Ist eine der Apps (Kommaliste) installiert? */
+        @JavascriptInterface public boolean hasApp(String pkgs) {
+            for (String p : pkgs.split(",")) try { getPackageManager().getPackageInfo(p.trim(), 0); return true; } catch (Exception e) {}
+            return false;
+        }
+        /** Adresse (z. B. waipu://epg) in der ersten installierten App öffnen; klappt das nicht, die App normal starten */
+        @JavascriptInterface public boolean openApp(String uri, String pkgs) {
+            for (String p : pkgs.split(",")) {
+                p = p.trim();
+                try { getPackageManager().getPackageInfo(p, 0); } catch (Exception e) { continue; }
+                try {
+                    android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(uri));
+                    i.setPackage(p); i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i); return true;
+                } catch (Exception e) {
+                    android.content.Intent l = getPackageManager().getLeanbackLaunchIntentForPackage(p);
+                    if (l == null) l = getPackageManager().getLaunchIntentForPackage(p);
+                    if (l != null) { l.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(l); return true; }
+                }
+            }
+            return false;
+        }
         @JavascriptInterface public boolean openUrl(String url) {
             try {
                 android.content.Intent i = new android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url));

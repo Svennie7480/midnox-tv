@@ -930,3 +930,4 @@ body.kids .card.focused { box-shadow: 0 0 0 .35rem #fff, 0 0 0 .9rem rgba(251,19
 .card.lvst.ch .lvlogo { width: 7rem; height: 5rem; flex: none; }
 .card.lvst.ch .tx b { display: block; font-size: 1.5rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 17rem; }
 .wslide.s-live .bars { width: 80rem; } .wslide.s-live .br span { width: 26rem; flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .wslide.s-live .br i { max-width: calc(100% - 27.6rem); }
+.lvrow.waipu .lvlogo .emo { font-size: 2rem; }

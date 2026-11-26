@@ -206,6 +206,14 @@ public class TvRows implements MediaCard.Listener {
                 return;
             } catch (Exception ignored) {}
         }
+        if (app.startsWith("de.exaring.waipu")) {   // waipu.tv: direkt ins Live-Fernsehen statt auf die Startseite
+            try {
+                Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("waipu://tv"));
+                i.setPackage(app); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                c.startActivity(i);
+                return;
+            } catch (Exception ignored) {}
+        }
         Style.start(c, Style.launchIntent(c.getPackageManager(), app));
     }
 

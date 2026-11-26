@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.emby" android:versionCode="18" android:versionName="2.4.2">
+    package="de.midnox.emby" android:versionCode="19" android:versionName="2.5">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="35"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
@@ -14,6 +14,8 @@
   <uses-permission android:name="de.midnox.permission.SHARE"/>
   <queries>
     <package android:name="de.midnox.live"/>
+    <package android:name="de.exaring.waipu.firetv.live"/>
+    <package android:name="de.exaring.waipu"/>
     <provider android:authorities="de.midnox.live.export"/>
     <package android:name="com.teamsmart.videomanager.tv"/>
     <package android:name="com.liskovsoft.smarttubetv.beta"/>

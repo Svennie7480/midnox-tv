@@ -2,7 +2,14 @@
 // Senderliste mit Gruppen, „Jetzt/Danach“, Programmführer, Zappen im Vollbild, Einrichtung & Übernahme aus midnox Live.
 'use strict';
 const HAS_LIVE = typeof window.Live !== 'undefined';
-const FAVG = '★ Favoriten', ALLG = 'Alle Sender';
+const FAVG = '★ Favoriten', ALLG = 'Alle Sender', WAIG = 'waipu.tv';
+/** waipu.tv lässt sich nicht einbetten (Kopierschutz) – aber direkt an der richtigen Stelle öffnen */
+const WAIPU = {
+  PKG: 'de.exaring.waipu.firetv.live,de.exaring.waipu',
+  has() { if (WAIPU._h == null) WAIPU._h = !!(window.Android && Android.hasApp && Android.hasApp(WAIPU.PKG)); return WAIPU._h; },
+  ITEMS: [['tv', '📺', 'Live-TV', 'waipu.tv direkt im Fernsehprogramm starten'], ['epg', '🗓️', 'Programm', 'Was läuft wann – Programmübersicht von waipu.tv'], ['recordings', '⏺️', 'Aufnahmen', 'Deine Aufnahmen bei waipu.tv']],
+  open(k) { if (!Android.openApp('waipu://' + k, WAIPU.PKG)) UI.toast('waipu.tv ist nicht installiert'); },
+};
 
 const LIVE = {
   ch: [], byId: {}, groups: [], favs: [], names: {}, st: {}, ver: 0, epgC: {},
@@ -143,14 +150,14 @@ ROUTER.reg('live', async (scr, arg) => {
     btns.appendChild(onOk(h('div', 'btn', ic('gear') + 'Einrichten'), () => LIVESET.open()));
     head.appendChild(btns);
   };
-  const groupsList = () => { const g = []; if (LIVE.favs.length) g.push(FAVG); const gs = LIVE.groups.slice(); if (gs[0] === MXG) g.push(gs.shift()); g.push(ALLG); return g.concat(gs); };
+  const groupsList = () => { const g = []; if (LIVE.favs.length) g.push(FAVG); const gs = LIVE.groups.slice(); if (gs[0] === MXG) g.push(gs.shift()); g.push(ALLG); if (WAIPU.has()) g.push(WAIG); return g.concat(gs); };
   const drawGroups = () => {
     gl.innerHTML = '';
     const gs = groupsList(); if (grp.indexOf('🔎') === 0) gs.unshift(grp);
     if (!gs.includes(grp)) grp = gs[0];
     let selEl = null;
     for (const g of gs) {
-      const n = g.indexOf('🔎') === 0 ? cur.length : LIVE.list(g).length;
+      const n = g === WAIG ? WAIPU.ITEMS.length : g.indexOf('🔎') === 0 ? cur.length : LIVE.list(g).length;
       const e = h('div', 'lvg' + (g === grp ? ' sel' : ''), '<span>' + esc(g) + '</span><small>' + n + '</small>'); e.setAttribute('data-vsi', '');
       onOk(e, () => { pick(g); const f = ll.querySelector('.f'); if (f) NAV.focus(f); });
       e._focus = () => { clearTimeout(scr._gt); scr._gt = setTimeout(() => { if (NAV.cur === e && grp !== g) pick(g); }, 600); };
@@ -191,6 +198,15 @@ ROUTER.reg('live', async (scr, arg) => {
   lcol.addEventListener('scroll', () => { if (shown < cur.length && lcol.scrollTop + lcol.clientHeight > lcol.scrollHeight - 800) more(); }, { passive: true });
   const drawList = (reset) => {
     if (reset) { ll.innerHTML = ''; shown = 0; ll._ty = 0; ll.style.transform = ''; lcol.scrollTop = 0; }
+    if (grp === WAIG) {
+      ll.innerHTML = '';
+      for (const [k, emo, name, sub] of WAIPU.ITEMS) {
+        const r = h('div', 'lvrow f waipu', '<div class="lvlogo"><span class="emo">' + emo + '</span></div><div class="txt"><b>waipu.tv · ' + esc(name) + '</b><div class="now mut">' + esc(sub) + '</div></div>');
+        onOk(r, () => WAIPU.open(k)); ll.appendChild(r);
+      }
+      ll.appendChild(h('div', 'empty small', 'Öffnet die waipu.tv-App. Mit „Zurück“ kommst du wieder hierher.'));
+      return;
+    }
     if (!cur.length) {
       const st = LIVE.st || {};
       ll.innerHTML = '<div class="empty small">' + (st.loading ? esc(st.status || 'Sender werden geladen …') : grp === FAVG ? 'Noch keine Favoriten. Auf einem Sender MENU drücken (oder lange tippen).' : 'Keine Sender in dieser Gruppe.') + '</div>';

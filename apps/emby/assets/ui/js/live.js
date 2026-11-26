@@ -34,7 +34,7 @@ const LIVE = {
     LIVE.byId = {}; LIVE.byGroup = {};
     for (const c of LIVE.ch) { LIVE.byId[c.id] = c; (LIVE.byGroup[c.group] || (LIVE.byGroup[c.group] = [])).push(c); }
     try { LIVE.groups = JSON.parse(Live.groups() || '[]'); } catch (e) { LIVE.groups = []; }
-    if (window.MXTV && MXTV.ch.length && LIVE.mxOn()) LIVE.groups.unshift(MXG);
+    if (window.MXTV && MXTV.ch.length && LIVE.mxOn()) { const mg = [MXG, MXS, MXA].filter(g => MXTV.ch.some(c => c.group === g)); LIVE.groups = mg.concat(LIVE.groups.filter(g => !mg.includes(g))); }
     try { LIVE.favs = JSON.parse(Live.favs() || '[]'); } catch (e) { LIVE.favs = []; }
     try { LIVE.names = JSON.parse(Live.sourceNames() || '{}'); } catch (e) { LIVE.names = {}; }
     LIVE.epgC = {}; LIVE.ver++;
@@ -151,7 +151,7 @@ ROUTER.reg('live', async (scr, arg) => {
     btns.appendChild(onOk(h('div', 'btn', ic('gear') + 'Einrichten'), () => LIVESET.open()));
     head.appendChild(btns);
   };
-  const groupsList = () => { const g = []; if (LIVE.favs.length) g.push(FAVG); const gs = LIVE.groups.slice(); if (gs[0] === MXG) g.push(gs.shift()); g.push(ALLG); if (WAIPU.has()) g.push(WAIG); return g.concat(gs); };
+  const groupsList = () => { const g = []; if (LIVE.favs.length) g.push(FAVG); const gs = LIVE.groups.slice(); while (gs.length && [MXG, MXS, MXA].includes(gs[0])) g.push(gs.shift()); g.push(ALLG); if (WAIPU.has()) g.push(WAIG); return g.concat(gs); };
   const drawGroups = () => {
     gl.innerHTML = '';
     const gs = groupsList(); if (grp.indexOf('🔎') === 0) gs.unshift(grp);

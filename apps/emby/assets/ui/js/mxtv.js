@@ -1,7 +1,7 @@
 // midnox Media – midnox TV: Fernsehsender aus der eigenen Emby-/Jellyfin-Sammlung.
 // Jeder Kanal hat einen festen Wochenplan (gleicher Zufall für alle Geräte) – man schaltet ein und es läuft schon etwas.
 'use strict';
-const MXG = 'midnox TV';
+const MXG = 'midnox TV', MXS = 'midnox Serien', MXA = 'midnox Stars';
 const RAW = /\.S\d{1,2}E\d{1,3}\.|\b(1080p|720p|2160p|x26[45]|WEB-?DL|BluRay|AC3D?)\b/i;   // Dateiname statt Titel
 const MXTV = {
   ch: [], byId: {}, at0: 0, building: false,
@@ -10,9 +10,20 @@ const MXTV = {
     { key: 'sitcom', name: 'Sitcom-Kanal', emoji: '😂', type: 'Episode', mode: 'series', sgenres: ['Comedy', 'Komödie', 'Sitcom'] },
     { key: 'kino', name: 'Filmabend', emoji: '🎬', type: 'Movie' },
     { key: 'action', name: 'Action Nonstop', emoji: '💥', type: 'Movie', genres: ['Action', 'Abenteuer', 'Adventure'] },
+    { key: 'actionklassik', name: 'Action-Klassiker', emoji: '🔫', type: 'Movie', genres: ['Action'], years: [1970, 1999] },
+    { key: 'blockbuster', name: 'Blockbuster-Action', emoji: '💣', type: 'Movie', genres: ['Action'], years: [2010, 2100] },
+    { key: 'actionthrill', name: 'Action-Thriller', emoji: '🚨', type: 'Movie', allG: [['Action'], ['Thriller', 'Krimi', 'Crime']] },
+    { key: 'actionfun', name: 'Action-Komödie', emoji: '😎', type: 'Movie', allG: [['Action'], ['Komödie', 'Comedy']] },
+    { key: 'actionscifi', name: 'Sci-Fi-Action', emoji: '🤖', type: 'Movie', allG: [['Action'], ['Science Fiction', 'Sci-Fi']] },
+    { key: 'actionserie', name: 'Action-Serien', emoji: '🧨', type: 'Episode', mode: 'series', sgenres: ['Action'] },
     { key: 'lachen', name: 'Lachkanal', emoji: '🤣', type: 'Movie', genres: ['Komödie', 'Comedy'] },
     { key: 'spannung', name: 'Spannung', emoji: '🔪', type: 'Movie', genres: ['Thriller', 'Krimi', 'Crime', 'Mystery'] },
     { key: 'grusel', name: 'Gänsehaut', emoji: '👻', type: 'Movie', genres: ['Horror'] },
+    { key: 'horrorklassik', name: 'Horror-Klassiker', emoji: '🧛', type: 'Movie', genres: ['Horror'], years: [1900, 1999] },
+    { key: 'horrorneu', name: 'Neuer Horror', emoji: '🩸', type: 'Movie', genres: ['Horror'], years: [2010, 2100] },
+    { key: 'psycho', name: 'Psycho-Horror', emoji: '🧠', type: 'Movie', allG: [['Horror'], ['Thriller', 'Mystery', 'Psycho']] },
+    { key: 'horrorlach', name: 'Horror zum Lachen', emoji: '🤡', type: 'Movie', allG: [['Horror'], ['Komödie', 'Comedy']] },
+    { key: 'gruselserie', name: 'Grusel-Serien', emoji: '🕯️', type: 'Episode', mode: 'series', sgenres: ['Horror'] },
     { key: 'scifi', name: 'Sci-Fi & Fantasy', emoji: '🚀', type: 'Movie', genres: ['Science Fiction', 'Sci-Fi', 'Fantasy'] },
     { key: 'herz', name: 'Herzkino', emoji: '💕', type: 'Movie', genres: ['Liebesfilm', 'Romance', 'Romanze'] },
     { key: 'familie', name: 'Familienkino', emoji: '🧸', type: 'Movie', genres: ['Familie', 'Family', 'Animation', 'Kinder', 'Kids'] },
@@ -31,6 +42,8 @@ const MXTV = {
     { key: 'drama', name: 'Großes Drama', emoji: '🎭', type: 'Movie', genres: ['Drama'] },
     { key: 'trick', name: 'Trickfilm-Kanal', emoji: '🖍️', type: 'Movie', genres: ['Animation', 'Zeichentrick', 'Anime'] },
     { key: 'western', name: 'Western', emoji: '🤠', type: 'Movie', genres: ['Western'] },
+    { key: 'westernklassik', name: 'Western-Klassiker', emoji: '🐎', type: 'Movie', genres: ['Western'], years: [1900, 1979] },
+    { key: 'neowestern', name: 'Neo-Western', emoji: '🌵', type: 'Movie', genres: ['Western'], years: [1990, 2100] },
     { key: 'geschichte', name: 'Krieg & Geschichte', emoji: '⚔️', type: 'Movie', genres: ['Kriegsfilm', 'War', 'Krieg', 'Historie', 'History', 'Geschichte'] },
     { key: 'musik', name: 'Musik & Musical', emoji: '🎵', type: 'Movie', genres: ['Musik', 'Music', 'Musical'] },
     { key: 'helden', name: 'Superhelden', emoji: '🦸', type: 'Movie', studios: /marvel|dc (comics|entertainment|films)|dc studios/i, title: /spider|batman|superman|avengers|x-men|wonder woman|deadpool|iron man|thor\b|captain america|guardians of the galaxy|justice league|aquaman|black panther|doctor strange|ant-man/i },
@@ -47,11 +60,30 @@ const MXTV = {
   MIN_ITEMS: 5, MIN_HOURS: 6, MIN_MOVIE: 20 * 60e3, MIN_EP: 5 * 60e3,
 
   /** Kanäle aus der Bibliothek zusammenstellen (einmal am Tag, im Speicher des Geräts). */
+  MAX_SERIES: 10, MAX_STARS: 10, MIN_SER_EPS: 12, MIN_STAR: 6,
+  /** Hauptdarsteller je Film (die ersten 5 der Besetzung) – höchstens einmal pro Woche von Emby geholt */
+  async stars(movies) {
+    const ck = 'mxstars_' + EMBY.user.id; let cast = null;
+    try { const c = JSON.parse(localStorage.getItem(ck) || 'null'); if (c && Date.now() - c.at < 7 * 864e5) cast = c.cast; } catch (e) {}
+    if (!cast) {
+      cast = {};
+      for (let start = 0; start < 6000; start += 500) {   // in Häppchen, damit Emby und das Gerät nicht ins Schwitzen kommen
+        const r = await EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Movie', Recursive: true, Fields: 'People', EnableImages: false, EnableUserData: false, StartIndex: start, Limit: 500 });
+        for (const i of r.Items || []) cast[i.Id] = (i.People || []).filter(p => p.Type === 'Actor').slice(0, 5).map(p => p.Id + '|' + p.Name);
+        if (!r.Items || r.Items.length < 500) break;
+      }
+      try { localStorage.setItem(ck, JSON.stringify({ at: Date.now(), cast })); } catch (e) {}
+    }
+    const acc = {}, byId = {}; for (const m of movies) byId[m.Id] = m;
+    for (const mid in cast) { const m = byId[mid]; if (!m) continue; for (const pn of cast[mid]) { const k = pn.split('|')[0]; (acc[k] || (acc[k] = { id: k, name: pn.slice(k.length + 1), items: [] })).items.push(m); } }
+    return Object.values(acc).filter(a => a.items.length >= MXTV.MIN_STAR && a.items.reduce((s, i) => s + i.RunTimeTicks / 10000, 0) >= MXTV.MIN_HOURS * 3600e3)
+      .sort((a, b) => b.items.length - a.items.length).slice(0, MXTV.MAX_STARS);
+  },
   /** nacheinander statt gleichzeitig – der Emby-Server bleibt für die Startseite frei */
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv3_' + EMBY.user.id;   // 3: Genres der Serie zählen
+    const ck = 'mxtv4_' + EMBY.user.id;   // 4: Serien- und Star-Kanäle
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -65,7 +97,7 @@ const MXTV = {
       const [mv, ep, se] = await MXTV.seq([
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
-        () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres', Limit: 4000 }).catch(() => ({})),
+        () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres,CommunityRating', EnableImages: false, Limit: 4000 }).catch(() => ({})),
       ]);
       const sg = {}; for (const s of (se.Items || [])) sg[s.Id] = s.Genres || [];
       const slim = (i) => ({ i: i.Id, n: MXTV.clean(i), s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '' });
@@ -84,6 +116,7 @@ const MXTV = {
           if (d.maxMin && min > d.maxMin) return false;
           if (d.minMin && min < d.minMin) return false;
           if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
+          if (d.allG && !d.allG.every(g => hasG(i.Genres, g))) return false;                  // z. B. Action UND Komödie
           // Titel ODER Genre ODER Studio – was angegeben ist, reicht einzeln
           const any = [d.title && d.title.test(i.Name || ''), d.genres && hasG(i.Genres, d.genres), d.studios && studio(i, d.studios)].filter(x => x !== undefined);
           return !any.length || any.some(Boolean);
@@ -93,6 +126,7 @@ const MXTV = {
           // Genre der Serie zählt (einzelne Folgen haben in Emby oft falsche oder fehlende Genres)
           const sgs = sg[i.SeriesId], gs = sgs && sgs.length ? sgs : (RAW.test(i.Name || '') ? [] : i.Genres);
           if (d.sgenres && !hasG(sg[i.SeriesId], d.sgenres)) return false;
+          if (d.allG && !d.allG.every(g => hasG(gs, g))) return false;
           if (d.title) return d.title.test(i.Name || '') || d.title.test(sname[i.SeriesId] || '') || (d.key !== 'halloween' && !!d.genres && hasG(gs, d.genres));   // z. B. Weihnachtsfolgen
           return !d.genres || hasG(gs, d.genres);
         };
@@ -108,6 +142,17 @@ const MXTV = {
         if (out.some(c => { let same = 0; for (const it of c.items) if (ids.has(it.i)) same++; return same >= ids.size * 0.85 && same >= c.items.length * 0.85; })) continue;
         out.push({ key: d.key, name: d.name, emoji: d.emoji, mode: d.mode || '', items: pool.map(slim) });
       }
+      // ---- Beliebteste Serien rund um die Uhr: Favoriten, viel Gesehenes und gut Bewertetes zuerst ----
+      const byS = {}; for (const i of eps) (byS[i.SeriesId] || (byS[i.SeriesId] = [])).push(i);
+      const sScore = (x) => { const ud = x.UserData || {}, n = (byS[x.Id] || []).length, unpl = ud.UnplayedItemCount == null ? n : ud.UnplayedItemCount, seen = n ? Math.max(0, n - unpl) / n : 0;
+        return (ud.IsFavorite ? 4 : 0) + (seen > 0 ? 2 + seen * 2 : 0) + (x.CommunityRating || 6) / 3 + Math.min(1, n / 100); };
+      const topS = (se.Items || []).filter(x => (byS[x.Id] || []).length >= MXTV.MIN_SER_EPS && byS[x.Id].reduce((a, i) => a + i.RunTimeTicks / 10000, 0) >= MXTV.MIN_HOURS * 3600e3).sort((a, b) => sScore(b) - sScore(a)).slice(0, MXTV.MAX_SERIES);
+      for (const x of topS) out.push({ key: 's-' + x.Id, name: x.Name + ' nonstop', emoji: '🔁', mode: 'series', grp: MXS, items: byS[x.Id].map(slim) });
+      // ---- Schauspieler: Kino mit den Stars, die in deiner Sammlung am häufigsten vorkommen ----
+      try {
+        const stars = await MXTV.stars(movies);
+        for (const a of stars) out.push({ key: 'a-' + a.id, name: a.name, emoji: '⭐', grp: MXA, items: a.items.map(slim) });
+      } catch (e) {}
       // „Filmabend“ weglassen, wenn es nur einen Filmkanal gäbe, der identisch wäre
       MXTV.set(out);
       try { localStorage.setItem(ck, JSON.stringify({ at: Date.now(), ch: out })); }   // große Sammlungen: Speicher kann voll sein
@@ -128,7 +173,7 @@ const MXTV = {
   ver: 0,
   set(list) {
     MXTV.ver++;
-    MXTV.ch = list.map((c, k) => Object.assign({ id: 'mx:' + c.key, num: '', group: MXG, logos: [], src: 'mx' }, c));
+    MXTV.ch = list.map((c, k) => Object.assign({ id: 'mx:' + c.key, num: '', group: c.grp || MXG, logos: [], src: 'mx' }, c));
     MXTV.byId = {}; for (const c of MXTV.ch) { MXTV.byId[c.id] = c; c._plan = null; }
   },
   // ---- Fester Wochenplan ----

@@ -274,6 +274,33 @@ ROUTER.reg('liveguide', async (scr, arg) => {
   const grp = (arg && arg.group) || localStorage.getItem('lv_grp') || ALLG;
   const list = (grp.indexOf('🔎') === 0 ? LIVE.ch : LIVE.list(grp)).slice(0, 400);
   const head = h('div', 'gdhead'); el.appendChild(head);
+  // Tage & Sprünge: Jetzt · 20:15 · Heute … +6 Tage
+  const bar = h('div', 'gdbar'); el.appendChild(bar);
+  const day0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const jump = (t) => { t0 = t; build(); const f = rows.querySelector('.gdp.live') || rows.querySelector('.gdp'); if (f) NAV.focus(f); };
+  const drawBar = () => {
+    bar.innerHTML = '';
+    const sel = Math.floor((t0 + 3600e3 - day0()) / 864e5);
+    bar.appendChild(onOk(h('div', 'chip', 'Jetzt'), () => jump(Math.floor((Date.now() - 30 * 60e3) / 1800e3) * 1800e3)));
+    bar.appendChild(onOk(h('div', 'chip prime', '★ 20:15'), () => jump(day0() + Math.max(0, sel) * 864e5 + 20 * 3600e3)));
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(day0() + i * 864e5), lbl = i === 0 ? 'Heute' : i === 1 ? 'Morgen' : d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric' });
+      const c = onOk(h('div', 'chip' + (i === sel ? ' on' : ''), lbl), () => {
+        if (i === 0) { jump(Math.floor((Date.now() - 30 * 60e3) / 1800e3) * 1800e3); return; }
+        jump(day0() + i * 864e5 + (t0 - new Date(t0).setHours(0, 0, 0, 0)));   // gleiche Uhrzeit am gewählten Tag
+      });
+      bar.appendChild(c);
+    }
+  };
+  // Programm für den sichtbaren Zeitraum (midnox TV: beliebig weit, Portale: so weit das EPG reicht)
+  const epgDay = {};
+  const progsFor = (c) => {
+    if (c.id.indexOf('mx:') === 0) return MXTV.progs(c.id, t0 - 6 * 3600e3, t0 + SPAN);
+    const now = Date.now(); if (t0 >= now - 4 * 3600e3 && t0 + SPAN <= now + 30 * 3600e3) return LIVE.progs(c.id);
+    const k = Math.floor(t0 / (6 * 3600e3)); const key = k + ':' + c.id;
+    if (!epgDay[key]) { let o = {}; try { o = JSON.parse(Live.epg(JSON.stringify([c.id]), k * 6 * 3600e3 - 6 * 3600e3, k * 6 * 3600e3 + 12 * 3600e3) || '{}'); } catch (e) {} epgDay[key] = o[c.id] || []; }
+    return epgDay[key];
+  };
   const grid = h('div', 'gdgrid'); const rows = h('div', 'gdrows'); rows.setAttribute('data-vs', 'keep'); rows.setAttribute('data-mem', ''); rows.dataset.margin = '1'; grid.appendChild(rows); el.appendChild(grid);
   const nowLine = h('div', 'gdnow'); grid.appendChild(nowLine);
   { const R = parseFloat(getComputedStyle(document.documentElement).fontSize) || 10, chw = parseFloat(getComputedStyle(el).getPropertyValue('--gdch')) || 22;
@@ -290,7 +317,7 @@ ROUTER.reg('liveguide', async (scr, arg) => {
     const r = h('div', 'gdrow'); r.setAttribute('data-vsi', ''); r.dataset.id = c.id;
     const cc = h('div', 'gdch'); cc.appendChild(LIVE.logo(c)); cc.appendChild(h('span', '', (c.num ? '<i>' + c.num + '</i>' : '') + esc(c.name))); r.appendChild(cc);
     const tl = h('div', 'gdtl'); r.appendChild(tl);
-    const ps = LIVE.progs(c.id).filter(p => p[1] > t0 && p[0] < t0 + SPAN).sort((a, b) => a[0] - b[0]);
+    const ps = progsFor(c).filter(p => p[1] > t0 && p[0] < t0 + SPAN).sort((a, b) => a[0] - b[0]);
     const play = () => TVP.play(c.id, list.map(x => x.id));
     if (!ps.length) { const b = h('div', 'gdp empty', '<b>' + esc(c.name) + '</b><small>Keine Programminfos</small>'); b.style.width = W(SPAN); onOk(b, play); tl.appendChild(b); }
     let x = t0;
@@ -298,26 +325,32 @@ ROUTER.reg('liveguide', async (scr, arg) => {
       const a = Math.max(p[0], t0), e = Math.min(p[1], t0 + SPAN);
       if (a > x + 60e3) { const gap = h('div', 'gdgap'); gap.style.width = W(a - x); tl.appendChild(gap); }
       const live = p[0] <= Date.now() && p[1] > Date.now();
-      const b = h('div', 'gdp' + (live ? ' live' : ''), '<b>' + esc(p[2]) + '</b><small>' + LIVE.hm(p[0]) + '–' + LIVE.hm(p[1]) + '</small>'); b.style.width = 'calc(' + W(e - a) + ' - 0.3rem)';
+      const x4 = p[4] || {};
+      const b = h('div', 'gdp' + (live ? ' live' : '') + (x4.prime ? ' prime' : '') + (x4.pause ? ' pause' : '') + (REMIND.has(c.id, p[0]) ? ' remind' : ''), '<b>' + (x4.prime ? '★ ' : '') + (REMIND.has(c.id, p[0]) ? '⏰ ' : '') + esc(p[2]) + (x4.r >= 16 ? ' <i class="fsk f' + x4.r + '">' + x4.r + '</i>' : '') + '</b><small>' + LIVE.hm(p[0]) + '–' + LIVE.hm(p[1]) + '</small>'); b.style.width = 'calc(' + W(e - a) + ' - 0.3rem)';
       onOk(b, live || p[0] > Date.now() ? (live ? play : () => info(c, p)) : () => info(c, p));
       b._menu = () => info(c, p);
       tl.appendChild(b); x = e;
     }
     return r;
   };
-  const info = (c, p) => UI.modal((box, close) => {
+  const info = (c, p) => {
+    if (p[4] && p[4].id) { MXSHOW.info(p[4].id, { chan: (c.emoji || '') + ' ' + c.name, when: new Date(p[0]).toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + LIVE.hm(p[0]) + '–' + LIVE.hm(p[1]) }); return; }
+    info0(c, p);
+  };
+  const info0 = (c, p) => UI.modal((box, close) => {
     box.appendChild(h('h2', '', esc(p[2])));
     box.appendChild(h('p', '', esc(c.name) + ' · ' + new Date(p[0]).toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ' · ' + LIVE.hm(p[0]) + '–' + LIVE.hm(p[1])));
     if (p[3]) box.appendChild(h('p', 'desc', esc(p[3])));
     const b = h('div', 'btns');
     b.appendChild(onOk(h('div', 'btn pri', ic('play') + 'Sender einschalten'), () => { close(); TVP.play(c.id, list.map(x => x.id)); }));
+    if (p[0] > Date.now()) b.appendChild(onOk(h('div', 'btn', ic('bell') + (REMIND.has(c.id, p[0]) ? 'Erinnerung löschen' : 'Erinnern')), () => { REMIND.toggle(c.id, p[0], p[2]); close(); scr.refresh(); }));
     b.appendChild(onOk(h('div', 'btn', 'Schließen'), () => close()));
     box.appendChild(b);
   });
   const more = () => { const part = list.slice(built, built + 40); if (!part.length) return; LIVE.fetchEpg(part.map(c => c.id)); for (const c of part) rows.appendChild(rowOf(c)); built += part.length; };
   rows._onScroll = (item) => { if (built < list.length && Array.prototype.indexOf.call(rows.children, item) > rows.children.length - 8) more(); };
   grid.addEventListener('scroll', () => { if (built < list.length && grid.scrollTop + grid.clientHeight > grid.scrollHeight - 600) more(); }, { passive: true });
-  const build = () => { rows.innerHTML = ''; built = 0; rows._ty = 0; rows.style.transform = ''; drawHead(); if (!list.length) { rows.innerHTML = '<div class="empty small">Keine Sender.</div>'; return; } more(); };
+  const build = () => { rows.innerHTML = ''; built = 0; rows._ty = 0; rows.style.transform = ''; drawHead(); drawBar(); if (!list.length) { rows.innerHTML = '<div class="empty small">Keine Sender.</div>'; return; } more(); };
   build();
   const live0 = rows.querySelector('.gdp.live') || rows.querySelector('.gdp'); scr.initial = live0;
   scr.refresh = () => { const f = NAV.cur && NAV.cur.closest('.gdrow'); const id = f && f.dataset.id; build(); const r = id && rows.querySelector('.gdrow[data-id="' + CSS.escape(id) + '"] .gdp.live, .gdrow[data-id="' + CSS.escape(id) + '"] .gdp'); NAV.focus(r || rows.querySelector('.gdp')); };
@@ -423,14 +456,25 @@ const TVP = {
     TVP.loading(true); TVP.banner(true);
     TVP.mxStopEnc();
     if (id.indexOf('mx:') === 0) { TVP.tuneMx(id, TVP.req); return; }
+    MXSHOW.clear(); clearTimeout(TVP.mxT);
     Live.tune(TVP.req, id, 0);
   },
   // ---- midnox TV (eigene Sammlung) ----
   mx: null,
   async tuneMx(id, req, t) {
+    clearTimeout(TVP.mxT);
+    // Trenner, bis die Sendung läuft
+    try { const c0 = MXTV.byId[id], a0 = c0 && MXTV.at(c0, Math.max(Date.now(), t || 0)); MXSHOW.bug(false); MXSHOW.ident(a0 && !a0.it.pause ? a0.it.n : '', a0 && a0.prime ? 'Der Spielfilm um 20:15' : 'Jetzt'); } catch (e) {}
     try {
       const r = await MXTV.tune(id, t);
-      if (req !== TVP.req || !TVP.active) { if (r.info.method === 'Transcode') EMBY.stopEncoding(r.info.playSessionId); return; }
+      if (req !== TVP.req || !TVP.active) { if (r.info && r.info.method === 'Transcode') EMBY.stopEncoding(r.info.playSessionId); return; }
+      if (r.pause || r.locked) {   // Programmvorschau oder Jugendschutz-Sperre: kein Video, bis die Sendung vorbei ist
+        ADAPTER.stop(); TVP.mx = r; TVP.cid = id; TVP.ready = true; clearTimeout(TVP.wd); TVP.loading(false); TVP.status('');
+        if (r.pause) MXSHOW.preview(r); else MXSHOW.locked(r);
+        TVP.banner(false);
+        TVP.mxT = setTimeout(() => { if (TVP.active && req === TVP.req) { const rq = TVP.req = 'r' + Date.now(); TVP.ready = false; TVP.tuneMx(TVP.id, rq, r.stop + 500); } }, Math.max(1000, r.stop - Date.now() + 500));
+        return;
+      }
       TVP.mx = r; TVP.cid = id; TVP.mac = -1; TVP.label = 'midnox TV' + (r.it.s ? ' · ' + r.it.s : '');
       ADAPTER.play({ url: r.info.url, hls: r.info.hls, startMs: r.off, video: true, durMs: r.it.d, audioLang: EMBY.settings().audioLang });
       TVP.banner(false);
@@ -464,7 +508,8 @@ const TVP = {
     Live.tune(TVP.req, TVP.id, k);
   },
   ev(e) {
-    if (e.e === 'ready') { if (!TVP.ready) { TVP.ready = true; clearTimeout(TVP.wd); TVP.loading(false); TVP.status(''); localStorage.setItem('lv_last', TVP.id); if (!TVP.mx) Live.ok(TVP.cid || TVP.id, TVP.mac); TVP.hideSoon(); } }
+    if (e.e === 'ready') { if (!TVP.ready) { TVP.ready = true; clearTimeout(TVP.wd); TVP.loading(false); TVP.status(''); localStorage.setItem('lv_last', TVP.id); if (!TVP.mx) Live.ok(TVP.cid || TVP.id, TVP.mac); else { MXSHOW.clear(); MXSHOW.bug(true); } TVP.hideSoon(); } }
+    else if (TVP.mx && e.e === 'tick' && !TVP.mx.pause && Date.now() > TVP.mx.stop - 120e3 && Date.now() < TVP.mx.stop) MXSHOW.soon(TVP.mx);
     else if (TVP.mx && (e.e === 'ended' || (e.e === 'tick' && Date.now() > TVP.mx.stop + 3000))) { const req = TVP.req = 'r' + Date.now(); TVP.ready = false; TVP.mxStopEnc(); TVP.tuneMx(TVP.id, req); TVP.banner(false); }
     else if (TVP.mx && e.e === 'error') TVP.mxFail((e.msg || 'Fehler').replace(/^ERROR_CODE_/, ''));
     else if (e.e === 'error' || e.e === 'ended') { if (TVP.active) TVP.next(e.e === 'ended' ? 'Stream beendet' : (e.msg || 'Fehler').replace(/^ERROR_CODE_/, '')); }
@@ -481,7 +526,7 @@ const TVP = {
     if (!TVP.active) return;
     clearTimeout(TVP.wd); clearTimeout(TVP.zapT); clearTimeout(TVP.hideT);
     TVP.active = false; TVP.req = ''; TVP.listOn = false;
-    ADAPTER.stop(); TVP.mxStopEnc();
+    ADAPTER.stop(); TVP.mxStopEnc(); MXSHOW.clear(); clearTimeout(TVP.mxT); { const so = $('#mxsoon'); if (so) so.remove(); }
     document.body.classList.remove('playing', 'tvlive'); document.documentElement.classList.remove('playing');
     const o = $('#osd'); o.className = 'off'; o.innerHTML = '';
     if (HAS_ANDROID) try { Android.keepAwake(false); } catch (e) {}
@@ -524,6 +569,8 @@ const TVP = {
   hideSoon() { clearTimeout(TVP.hideT); TVP.hideT = setTimeout(() => { const o = $('#osd'); if (o && TVP.ready && !TVP.listOn && !TVP.pend) o.classList.add('hid'); }, 5000); },
   showInfo() {
     const c = LIVE.byId[TVP.id]; if (!c) return;
+    if (TVP.mx && TVP.mx.it && TVP.mx.it.i) { MXSHOW.info(TVP.mx.it.i, { chan: (c.emoji || '') + ' ' + c.name, when: LIVE.hm(TVP.mx.start || Date.now()) + '–' + LIVE.hm(TVP.mx.stop) }); return; }
+    if (TVP.mx && TVP.mx.pause && TVP.mx.next && TVP.mx.next.i) { MXSHOW.info(TVP.mx.next.i, { chan: (c.emoji || '') + ' ' + c.name, when: 'ab ' + LIVE.hm(TVP.mx.stop) }); return; }
     const nn = LIVE.nowNext(c.id);
     if (!nn.now) { TVP.banner(false); return; }
     UI.modal((box, close) => {
@@ -564,6 +611,7 @@ const TVP = {
     }
     if (k === 'up' || k === 'next' || k === 'chup') { TVP.zap(-1); return; }
     if (k === 'down' || k === 'prev' || k === 'chdown') { TVP.zap(1); return; }
+    if (k === 'ok' && TVP.mx && TVP.mx.locked) { MXSHOW.unlock(); return; }
     if (k === 'ok') { if ($('#osd').classList.contains('hid')) { TVP.banner(false); return; } TVP.chanList(); return; }
     if (k === 'left' || k === 'right' || k === 'info') { TVP.showInfo(); return; }
     if (k === 'menu') { LIVE.toggleFav(TVP.id); TVP.banner(false); return; }

@@ -600,6 +600,10 @@ ROUTER.reg('settings', async (scr) => {
         UI.toast(ty[t] ? label + ' werden geladen …' : label + ' ausgeschaltet', { icon: '📺' });
       }, 'live');
     }
+    choice('Jugendschutz tagsüber', 'fskOn', [[false, 'Aus – alles läuft immer'], [true, 'An – FSK 16 erst ab 22 Uhr, FSK 18 ab 23 Uhr, vorher nur mit PIN']], 'eye', async (v) => {
+      if (v && !s.fskPin && !(window.PROFILES && PROFILES.parentPin && PROFILES.parentPin())) { const pin = await PIN.create('Jugendschutz-PIN festlegen'); if (pin) { s.fskPin = pin; save(); UI.toast('PIN gespeichert', { icon: '🔞' }); } else { s.fskOn = false; save(); ROUTER.refresh && ROUTER.refresh(); } }
+    });
+    row('Jugendschutz-PIN', s.fskPin ? 'eigene PIN · ändern' : (window.PROFILES && PROFILES.parentPin && PROFILES.parentPin() ? 'Eltern-PIN der Profile wird genutzt' : 'noch keine – festlegen'), async (e) => { const pin = await PIN.create('Jugendschutz-PIN'); if (pin) { s.fskPin = pin; save(); setVal(e, 'eigene PIN · ändern'); UI.toast('PIN gespeichert', { icon: '🔞' }); } }, 'eye');
     choice('midnox-TV-Kanäle', 'mxOn', [[true, 'An – Themenkanäle aus deiner Sammlung'], [false, 'Aus']], 'tv');
     choice('waipu.tv-Gruppe', 'waipuOn', [[true, 'An (wenn die waipu-App installiert ist)'], [false, 'Aus']], 'tv');
   }

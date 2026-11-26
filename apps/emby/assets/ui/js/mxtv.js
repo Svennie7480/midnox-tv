@@ -91,6 +91,14 @@ const MXTV = {
   MIN_ITEMS: 5, MIN_HOURS: 6, MIN_MOVIE: 20 * 60e3, MIN_EP: 5 * 60e3,
 
   /** Kanäle aus der Bibliothek zusammenstellen (einmal am Tag, im Speicher des Geräts). */
+  /** Altersfreigabe → Jahre (FSK-16, DE-16, 16, R, TV-MA …); 0 = unbekannt/frei */
+  age(r) {
+    if (!r) return 0; const x = String(r).toUpperCase();
+    const n = x.match(/(\d{1,2})/); if (n && +n[1] <= 21) return +n[1] >= 18 ? 18 : +n[1];
+    if (/NC-?17|^X$|XXX|TV-MA/.test(x)) return 18; if (/^R$|^R\b/.test(x)) return 16; if (/PG-?13|TV-14/.test(x)) return 12; if (/^PG$|TV-PG/.test(x)) return 6;
+    return 0;
+  },
+  PRIME: (20 * 60 + 15) * 60e3, WEEK: 7 * 864e5,
   MAX_SETS: 15, MIN_FR_H: 4,
   /** Bekannte Filmreihen: Filme und Serien gehören zusammen und laufen in Reihenfolge */
   FRANCHISES: [
@@ -148,7 +156,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv6_' + EMBY.user.id;   // 6: Disney Classics & Pixar
+    const ck = 'mxtv7_' + EMBY.user.id;   // 7: Altersfreigaben
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -158,14 +166,14 @@ const MXTV = {
     }
     MXTV.building = true;
     try {
-      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Studios,DateCreated,ProductionLocations', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
+      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Studios,DateCreated,ProductionLocations,OfficialRating', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
       const [mv, ep, se] = await MXTV.seq([
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres,CommunityRating,ProductionLocations', EnableImages: false, Limit: 4000 }).catch(() => ({})),
       ]);
       const sg = {}; for (const s of (se.Items || [])) sg[s.Id] = s.Genres || [];
-      const slim = (i) => ({ i: i.Id, n: MXTV.clean(i), s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '' });
+      const slim = (i) => ({ i: i.Id, n: MXTV.clean(i), s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '', t: i.Type === 'Episode' ? 'e' : 'm', r: MXTV.age(i.OfficialRating) });
       const movies = (mv.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_MOVIE * 1e4), eps = (ep.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_EP * 1e4);
       const hasG = (gs, want) => (gs || []).some(g => want.some(w => g.toLowerCase().indexOf(w.toLowerCase()) >= 0));
       const out = [];
@@ -269,6 +277,13 @@ const MXTV = {
   set(list) {
     MXTV.ver++;
     MXTV.ch = list.map((c, k) => Object.assign({ id: 'mx:' + c.key, num: '', group: c.grp || MXG, logos: [], src: 'mx' }, c));
+    for (const c of MXTV.ch) {   // Filmkanäle bekommen einen 20:15-Spielfilm
+      const mv = c.items.filter(i => i.t !== 'e' && i.d >= 60 * 60e3).length;
+      c.prime = c.mode !== 'series' && c.items.length >= 3 && mv >= c.items.length * 0.6;
+    }
+    // Vorabendprogramm zum Auffüllen bis 20:15: kurze Sitcom-Folgen (sonst Serienfolgen bis 50 Min.)
+    const sit = list.find(c => c.key === 'sitcom') || list.find(c => c.key === 'serien');
+    MXTV.short = sit ? sit.items.filter(i => i.d >= 12 * 60e3 && i.d <= 50 * 60e3 && (i.r || 0) < 16) : [];
     MXTV.byId = {}; for (const c of MXTV.ch) { MXTV.byId[c.id] = c; c._plan = null; }
   },
   // ---- Fester Wochenplan ----
@@ -293,8 +308,29 @@ const MXTV = {
       seq = c.items.slice();
       for (let i = seq.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [seq[i], seq[j]] = [seq[j], seq[i]]; }
     }
-    const starts = []; let t = 0; for (const it of seq) { starts.push(t); t += it.d; }
-    c._plan = { wk, seq, starts, total: t };
+    if (!c.prime) { const starts = []; let t = 0; for (const it of seq) { starts.push(t); t += it.d; } c._plan = { wk, seq, starts, total: t, prime: {} }; return c._plan; }
+    // ---- Filmkanal: Tag für Tag, der Hauptfilm beginnt pünktlich um 20:15 ----
+    const out = [], starts = [], prime = {}; let t = 0, idx = 0, guard = 0;
+    const sh = MXTV.short.slice(); for (let i = sh.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [sh[i], sh[j]] = [sh[j], sh[i]]; }
+    let si = 0;
+    const put = (it) => { starts.push(t); out.push(it); t += it.d; };
+    for (let day = 0; day < 7; day++) {
+      const A = day * 864e5 + MXTV.PRIME;
+      while (t < A && guard++ < 5000) {
+        const it = seq[idx % seq.length];
+        if (t + it.d <= A + 2 * 60e3) { put(it); idx++; continue; }
+        let gap = A - t;
+        if (gap > 20 * 60e3 && !sh.length) { put(it); idx++; break; }   // nichts Kurzes da: 20:15 heute auslassen
+        // Lücke mit kurzen Folgen füllen, Rest = Programmvorschau
+        let tries = 0;
+        while (gap >= 12 * 60e3 && sh.length && tries < sh.length) { const f = sh[si++ % sh.length]; tries++; if (f.d <= gap) { put(Object.assign({ fill: true }, f)); gap = A - t; tries = 0; } }
+        if (gap > 0) put({ i: null, pause: true, n: 'midnox Vorschau', s: '', o: '', d: gap });
+        break;
+      }
+      if (t >= A - 1 && t <= A + 2 * 60e3) prime[out.length] = true;   // nächster Eintrag ist der 20:15-Film
+    }
+    while (t < MXTV.WEEK && guard++ < 8000) { put(seq[idx % seq.length]); idx++; }
+    c._plan = { wk, seq: out, starts, total: MXTV.WEEK, prime };
     return c._plan;
   },
   /** Was läuft auf Kanal c zur Zeit t? → { it, start, stop } */
@@ -304,22 +340,34 @@ const MXTV = {
     let lo = 0, hi = p.starts.length - 1;
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (p.starts[m] <= off) lo = m; else hi = m - 1; }
     const base = t - off; const it = p.seq[lo];
-    return { it, start: base + p.starts[lo], stop: base + p.starts[lo] + it.d };
+    return { it, start: base + p.starts[lo], stop: base + p.starts[lo] + it.d, prime: !!p.prime[lo], next: p.seq[lo + 1] || p.seq[0] };
   },
   progs(id, from, to) {
     const c = MXTV.byId[id]; if (!c) return [];
     const out = []; let t = from, guard = 0;
-    while (t < to && guard++ < 4000) { const a = MXTV.at(c, t); if (!a) break; out.push([a.start, a.stop, a.it.n, (a.it.s || '') + (a.it.s && a.it.o ? ' – ' : '') + (a.it.o || '')]); t = a.stop + 1; }
+    while (t < to && guard++ < 4000) {
+      const a = MXTV.at(c, t); if (!a) break;
+      const desc = a.it.pause ? 'Gleich: ' + (a.next && a.next.n || '') : (a.prime ? '20:15-Spielfilm · ' : '') + (a.it.fill ? 'Vorabendserie · ' : '') + (a.it.s || '') + (a.it.s && a.it.o ? ' – ' : '') + (a.it.o || '');
+      out.push([a.start, a.stop, a.it.pause ? 'midnox Vorschau' : a.it.n, desc, { id: a.it.i, r: a.it.r || 0, prime: a.prime, pause: !!a.it.pause, fill: !!a.it.fill }]); t = a.stop + 1;
+    }
     return out;
+  },
+  // ---- Jugendschutz: FSK 16 erst ab 22 Uhr, FSK 18 erst ab 23 Uhr (bis 6 Uhr) – sonst PIN ----
+  unlockUntil: 0,
+  locked(it) {
+    const S = EMBY.settings(); if (!S.fskOn || !it || !it.r || it.r < 16 || Date.now() < MXTV.unlockUntil) return false;
+    const h = new Date().getHours(); return it.r >= 18 ? (h >= 6 && h < 23) : (h >= 6 && h < 22);
   },
   // ---- Abspielen (über den Live-Player) ----
   async tune(id, t) {
     const c = MXTV.byId[id]; if (!c) throw new Error('Kanal nicht gefunden');
     const now = Math.max(Date.now(), t || 0), a = MXTV.at(c, now); if (!a) throw new Error('Kanal ist leer');
     const off = Math.max(0, now - a.start);
+    if (a.it.pause) return { pause: true, off, start: a.start, stop: a.stop, it: a.it, next: a.next };
+    if (MXTV.locked(a.it)) return { locked: true, off, start: a.start, stop: a.stop, it: a.it, next: a.next, prime: a.prime };
     const item = { Id: a.it.i, MediaType: 'Video', RunTimeTicks: a.it.d * 10000 };
     const info = await EMBY.playbackInfo(item, { startMs: off });
-    return { info, off, stop: a.stop, it: a.it };
+    return { info, off, start: a.start, stop: a.stop, it: a.it, next: a.next, prime: a.prime };
   },
 };
 window.MXTV = MXTV;

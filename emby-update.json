@@ -1,6 +1,6 @@
 {
- "versionCode": 24,
- "versionName": "2.8.1",
+ "versionCode": 25,
+ "versionName": "2.9",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neue midnox-TV-Kanäle: „Disney Classics“ mit den gezeichneten Meisterwerken bis 2009 (Schneewittchen, Dumbo, Bambi, Dornröschen, Das Dschungelbuch, Cap und Capper, Arielle, Der König der Löwen …), „Disney Pixar“ (Toy Story, Findet Nemo, Cars, Oben, Coco …) und „Disney-Kino“ mit allem von Disney."
+ "notes": "midnox TV wird richtiges Fernsehen: Auf den Filmkanälen beginnt der Spielfilm pünktlich um 20:15 (davor Vorabendserien und eine Programmvorschau mit Countdown). Senderlogo in der Ecke, „Gleich:“-Einblendung kurz vor Ende und ein Trenner zwischen den Sendungen. Neue Infoseite (Info- oder Pfeiltaste beim Schauen bzw. OK im Programmführer) mit Inhalt, Besetzung, Trailer, „Von vorn ansehen“, nächsten Sendeterminen und „Mehr aus der Reihe“. Programmführer: 7 Tage vorblättern, Sprung zu Jetzt und 20:15, Markierungen für Spielfilm und FSK 16/18, Erinnerungen. Neu in den Einstellungen: Jugendschutz tagsüber – FSK 16 erst ab 22 Uhr, FSK 18 ab 23 Uhr, vorher mit PIN (standardmäßig aus)."
 }

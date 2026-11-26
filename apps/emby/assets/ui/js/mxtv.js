@@ -2,6 +2,7 @@
 // Jeder Kanal hat einen festen Wochenplan (gleicher Zufall für alle Geräte) – man schaltet ein und es läuft schon etwas.
 'use strict';
 const MXG = 'midnox TV';
+const RAW = /\.S\d{1,2}E\d{1,3}\.|\b(1080p|720p|2160p|x26[45]|WEB-?DL|BluRay|AC3D?)\b/i;   // Dateiname statt Titel
 const MXTV = {
   ch: [], byId: {}, at0: 0, building: false,
   DEFS: [
@@ -50,7 +51,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv2_' + EMBY.user.id;   // 2: neue Kanäle
+    const ck = 'mxtv3_' + EMBY.user.id;   // 3: Genres der Serie zählen
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -67,7 +68,7 @@ const MXTV = {
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres', Limit: 4000 }).catch(() => ({})),
       ]);
       const sg = {}; for (const s of (se.Items || [])) sg[s.Id] = s.Genres || [];
-      const slim = (i) => ({ i: i.Id, n: i.Name, s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '' });
+      const slim = (i) => ({ i: i.Id, n: MXTV.clean(i), s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '' });
       const movies = (mv.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_MOVIE * 1e4), eps = (ep.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_EP * 1e4);
       const hasG = (gs, want) => (gs || []).some(g => want.some(w => g.toLowerCase().indexOf(w.toLowerCase()) >= 0));
       const out = [];
@@ -89,7 +90,8 @@ const MXTV = {
         };
         const epOk = (i) => {
           if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
-          const gs = i.Genres && i.Genres.length ? i.Genres : sg[i.SeriesId];
+          // Genre der Serie zählt (einzelne Folgen haben in Emby oft falsche oder fehlende Genres)
+          const sgs = sg[i.SeriesId], gs = sgs && sgs.length ? sgs : (RAW.test(i.Name || '') ? [] : i.Genres);
           if (d.sgenres && !hasG(sg[i.SeriesId], d.sgenres)) return false;
           if (d.title) return d.title.test(i.Name || '') || d.title.test(sname[i.SeriesId] || '') || (d.key !== 'halloween' && !!d.genres && hasG(gs, d.genres));   // z. B. Weihnachtsfolgen
           return !d.genres || hasG(gs, d.genres);
@@ -112,6 +114,16 @@ const MXTV = {
       catch (e) { try { localStorage.setItem(ck, JSON.stringify({ at: Date.now(), ch: out.map(c => Object.assign({}, c, { items: c.items.map(i => Object.assign({}, i, { o: '' })) })) })); } catch (x) {} }
       if (window.LIVE) { LIVE.load(); LIVE.refresh(); }
     } finally { MXTV.building = false; }
+  },
+  /** Nicht erkannte Dateien („Die.Simpsons.S33E21.German…1080p“) bekommen einen lesbaren Titel */
+  clean(i) {
+    const n = i.Name || '';
+    if (!RAW.test(n)) return n;
+    if (i.Type === 'Episode') {
+      const m = n.match(/^(.*?)[. _-]+S(\d{1,2})E(\d{1,3})/i), ser = i.SeriesName || (m ? m[1].replace(/[._]/g, ' ').trim() : '');
+      return (ser ? ser + ' · ' : '') + 'Folge ' + (i.IndexNumber || (m ? +m[3] : ''));
+    }
+    return n.replace(/[._]/g, ' ').replace(/\b(19|20)\d\d\b.*$|\b(German|DL|AC3D?|1080p|720p|2160p|WEB|x26[45]|BluRay).*$/i, '').trim() || n;
   },
   ver: 0,
   set(list) {

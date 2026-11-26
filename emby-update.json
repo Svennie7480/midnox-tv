@@ -1,6 +1,6 @@
 {
- "versionCode": 16,
- "versionName": "2.4",
+ "versionCode": 17,
+ "versionName": "2.4.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Kein Bildschirmschoner mehr beim Schauen – auch nicht beim Puffern, Umschalten oder zwischen zwei Sendungen. midnox TV hat bis zu 20 neue Themenkanäle: Weihnachtskanal (Nov–Jan) und Halloween-Nacht (Okt), Krimi-Serien, Serien-Drama, Anime & Trick, Serien aus anderen Welten, Doku-Serien, Großes Drama, Trickfilm-Kanal, Western, Krieg & Geschichte, Musik & Musical, Superhelden, Disney & Pixar, Filmklassiker, 2000er-Kino, Neues Kino, Frisch eingetroffen, Kurz & knackig, Überlänge und den Zufallskanal. Es erscheinen nur Kanäle, für die deine Sammlung genug hergibt."
+ "notes": "midnox TV: Serienfolgen landen nur noch nach dem Genre der Serie in einem Kanal – keine Simpsons mehr im Doku-Kanal. Nicht erkannte Dateien erscheinen mit lesbarem Titel statt Dateinamen (z. B. „Die Simpsons · Folge 21“)."
 }

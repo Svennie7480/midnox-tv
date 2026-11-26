@@ -1,6 +1,6 @@
 {
- "versionCode": 22,
- "versionName": "2.7",
+ "versionCode": 23,
+ "versionName": "2.8",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "midnox TV wächst: Neue Gruppe „midnox Serien“ mit deinen beliebtesten Serien rund um die Uhr (Favoriten und viel Gesehenes zuerst, Folgen in Reihenfolge) und „midnox Stars“ mit Kanälen für die Schauspieler, die in deiner Sammlung am häufigsten vorkommen. Dazu mehr Horror (Horror-Klassiker, Neuer Horror, Psycho-Horror, Horror zum Lachen, Grusel-Serien), mehr Action (Action-Klassiker, Blockbuster-Action, Action-Thriller, Action-Komödie, Sci-Fi-Action, Action-Serien) und zwei weitere Western-Sender (Western-Klassiker, Neo-Western)."
+ "notes": "Neue Gruppe „midnox Filmreihen“: Mittelerde (Herr der Ringe, Hobbit, Ringe der Macht), Wizarding World (Harry Potter, Tierwesen), Star Wars, Star Trek, James Bond, Marvel, Fast & Furious, Jurassic, Tatort-Sonntag und viele mehr – Filme und Serien gemischt, immer in der richtigen Reihenfolge. Dazu automatisch Kanäle aus deinen Emby-Sammlungen. Mehr Krimi (Krimi-Kino, Krimi-Klassiker, Neue Krimis, Gangster-Kino, Rätsel-Krimi, Deutsche Krimi-Filme, Deutsche Krimis als Serien, Nordic Noir, Britische Krimis) und mehr Animation (Zeichentrick-Klassiker, Neue Animationsfilme, Anime-Filme, Trickfilm für die Kleinen, Zeichentrick- und Anime-Serien getrennt)."
 }

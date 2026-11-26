@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.midnox.emby" android:versionCode="23" android:versionName="2.8">
+    package="de.midnox.emby" android:versionCode="24" android:versionName="2.8.1">
   <uses-sdk android:minSdkVersion="22" android:targetSdkVersion="35"/>
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>

@@ -2,6 +2,16 @@
 // Jeder Kanal hat einen festen Wochenplan (gleicher Zufall für alle Geräte) – man schaltet ein und es läuft schon etwas.
 'use strict';
 const MXG = 'midnox TV', MXF = 'midnox Filmreihen', MXS = 'midnox Serien', MXA = 'midnox Stars';
+/** Disney-Zeichentrick-Klassiker (deutsche und englische Titel) */
+const DISNEY_CLASSIC = new RegExp('^(' + ['schneewittchen', 'snow white', 'pinocchio', 'fantasia', 'dumbo', 'bambi', 'cinderella', 'aschenputtel', 'alice im wunderland', 'alice in wonderland', 'peter pan', 'susi und strolch', 'lady and the tramp',
+  'dornröschen', 'sleeping beauty', '101 dalmatiner', '101 dalmatians', 'die hexe und der zauberer', 'the sword in the stone', 'das dschungelbuch', 'the jungle book', 'aristocats', 'robin hood', 'winnie puuh', 'winnie the pooh', 'die vielen abenteuer von winnie',
+  'bernard und bianca', 'the rescuers', 'cap und capper', 'the fox and the hound', 'taran und der zauberkessel', 'the black cauldron', 'basil', 'the great mouse detective', 'oliver & co', 'oliver and company', 'arielle', 'the little mermaid',
+  'die schöne und das biest', 'beauty and the beast', 'aladdin', 'der könig der löwen', 'the lion king', 'pocahontas', 'der glöckner von notre dame', 'the hunchback of notre dame', 'hercules', 'mulan', 'tarzan', 'ein königreich für ein lama', "the emperor's new groove",
+  'atlantis', 'lilo (&|und|and) stitch', 'der schatzplanet', 'treasure planet', 'bärenbrüder', 'brother bear', 'küss den frosch', 'the princess and the frog', 'rapunzel', 'tangled', 'die eiskönigin', 'frozen', 'vaiana', 'moana', 'zoomania', 'zootopia',
+  'encanto', 'baymax', 'big hero 6', 'ralph reichts', 'wreck-it ralph', 'chaos im netz', 'bolt', 'triff die robinsons', 'himmel und huhn', 'chicken little', 'die kühe sind los', 'raya', 'wish', 'mary poppins', 'elliot, das schmunzelmonster', "pete's dragon", 'die tollkühne hexe',
+  'bernard & bianca', 'cap & capper'].join('|') + ')\\b', 'i');
+/** Pixar-Filme */
+const PIXAR = /^(toy story|das große krabbeln|a bug's life|die monster ag|monster ag|monsters,? inc|die monster uni|monsters university|findet nemo|finding nemo|findet dorie|finding dory|die unglaublichen|the incredibles|incredibles|cars\b|ratatouille|wall[·•. -]?e|oben\b|^up$|merida|brave|alles steht kopf|inside out|arlo (&|und) spot|the good dinosaur|coco\b|onward|soul\b|luca\b|rot\b|turning red|lightyear|elemental|elio)/i;
 /** Bekannte deutsche Krimireihen – zählen auch, wenn Emby kein Land/Genre hat */
 const DE_KRIMI = /tatort|polizeiruf|soko\b|der alte|derrick|der kommissar|rosenheim|hubert (und|ohne) staller|großstadtrevier|wilsberg|bulle von tölz|ein fall für zwei|der staatsanwalt|notruf hafenkante|die chefin|usedom-krimi|nord bei nordwest|friesland|kroatien-krimi|barcelona-krimi|kommissar dupin|der bozen-krimi|steirer|kommissar rex|alarm für cobra|der fahnder|schimanski|stralsund|nachtschicht|ein starkes team|helen dorn|unter verdacht|der kriminalist|sokos|die toten vom bodensee|der zürich-krimi|harter brocken|kommissarin heller|der irland-krimi|marie brand|kommissar marthaler|mord mit aussicht|watzmann ermittelt/i;
 const RAW = /\.S\d{1,2}E\d{1,3}\.|\b(1080p|720p|2160p|x26[45]|WEB-?DL|BluRay|AC3D?)\b/i;   // Dateiname statt Titel
@@ -63,7 +73,12 @@ const MXTV = {
     { key: 'geschichte', name: 'Krieg & Geschichte', emoji: '⚔️', type: 'Movie', genres: ['Kriegsfilm', 'War', 'Krieg', 'Historie', 'History', 'Geschichte'] },
     { key: 'musik', name: 'Musik & Musical', emoji: '🎵', type: 'Movie', genres: ['Musik', 'Music', 'Musical'] },
     { key: 'helden', name: 'Superhelden', emoji: '🦸', type: 'Movie', studios: /marvel|dc (comics|entertainment|films)|dc studios/i, title: /spider|batman|superman|avengers|x-men|wonder woman|deadpool|iron man|thor\b|captain america|guardians of the galaxy|justice league|aquaman|black panther|doctor strange|ant-man/i },
-    { key: 'disney', name: 'Disney & Pixar', emoji: '🏰', type: 'Movie', studios: /disney|pixar/i },
+    { key: 'disneyclassic', name: 'Disney Classics', emoji: '🏰', type: 'Movie',
+      // gezeichnete Disney-Meisterwerke: bekannter Titel ODER Disney-Studio – und zwar animiert oder vor 1985 (keine Realverfilmungen von 2016)
+      fn: (i, ctx) => (DISNEY_CLASSIC.test(i.Name || '') || ctx.studio(i, /walt disney (animation|productions|feature)|disney animation/i)) && !PIXAR.test(i.Name || '') && !ctx.studio(i, /pixar/i)
+        && (ctx.hasG(i.Genres, ['Animation', 'Zeichentrick']) || (i.ProductionYear || 3000) < 1985) && (i.ProductionYear || 0) <= 2009 },   // die gezeichnete Ära bis „Küss den Frosch“
+    { key: 'pixar', name: 'Disney Pixar', emoji: '💡', type: 'Movie', fn: (i, ctx) => ctx.studio(i, /pixar/i) || (PIXAR.test(i.Name || '') && ctx.hasG(i.Genres, ['Animation'])) },
+    { key: 'disney', name: 'Disney-Kino', emoji: '✨', type: 'Movie', studios: /disney|pixar/i },
     // --- Filme nach Jahr & Länge ---
     { key: 'klassiker', name: 'Filmklassiker', emoji: '🎞️', type: 'Movie', years: [1900, 1979] },
     { key: 'nuller', name: '2000er-Kino', emoji: '💿', type: 'Movie', years: [2000, 2009] },
@@ -133,7 +148,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv5_' + EMBY.user.id;   // 5: Filmreihen, Krimi & Animation
+    const ck = 'mxtv6_' + EMBY.user.id;   // 6: Disney Classics & Pixar
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -156,6 +171,7 @@ const MXTV = {
       const out = [];
       const now = new Date(), month = now.getMonth() + 1, year = now.getFullYear();
       const studio = (i, re) => (i.Studios || []).some(x => re.test(x.Name || ''));
+      const ctx = { studio, hasG };
       const sname = {}, sloc = {}; for (const s2 of (se.Items || [])) { sname[s2.Id] = s2.Name || ''; sloc[s2.Id] = s2.ProductionLocations || []; }
       for (const d of MXTV.DEFS) {
         if (d.months && !d.months.includes(month)) continue;                                   // Jahreszeit-Kanäle nur in ihrer Zeit
@@ -166,6 +182,7 @@ const MXTV = {
           if (d.maxMin && min > d.maxMin) return false;
           if (d.minMin && min < d.minMin) return false;
           if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
+          if (d.fn) return d.fn(i, ctx);
           if (d.allG && !d.allG.every(g => hasG(i.Genres, g))) return false;                  // z. B. Action UND Komödie
           if (d.country && !(i.ProductionLocations || []).some(x => d.country.test(x))) return false;
           // Titel ODER Genre ODER Studio – was angegeben ist, reicht einzeln

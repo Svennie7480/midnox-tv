@@ -12,6 +12,9 @@ window.QN = (id, topic, pts, q, ans, unit, ex, img) => QDATA.push({ id: 'h-' + i
 GEN.rng = (seed) => { let x = seed >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 GEN.shuffle = (a, r) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
+/** Antworten jeder Frage fest mischen (gleiche Reihenfolge auf jedem Gerät und in der Sprachausgabe) */
+GEN.prep = (list) => { for (const q of list) if (q.a && !q._mixed) { q.a = GEN.shuffle(q.a, GEN.rng(q.id.split('').reduce((a, c) => (a * 33 + c.charCodeAt(0)) >>> 0, 5381))); q._mixed = 1; } return list; };
+
 // ------------------------------------------------------------------ Verkehrszeichen: Was bedeutet …?
 GEN.SIGN_FAM = {
   gefahr: ['101', '102', '103-10', '103-20', '105-10', '108', '110', '112', '114', '117', '120', '123', '125', '131', '133', '136', '138', '142', '151'],

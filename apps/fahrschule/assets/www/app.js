@@ -13,14 +13,14 @@ window.QDATA = window.QDATA || [];
 const Q = {
   all: [], byId: {},
   init() {
-    Q.all = [...QDATA, ...GEN.signs(), ...GEN.calc(), ...GEN.vorfahrt(150)].filter(q => TOPICS[q.topic]);
+    Q.all = GEN.prep([...QDATA, ...GEN.signs(), ...GEN.calc(), ...GEN.vorfahrt(150)].filter(q => TOPICS[q.topic]));
     for (const q of Q.all) { q.cat = TOPICS[q.topic][2]; Q.byId[q.id] = q; if (!q.type) q.type = 'mc'; }
   },
   of(topic) { return Q.all.filter(q => q.topic === topic); },
 };
 const ST = {
   d: null,
-  load() { try { ST.d = JSON.parse(localStorage.getItem('fs_state') || 'null'); } catch (e) {} if (!ST.d) ST.d = { q: {}, exams: [], days: {}, goal: 30 }; if (!ST.d.days) ST.d.days = {}; },
+  load() { try { ST.d = JSON.parse(localStorage.getItem('fs_state') || 'null'); } catch (e) {} if (!ST.d) ST.d = { q: {}, exams: [], days: {}, goal: 30 }; if (!ST.d.days) ST.d.days = {}; if (!ST.d.fav) ST.d.fav = {}; if (ST.d.voice === undefined) ST.d.voice = true; if (ST.d.autoSay === undefined) ST.d.autoSay = true; if (ST.d.autoEx === undefined) ST.d.autoEx = false; },
   save() { try { localStorage.setItem('fs_state', JSON.stringify(ST.d)); } catch (e) {} },
   s(id) { return ST.d.q[id] || { b: 0, n: 0, ok: 0, l: 0, w: false }; },
   /** Antwort verbuchen: Box steigt bei richtig, fällt bei falsch (Karteikasten) */
@@ -33,6 +33,8 @@ const ST = {
   },
   learned(id) { return ST.s(id).b >= 2; },
   mistakes() { return Q.all.filter(q => ST.s(q.id).w); },
+  favs() { return Q.all.filter(q => ST.d.fav[q.id]); },
+  fav(id) { if (ST.d.fav[id]) delete ST.d.fav[id]; else ST.d.fav[id] = 1; ST.save(); return !!ST.d.fav[id]; },
   /** Prüfungsreife 0–100: gelernte Fragen (gewichtet nach Punkten) + Ergebnisse der letzten Prüfungen */
   ready() {
     let tot = 0, got = 0; for (const q of Q.all) { tot += q.pts; const b = ST.s(q.id).b; got += q.pts * Math.min(1, b / 3); }
@@ -79,7 +81,7 @@ const APP = {
     await APP.show(name, arg);
   },
   async show(name, arg, restore) {
-    VIEW.name = name; VIEW.arg = arg; VIEW.key = null; VIEW.leave = null; VIEW.firstFocus = null;
+    TTS.stop(); VIEW.name = name; VIEW.arg = arg; VIEW.key = null; VIEW.leave = null; VIEW.firstFocus = null;
     if (AND && AND.keepOn) AND.keepOn(name === 'quiz');
     APP.rail();
     const main = $('#main'); main.innerHTML = ''; document.body.classList.toggle('inquiz', name === 'quiz');
@@ -108,7 +110,7 @@ const APP = {
     r.classList.toggle('hide', VIEW.name === 'quiz' && document.body.classList.contains('narrow'));
   },
   key(k) { if (VIEW.key) VIEW.key(k); },
-  pause() { ST.save(); },
+  pause() { ST.save(); TTS.stop(); },
 };
 window.APP = APP;
 
@@ -123,6 +125,7 @@ function imgHtml(img) {
   if (img.sign) return '<div class="qimg signimg">' + DRAW.sign(img.sign) + '</div>';
   if (img.signs) return '<div class="qimg signrow">' + img.signs.map(s => DRAW.sign(s)).join('') + '</div>';
   if (img.scene) return '<div class="qimg sceneimg">' + DRAW.scene(img.scene) + '</div>';
+  if (img.street) return '<div class="qimg sceneimg">' + DRAW.street(img.street) + '</div>';
   if (img.svg) return '<div class="qimg sceneimg">' + img.svg + '</div>';
   return '';
 }
@@ -139,6 +142,8 @@ VIEWS.home = async (m) => {
   const qa = (i, t, s, fn, k) => { const e = h('div', 'qa f', '<div class="ico">' + i + '</div><div><b>' + t + '</b><small>' + s + '</small></div>'); e.dataset.k = k; e.onclick = fn; q.appendChild(e); };
   qa('📚', 'Themen', '12 Themen mit Fortschritt', () => APP.go('learn', null, { root: true }), 'q-top');
   qa('❌', 'Fehler wiederholen', mis ? mis + ' Fragen falsch beantwortet' : 'Keine offenen Fehler', () => mis ? startQuiz(pickLearn(ST.mistakes(), 20), 'Fehler wiederholen') : toast('Keine offenen Fehler 👍'), 'q-mis');
+  const fv = ST.favs().length;
+  qa('⭐', 'Gemerkte Fragen', fv ? fv + ' Fragen gemerkt' : 'Mit dem Stern merken', () => fv ? startQuiz(ST.favs(), 'Gemerkte Fragen') : toast('Noch keine Fragen gemerkt – tippe beim Lernen auf den Stern'), 'q-fav');
   qa('🔀', 'Vorfahrt-Training', 'Kreuzungen mit Reihenfolge', () => startQuiz(pickLearn(Q.of('vorfahrt'), 15), 'Vorfahrt-Training'), 'q-vf');
   qa('🧮', 'Formeln & Merkhilfen', 'Anhalteweg, Abstände, Promille …', () => APP.go('formeln'), 'q-fo');
   qa('🛑', 'Verkehrszeichen', Object.keys(DRAW.SIGNS).length + ' Zeichen zum Nachschlagen', () => APP.go('signs', null, { root: true }), 'q-zs');
@@ -179,7 +184,8 @@ VIEWS.quiz = async (m, S) => {
     const q = list[S.i], st = S.done[S.i], ans = S.ans[S.i];
     m.innerHTML = '';
     const top = h('div', 'qtop', '<button class="btn f ic" data-k="x">' + ico('x') + '</button><div class="qt"><b>' + esc(S.title) + '</b><small>Frage ' + (S.i + 1) + ' von ' + list.length + ' · ' + esc(TOPICS[q.topic][0]) + '</small></div>' +
-      (S.exam ? '<button class="btn f" data-k="grid">' + ico('list') + '<span class="xs">Übersicht</span></button>' : '') + '<div class="pts">' + q.pts + ' Punkte</div>');
+      (TTS.on() ? '<button class="btn f ic say" data-k="say" data-say="' + q.id + '" title="Vorlesen (Menü-Taste)">' + ico('vol') + '</button>' : '') +
+      (S.exam ? '<button class="btn f" data-k="grid">' + ico('list') + '<span class="xs">Übersicht</span></button>' : '<button class="btn f ic fav' + (ST.d.fav[q.id] ? ' on' : '') + '" data-k="fav" title="Merken">' + ico('star') + '</button>') + '<div class="pts">' + q.pts + ' Punkte</div>');
     m.appendChild(top);
     const bar = h('div', 'qbar', '<i style="width:' + ((S.i + (st ? 1 : 0)) / list.length * 100) + '%"></i>'); m.appendChild(bar);
     const body = h('div', 'qbody' + (q.img ? ' hasimg' : ''));
@@ -199,14 +205,14 @@ VIEWS.quiz = async (m, S) => {
         const sel = (ans || []).includes(i);
         let cls = 'ans f' + (sel ? ' sel' : '');
         if (st) cls += a.ok ? ' right' : sel ? ' wrong' : '';
-        const e = h('div', cls, '<span class="ck">' + (sel ? '✓' : '') + '</span><span class="t">' + esc(a.t) + '</span>');
+        const e = h('div', cls, '<span class="lt">' + TTS.LETTERS[i] + '</span><span class="ck">' + (sel ? '✓' : '') + '</span><span class="t">' + esc(a.t) + '</span>');
         e.dataset.k = 'a' + i;
         e.onclick = () => { if (st) return; const cur = S.ans[S.i] || []; S.ans[S.i] = cur.includes(i) ? cur.filter(x => x !== i) : cur.concat(i); e.classList.toggle('sel'); $('.ck', e).textContent = S.ans[S.i].includes(i) ? '✓' : ''; };
         as.appendChild(e);
       });
       right.appendChild(as);
     }
-    if (st && !S.exam) right.appendChild(h('div', 'expl ' + (st.ok ? 'ok' : 'bad'), '<b>' + (st.ok ? '✓ Richtig!' : '✗ Leider falsch.') + '</b>' + (q.type === 'num' ? ' Richtig: ' + String(q.ans).replace('.', ',') + ' ' + esc(q.unit || '') + '.' : '') + '<p>' + esc(q.ex || '') + '</p>'));
+    if (st && !S.exam) right.appendChild(h('div', 'expl ' + (st.ok ? 'ok' : 'bad'), '<b>' + (st.ok ? '✓ Richtig!' : '✗ Leider falsch.') + '</b>' + (q.type === 'num' ? ' Richtig: ' + String(q.ans).replace('.', ',') + ' ' + esc(q.unit || '') + '.' : '') + '<p>' + esc(q.ex || '') + '</p>' + (TTS.on() ? '<button class="btn f sm say" data-k="sayx" data-say="' + q.id + '_e">' + ico('vol') + 'Erklärung anhören</button>' : '')));
     body.appendChild(right); m.appendChild(body);
     const foot = h('div', 'qfoot');
     if (S.exam) {
@@ -216,10 +222,14 @@ VIEWS.quiz = async (m, S) => {
     m.appendChild(foot);
     const F = (k) => $('[data-k=' + k + ']', m);
     F('x').onclick = () => APP.back();
+    if (F('say')) F('say').onclick = () => TTS.play(q.id);
+    if (F('sayx')) F('sayx').onclick = () => TTS.play(q.id + '_e');
+    if (F('fav')) F('fav').onclick = () => { const on = ST.fav(q.id); F('fav').classList.toggle('on', on); toast(on ? 'Gemerkt ★' : 'Nicht mehr gemerkt'); };
     if (F('ok')) F('ok').onclick = () => {
       const cur = S.ans[S.i];
       if (q.type === 'num' ? !cur : !(cur || []).length) { toast('Bitte zuerst antworten'); return; }
-      const ok = isRight(q, cur); S.done[S.i] = { ok }; ST.answer(q.id, ok); draw(); NAV.set(F('next'), true);
+      const ok = isRight(q, cur); S.done[S.i] = { ok }; ST.answer(q.id, ok); S.said = S.i; draw(); NAV.set(F('next'), true);
+      if (TTS.on() && ST.d.autoEx) TTS.play(q.id + '_e'); else TTS.stop();
     };
     if (F('next')) F('next').onclick = () => {
       if (!S.exam && S.i === list.length - 1) { finishLearn(); return; }
@@ -231,6 +241,12 @@ VIEWS.quiz = async (m, S) => {
     if (F('grid')) F('grid').onclick = () => examGrid();
     const ff = st ? F('next') : ($('.answers .ans', m) || $('.numbox', m));
     VIEW.firstFocus = ff; if (ff) NAV.set(ff, true);
+    // Vorlesen: neue Frage automatisch, nächste schon laden
+    if (TTS.on()) {
+      if (!st && ST.d.autoSay && S.said !== S.i) { S.said = S.i; setTimeout(() => { if (VIEW.name === 'quiz' && list[S.i] === q && !TTS.cur) TTS.play(q.id); }, 350); }
+      if (list[S.i + 1]) TTS.prefetch(list[S.i + 1].id);
+    }
+    TTS.mark();
   };
   const finishLearn = () => {
     const n = Object.values(S.done).length, ok = Object.values(S.done).filter(x => x.ok).length;
@@ -259,7 +275,9 @@ VIEWS.quiz = async (m, S) => {
   VIEW.leave = async () => Object.keys(S.ans).length === 0 || Object.keys(S.done).length === list.length || await UI.confirm(S.exam ? 'Prüfung abbrechen?' : 'Lernrunde beenden?', S.exam ? 'Die Antworten gehen verloren.' : 'Bisherige Antworten sind gespeichert.', 'Beenden', true);
   VIEW.key = (k) => {
     if (UI.top()) return false;
-    // Zifferntasten der Fernbedienung / Tastatur: Antwort 1–4 umschalten
+    if (k === 'menu') { if (TTS.on()) TTS.play(S.done[S.i] && !S.exam ? list[S.i].id + '_e' : list[S.i].id); return true; }
+    // Zifferntasten (Tastatur, manche Fernbedienungen): Antwort A–E umschalten
+    const m1 = /^n([1-5])$/.exec(k); if (m1) { const e = $('[data-k=a' + (m1[1] - 1) + ']', m); if (e) { e.click(); NAV.set(e, true); } return !!e; }
     return false;
   };
   draw();
@@ -372,6 +390,13 @@ VIEWS.stats = async (m) => {
     e.onclick = () => startQuiz(pickLearn(qs, 15), name); g.appendChild(e);
   }
   m.appendChild(g);
+  m.appendChild(h('h2', 'sec', 'Einstellungen'));
+  const set = h('div', 'sets');
+  const sw = (k, t, sub, dis) => { const e = h('div', 'tog f' + (ST.d[k] ? ' on' : '') + (dis ? ' dis' : ''), '<div class="tt"><b>' + t + '</b><small>' + sub + '</small></div><span class="sw"></span>'); e.dataset.k = 'set-' + k; e.onclick = () => { if (dis) return; ST.d[k] = !ST.d[k]; if (k === 'voice' && !ST.d.voice) TTS.stop(); ST.save(); APP.show('stats', null, { y: scrollY, focus: 'set-' + k }); }; set.appendChild(e); };
+  sw('voice', '🔊 Sprachausgabe', 'Fragen und Erklärungen vorlesen lassen (Lautsprecher-Knopf oder Menü-Taste der Fernbedienung)');
+  sw('autoSay', 'Fragen automatisch vorlesen', 'Jede neue Frage wird sofort vorgelesen', !ST.d.voice);
+  sw('autoEx', 'Erklärung automatisch vorlesen', 'Nach dem Prüfen wird die Lösung vorgelesen', !ST.d.voice);
+  m.appendChild(set);
   $('[data-k=goal]', m).onclick = async () => { const v = await UI.choose('Tagesziel', [10, 20, 30, 50, 80].map(n => ({ t: n + ' Fragen pro Tag', v: n }))); if (v) { ST.d.goal = v; ST.save(); APP.show('stats'); } };
   $('[data-k=reset]', m).onclick = async () => { if (await UI.confirm('Alles zurücksetzen?', 'Dein gesamter Lernstand und alle Prüfungen werden gelöscht.', 'Zurücksetzen', true)) { localStorage.removeItem('fs_state'); ST.load(); APP.show('stats'); toast('Zurückgesetzt'); } };
 };

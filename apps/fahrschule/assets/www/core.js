@@ -12,6 +12,8 @@ const INAPP = !!AND;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const ICON = {
+  vol: '<path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>',
+  star: '<path d="m12 3 2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.4l-5.6 2.9 1.1-6.2L3 9.7l6.2-.9z"/>',
   check2: '',
   home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   book: '<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5A2.5 2.5 0 0 1 6.5 19H20v3H6.5"/><path d="M9 7h7M9 11h5"/>',
@@ -94,7 +96,7 @@ const NAV = {
 };
 document.addEventListener('keydown', (ev) => {
   const k = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', Enter: 'ok', Escape: 'back', GoBack: 'back', BrowserBack: 'back' }[ev.key];
-  if (!k) return;
+  if (!k) { const ae0 = document.activeElement; if (/^[1-5]$/.test(ev.key) && !(ae0 && /^(INPUT|TEXTAREA)$/.test(ae0.tagName)) && VIEW.key && VIEW.key('n' + ev.key)) ev.preventDefault(); return; }
   const ae = document.activeElement, typing = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.type !== 'checkbox';
   if (typing) {
     if (k === 'back') { ev.preventDefault(); ae.blur(); NAV.set(ae, true); return; }

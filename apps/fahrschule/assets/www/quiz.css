@@ -86,3 +86,17 @@ body.narrow .sgrid { grid-template-columns: repeat(3, 1fr); } body.narrow .sg .s
 body.tv .qq { font-size: 2.8rem; } body.tv .ans { font-size: 2rem; }
 body.kb .ans.foc, body.tv .ans.foc, body.kb .tp.foc, body.tv .tp.foc, body.kb .sg.foc, body.tv .sg.foc, body.kb .eg.foc, body.tv .eg.foc, body.kb .nk.foc, body.tv .nk.foc, body.kb .numbox.foc, body.tv .numbox.foc, body.kb .wi.foc, body.tv .wi.foc, body.kb .fo.foc, body.tv .fo.foc { box-shadow: 0 0 0 .35rem #fff !important; }
 body:not(.kb):not(.tv) .ans.foc, body:not(.kb):not(.tv) .tp.foc, body:not(.kb):not(.tv) .sg.foc, body:not(.kb):not(.tv) .eg.foc, body:not(.kb):not(.tv) .nk.foc, body:not(.kb):not(.tv) .numbox.foc, body:not(.kb):not(.tv) .wi.foc, body:not(.kb):not(.tv) .fo.foc { box-shadow: none; transform: none; }
+/* Sprachausgabe, Merken, Buchstaben, Einstellungen */
+.qtop .say.on { background: rgb(var(--a1)); color: #04121c; animation: sayp 1.2s ease-in-out infinite; }
+.expl .say { margin-top: 1rem; } .expl .say.on { background: rgb(var(--a1)); color: #04121c; }
+@keyframes sayp { 50% { box-shadow: 0 0 0 .6rem rgba(var(--a1),.25); } }
+.qtop .fav.on { color: #facc15; } .qtop .fav.on svg { fill: #facc15; }
+.ans .lt { width: 2.6rem; flex: none; font-weight: 900; color: var(--mut); font-size: 1.5rem; text-align: center; }
+.ans.sel .lt { color: rgb(var(--a1)); }
+.sets { display: grid; gap: 1rem; max-width: 80rem; }
+.sets .tog { display: flex; align-items: center; gap: 1.6rem; padding: 1.4rem 1.8rem; border-radius: 1.6rem; background: var(--card); border: 2px solid var(--line); cursor: pointer; }
+.sets .tog .tt { flex: 1; } .sets .tog b { display: block; font-size: 1.6rem; } .sets .tog small { color: var(--mut); font-size: 1.3rem; }
+.sets .tog.dis { opacity: .45; }
+.qimg .blink { animation: blk 1s steps(1) infinite; } .qimg .blinkall { animation: blk 1s steps(1) infinite; }
+@keyframes blk { 50% { opacity: .15; } }
+.qtop .qt b, .qtop .qt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -119,25 +119,98 @@ const ROT = { S: 0, W: 90, N: 180, O: 270 };   // Blickrichtung: Fahrzeug aus S 
  * scene = { arms:['N','O','S','W'], main:['N','S'] | null, signs:{S:'205'}, cars:[{from:'S', turn:'left'|'right'|'straight', color:'blau', kind:'car'|'bike'|'bus'|'truck'}],
  *           extras:['zebra-S','light'], peds:[{at:'S', side:'O'}] }
  */
+
+// ------------------------------------------------------------------ Bausteine für Szenen (Draufsicht)
+const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16); const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))))); return '#' + c.map(v => v.toString(16).padStart(2, '0')).join(''); };
+let GID = 0;
+/** Fahrzeug von oben, Mitte (0,0), Front zeigt nach oben (−y) */
+DRAW.vehicle = (kind, col, o = {}) => {
+  col = col || '#2563eb';
+  const hi = shade(col, .35), lo = shade(col, -.35), glass = '#1e293b', gl2 = '#334155';
+  const sh = (w, hh, r) => '<rect x="' + (-w / 2 + 3) + '" y="' + (-hh / 2 + 4) + '" width="' + w + '" height="' + hh + '" rx="' + r + '" fill="#000" opacity=".28"/>';
+  if (kind === 'bike') return sh(10, 30, 5) +
+    '<rect x="-1.6" y="-15" width="3.2" height="30" rx="1.6" fill="#111"/><rect x="-7" y="-9" width="14" height="2.4" rx="1.2" fill="#444"/>' +
+    '<ellipse cy="1" rx="8" ry="5.5" fill="' + col + '" stroke="' + lo + '" stroke-width="1"/><circle cy="-2" r="4.6" fill="' + (o.helmet || '#f8fafc') + '" stroke="#111" stroke-width=".8"/>';
+  if (kind === 'ped' || kind === 'kid') { const k = kind === 'kid' ? 1.05 : 1.4; return '<g transform="scale(' + k + ')">' + '<ellipse cx="2" cy="3" rx="9" ry="6" fill="#000" opacity=".25"/><ellipse rx="9" ry="5.5" fill="' + col + '" stroke="' + lo + '" stroke-width="1"/><circle r="4.8" fill="' + (o.hair || '#5b3a1e') + '" stroke="#111" stroke-width=".6"/>' + (o.cane ? '<path d="M7 -2 L22 -14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M19 -11.6 L22 -14" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round"/>' : '') + '</g>'; }
+  if (kind === 'tram') return sh(28, 98, 8) + '<rect x="-14" y="-49" width="28" height="98" rx="8" fill="#fde047" stroke="#a16207" stroke-width="1.2"/><rect x="-11" y="-46" width="22" height="9" rx="3" fill="' + glass + '"/><rect x="-10" y="-30" width="20" height="62" rx="3" fill="#facc15" stroke="#ca8a04"/><rect x="-11" y="38" width="22" height="7" rx="3" fill="' + glass + '"/>';
+  if (kind === 'truck' || kind === 'bus') {
+    const L = kind === 'bus' ? 76 : 70;
+    let b = sh(28, L, 5) + '<rect x="-14" y="' + (-L / 2) + '" width="28" height="' + L + '" rx="5" fill="' + col + '" stroke="' + lo + '" stroke-width="1.2"/>';
+    if (kind === 'bus') b += '<rect x="-11" y="' + (-L / 2 + 3) + '" width="22" height="9" rx="2.5" fill="' + glass + '"/><rect x="-11" y="' + (-L / 2 + 16) + '" width="22" height="' + (L - 26) + '" rx="3" fill="' + hi + '" opacity=".55"/>' +
+      [0, 1, 2].map(i => '<rect x="-6" y="' + (-L / 2 + 22 + i * 15) + '" width="12" height="6" rx="1.5" fill="' + lo + '" opacity=".5"/>').join('') + '<rect x="-11" y="' + (L / 2 - 6) + '" width="22" height="3" rx="1" fill="' + glass + '"/>';
+    else b += '<rect x="-13" y="' + (-L / 2 + 1) + '" width="26" height="17" rx="4" fill="' + hi + '"/><rect x="-11" y="' + (-L / 2 + 3) + '" width="22" height="7" rx="2" fill="' + glass + '"/><rect x="-14" y="' + (-L / 2 + 21) + '" width="28" height="' + (L - 21) + '" rx="2" fill="#e2e8f0" stroke="#94a3b8"/><path d="M-10 ' + (-L / 2 + 28) + ' V' + (L / 2 - 4) + ' M0 ' + (-L / 2 + 28) + ' V' + (L / 2 - 4) + ' M10 ' + (-L / 2 + 28) + ' V' + (L / 2 - 4) + '" stroke="#cbd5e1" stroke-width="1.5"/>';
+    b += '<rect x="-12" y="' + (-L / 2 - 1) + '" width="5" height="2.4" rx="1" fill="#fef9c3"/><rect x="7" y="' + (-L / 2 - 1) + '" width="5" height="2.4" rx="1" fill="#fef9c3"/><rect x="-13" y="' + (L / 2 - 1.5) + '" width="5" height="2.4" fill="#ef4444"/><rect x="8" y="' + (L / 2 - 1.5) + '" width="5" height="2.4" fill="#ef4444"/>';
+    if (o.warn) b += '<g class="blinkall"><circle cx="-13" cy="' + (-L / 2 + 2) + '" r="3.6" fill="#fb923c"/><circle cx="13" cy="' + (-L / 2 + 2) + '" r="3.6" fill="#fb923c"/><circle cx="-13" cy="' + (L / 2 - 2) + '" r="3.6" fill="#fb923c"/><circle cx="13" cy="' + (L / 2 - 2) + '" r="3.6" fill="#fb923c"/></g>';
+    return b;
+  }
+  // Pkw
+  const id = 'cg' + (++GID);
+  let b = '<defs><linearGradient id="' + id + '" x1="0" x2="1"><stop offset="0" stop-color="' + lo + '"/><stop offset=".5" stop-color="' + hi + '"/><stop offset="1" stop-color="' + lo + '"/></linearGradient></defs>' + sh(24, 44, 8) +
+    '<rect x="-13.2" y="-14" width="3" height="5" rx="1.2" fill="' + lo + '"/><rect x="10.2" y="-14" width="3" height="5" rx="1.2" fill="' + lo + '"/>' +   // Spiegel
+    '<rect x="-11.5" y="-22" width="23" height="44" rx="8" fill="url(#' + id + ')" stroke="' + shade(col, -.55) + '" stroke-width="1"/>' +
+    '<path d="M-9.5 -11 Q0 -14.5 9.5 -11 L8 -4 Q0 -5.5 -8 -4 Z" fill="' + glass + '"/>' +                                                                 // Frontscheibe
+    '<rect x="-8" y="-4" width="16" height="15" rx="2.5" fill="' + hi + '" opacity=".75"/>' +                                                            // Dach
+    '<path d="M-8 12 Q0 13 8 12 L9 17 Q0 19 -9 17 Z" fill="' + gl2 + '"/>' +                                                                           // Heckscheibe
+    '<path d="M-10 -5 L-10.6 10 M10 -5 L10.6 10" stroke="' + glass + '" stroke-width="1.6" opacity=".8"/>' +                                            // Seitenfenster
+    '<rect x="-10" y="-22.3" width="5" height="2.6" rx="1.2" fill="#fef9c3"/><rect x="5" y="-22.3" width="5" height="2.6" rx="1.2" fill="#fef9c3"/>' + // Scheinwerfer
+    '<rect x="-10.5" y="19.8" width="5" height="2.2" rx="1" fill="#dc2626"/><rect x="5.5" y="19.8" width="5" height="2.2" rx="1" fill="#dc2626"/>';    // Rückleuchten
+  if (o.brake) b += '<rect x="-11" y="19" width="6" height="3.5" rx="1" fill="#ff3030"/><rect x="5" y="19" width="6" height="3.5" rx="1" fill="#ff3030"/><circle cx="-8" cy="24" r="6" fill="#ef4444" opacity=".35"/><circle cx="8" cy="24" r="6" fill="#ef4444" opacity=".35"/>';
+  if (o.door) b += '<path d="M' + (o.door === 'left' ? '-11 -4 L-22 2' : '11 -4 L22 2') + '" stroke="' + col + '" stroke-width="3" stroke-linecap="round"/>';
+  if (o.warn) b += '<g class="blinkall"><circle cx="-10" cy="-20" r="3.2" fill="#fb923c"/><circle cx="10" cy="-20" r="3.2" fill="#fb923c"/><circle cx="-10" cy="20" r="3.2" fill="#fb923c"/><circle cx="10" cy="20" r="3.2" fill="#fb923c"/></g>';
+  if (o.blue) b += '<rect x="-7" y="-2" width="14" height="3.5" rx="1.5" fill="#3b82f6"/><circle cx="-5" cy="0" r="4" fill="#60a5fa" opacity=".5"/><circle cx="5" cy="0" r="4" fill="#60a5fa" opacity=".5"/>';
+  return b;
+};
+/** Blinker-Leuchten passend zur Fahrzeuglänge */
+DRAW.blink = (kind, turn) => {
+  if (!turn || turn === 'straight' || kind === 'bike') return '';
+  const x = turn === 'left' ? -1 : 1, L = kind === 'bus' ? 38 : kind === 'truck' ? 35 : kind === 'tram' ? 49 : 20, w = kind === 'car' || !kind ? 10.5 : 13.5;
+  return '<g class="blink"><circle cx="' + x * w + '" cy="' + (-L + 1) + '" r="3.4" fill="#fb923c"/><circle cx="' + x * w + '" cy="' + (L - 1) + '" r="3.4" fill="#fb923c"/></g>';
+};
+DRAW.tree = (x, y, r) => '<g transform="translate(' + x + ' ' + y + ')"><circle cx="3" cy="4" r="' + r + '" fill="#000" opacity=".22"/><circle r="' + r + '" fill="#2f6b35"/><circle cx="' + (-r * .3) + '" cy="' + (-r * .3) + '" r="' + r * .62 + '" fill="#3f8a45"/><circle cx="' + (-r * .45) + '" cy="' + (-r * .45) + '" r="' + r * .25 + '" fill="#58a85d"/></g>';
+DRAW.house = (x, y, w, hh, col) => { const roof = col || '#b45309'; const v = w > hh;   // Dachfirst entlang der langen Seite
+  return '<g><rect x="' + (x + 4) + '" y="' + (y + 5) + '" width="' + w + '" height="' + hh + '" fill="#000" opacity=".25"/><rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh + '" fill="' + roof + '"/>' +
+    (v ? '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh / 2 + '" fill="' + shade(roof, .18) + '"/><path d="M' + x + ' ' + (y + hh / 2) + ' H' + (x + w) + '" stroke="' + shade(roof, -.4) + '" stroke-width="2"/>'
+       : '<rect x="' + x + '" y="' + y + '" width="' + w / 2 + '" height="' + hh + '" fill="' + shade(roof, .18) + '"/><path d="M' + (x + w / 2) + ' ' + y + ' V' + (y + hh) + '" stroke="' + shade(roof, -.4) + '" stroke-width="2"/>') +
+    '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + hh + '" fill="none" stroke="' + shade(roof, -.45) + '" stroke-width="1.5"/></g>'; };
+const ROOFS = ['#b45309', '#9a3412', '#57534e', '#7c2d12', '#475569', '#a16207'];
+const GRASS = '<defs><pattern id="grs" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="#7cae6a"/><path d="M3 5 l1.5 -3 M11 13 l1.5 -3 M14 4 l1 -2.5 M6 15 l1 -2.5" stroke="#6a9c59" stroke-width="1.3"/></pattern></defs>';
+
 DRAW.scene = (sc) => {
   const W = 400, R = 34;   // Straßenhalbbreite
   const arms = sc.arms || ['N', 'O', 'S', 'W'];
-  let g = '<svg viewBox="0 0 ' + W + ' ' + W + '" class="scene"><rect width="' + W + '" height="' + W + '" fill="#7fb069"/>';
-  // Gehwege/Gras
-  g += '<rect width="' + W + '" height="' + W + '" fill="url(#gr)" opacity=".25"/>';
+  let g = '<svg viewBox="0 0 ' + W + ' ' + W + '" class="scene"><rect width="' + W + '" height="' + W + '" fill="#7cae6a"/>' + GRASS + '<rect width="' + W + '" height="' + W + '" fill="url(#grs)"/>';
   const c = W / 2;
+  // Häuser und Bäume in den Ecken (fest je Szene, damit jede Kreuzung etwas anders aussieht)
+  const rr = typeof GEN !== 'undefined' && GEN.rng ? GEN.rng(JSON.stringify(sc).split('').reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7)) : Math.random;
+  const blk = c - R - 12;   // Kantenlänge einer Ecke
+  for (const [qx, qy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    const ox = qx ? W - blk : 0, oy = qy ? W - blk : 0, w = 60 + rr() * 30, hh = 46 + rr() * 30;
+    const hx = ox + (qx ? blk - w - 14 - rr() * 30 : 14 + rr() * 30) - (qx ? 0 : 0), hy = oy + (qy ? blk - hh - 14 - rr() * 30 : 14 + rr() * 30);
+    g += DRAW.house(Math.round(hx), Math.round(hy), Math.round(w), Math.round(hh), ROOFS[Math.floor(rr() * ROOFS.length)]);
+    const tx = ox + (qx ? 22 + rr() * 30 : blk - 22 - rr() * 30), ty = oy + (qy ? 30 + rr() * 20 : blk - 30 - rr() * 20);
+    if (rr() > .25) g += DRAW.tree(Math.round(tx), Math.round(ty), 11 + rr() * 6);
+  }
+  // fehlender Arm (Einmündung): Hecke und Haus statt Straße
+  for (const d of ['N', 'O', 'S', 'W']) if (!arms.includes(d)) {
+    const v = d === 'N' || d === 'S', far = d === 'N' || d === 'W';
+    const x = v ? c - 46 : (far ? 30 : W - 30 - 70), y = v ? (far ? 28 : W - 28 - 60) : c - 40;
+    g += DRAW.house(x, y, v ? 92 : 70, v ? 60 : 80, ROOFS[Math.floor(rr() * ROOFS.length)]);
+    g += v ? '<rect x="' + (c - R - 12) + '" y="' + (far ? c - R - 22 : c + R + 14) + '" width="' + (2 * R + 24) + '" height="8" rx="4" fill="#3f7a3a"/>' : '<rect x="' + (far ? c - R - 22 : c + R + 14) + '" y="' + (c - R - 12) + '" width="8" height="' + (2 * R + 24) + '" rx="4" fill="#3f7a3a"/>';
+  }
   const road = (d) => {
-    const L = '#4b5563';
+    const L = '#474e5a';
     if (d === 'N') return '<rect x="' + (c - R) + '" y="0" width="' + 2 * R + '" height="' + c + '" fill="' + L + '"/>';
     if (d === 'S') return '<rect x="' + (c - R) + '" y="' + c + '" width="' + 2 * R + '" height="' + c + '" fill="' + L + '"/>';
     if (d === 'W') return '<rect x="0" y="' + (c - R) + '" width="' + c + '" height="' + 2 * R + '" fill="' + L + '"/>';
     return '<rect x="' + c + '" y="' + (c - R) + '" width="' + c + '" height="' + 2 * R + '" fill="' + L + '"/>';
   };
   // Bürgersteige
-  for (const d of arms) g += road(d).replace('#4b5563', '#cbd5e1').replace(/width="(\d+)" height="(\d+)"/, (m, w, hh) => (d === 'N' || d === 'S') ? 'width="' + (+w + 24) + '" height="' + hh + '"' : 'width="' + w + '" height="' + (+hh + 24) + '"').replace(/x="(\d+)"/, (m, x) => (d === 'N' || d === 'S') ? 'x="' + (+x - 12) + '"' : m).replace(/y="(\d+)"/, (m, y) => (d === 'W' || d === 'O') ? 'y="' + (+y - 12) + '"' : m);
-  g += '<rect x="' + (c - R - 12) + '" y="' + (c - R - 12) + '" width="' + (2 * R + 24) + '" height="' + (2 * R + 24) + '" fill="#cbd5e1"/>';
+  for (const d of arms) g += road(d).replace('#474e5a', '#d6d3cd').replace(/width="(\d+)" height="(\d+)"/, (m, w, hh) => (d === 'N' || d === 'S') ? 'width="' + (+w + 24) + '" height="' + hh + '"' : 'width="' + w + '" height="' + (+hh + 24) + '"').replace(/x="(\d+)"/, (m, x) => (d === 'N' || d === 'S') ? 'x="' + (+x - 12) + '"' : m).replace(/y="(\d+)"/, (m, y) => (d === 'W' || d === 'O') ? 'y="' + (+y - 12) + '"' : m);
+  g += '<rect x="' + (c - R - 12) + '" y="' + (c - R - 12) + '" width="' + (2 * R + 24) + '" height="' + (2 * R + 24) + '" fill="#d6d3cd"/>';
+  // Bordsteinkante
+  for (const d of arms) g += road(d).replace('fill="#474e5a"', 'fill="none" stroke="#9ca3af" stroke-width="5"');
   for (const d of arms) g += road(d);
-  g += '<rect x="' + (c - R) + '" y="' + (c - R) + '" width="' + 2 * R + '" height="' + 2 * R + '" fill="#4b5563"/>';
+  g += '<rect x="' + (c - R) + '" y="' + (c - R) + '" width="' + 2 * R + '" height="' + 2 * R + '" fill="#474e5a"/>';
   // Mittellinien (gestrichelt) und Wartelinien
   const dash = 'stroke="#fff" stroke-width="2.5" stroke-dasharray="14 12"';
   if (arms.includes('N')) g += '<path d="M' + c + ' 0 L' + c + ' ' + (c - R - 4) + '" ' + dash + '/>';
@@ -183,15 +256,7 @@ DRAW.scene = (sc) => {
     const dist = v.dist || (R + 40);
     // lokale Koordinaten: Fahrzeug aus Süden, Zentrum (0,0) = Kreuzungsmitte, Spur rechts = +x
     const kind = v.kind || 'car';
-    let body;
-    if (kind === 'bike') body = '<rect x="-4" y="-14" width="8" height="28" rx="4" fill="' + col + '"/><circle cy="-2" r="6" fill="#fbbf24" stroke="#111" stroke-width="1"/>';
-    else if (kind === 'truck' || kind === 'bus') body = '<rect x="-13" y="-34" width="26" height="68" rx="4" fill="' + col + '" stroke="#111" stroke-width="1.2"/><rect x="-11" y="-32" width="22" height="10" rx="2" fill="#bfdbfe"/>' + (kind === 'bus' ? '<text y="12" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="Arial">BUS</text>' : '');
-    else if (kind === 'tram') body = '<rect x="-13" y="-48" width="26" height="96" rx="6" fill="#fde047" stroke="#111" stroke-width="1.2"/>';
-    else body = '<rect x="-11" y="-20" width="22" height="40" rx="7" fill="' + col + '" stroke="#111" stroke-width="1.2"/><rect x="-9" y="-12" width="18" height="9" rx="2" fill="#bfdbfe"/><rect x="-9" y="9" width="18" height="6" rx="2" fill="#bfdbfe" opacity=".8"/>';
-    // Blinker
-    let blink = '';
-    if (v.turn === 'left' && kind !== 'bike') blink = '<circle cx="-10" cy="-19" r="3.2" fill="#fb923c"/><circle cx="-10" cy="19" r="3.2" fill="#fb923c"/>';
-    if (v.turn === 'right' && kind !== 'bike') blink = '<circle cx="10" cy="-19" r="3.2" fill="#fb923c"/><circle cx="10" cy="19" r="3.2" fill="#fb923c"/>';
+    const body = DRAW.vehicle(kind, col, v), blink = DRAW.blink(kind, v.turn);
     // Fahrweg-Pfeil
     const y0 = dist - 30, A = '#facc15';
     let path;
@@ -207,7 +272,39 @@ DRAW.scene = (sc) => {
   // Fußgänger
   for (const p of sc.peds || []) {
     const pos = { S: [c + (p.x || 0), c + R + 31], N: [c + (p.x || 0), c - R - 31], W: [c - R - 31, c + (p.y || 0)], O: [c + R + 31, c + (p.y || 0)] }[p.at] || [p.x, p.y];
-    g += '<g transform="translate(' + pos[0] + ' ' + pos[1] + ')"><circle r="7" fill="' + (p.color || '#e11d48') + '" stroke="#111" stroke-width="1.2"/><circle r="3.5" fill="#fcd34d"/></g>';
+    g += '<g transform="translate(' + pos[0] + ' ' + pos[1] + ') rotate(' + (p.rot || 0) + ')">' + DRAW.vehicle(p.kid ? 'kid' : 'ped', p.color || '#e11d48', p) + '</g>';
+  }
+  return g + '</svg>';
+};
+
+/** Gerade Straße von oben (Gefahrenlehre). Spuren: l = Gegenfahrbahn, r = eigene Spur, pl/pr = Parkstreifen, swl/swr = Gehweg.
+ *  { items:[{t:'car'|'bus'|'truck'|'bike'|'ped'|'kid'|'ball'|'zebra'|'stop'|'tree', x:'r'|Zahl, y, rot, color, label, warn, door, brake, blink, me}], seed }
+ */
+DRAW.street = (sc) => {
+  const W = 400, X = { swl: 88, pl: 126, l: 170, r: 230, pr: 274, swr: 312 };
+  const rr = typeof GEN !== 'undefined' && GEN.rng ? GEN.rng((sc.seed || 1) * 7919) : Math.random;
+  let g = '<svg viewBox="0 0 ' + W + ' ' + W + '" class="scene">' + GRASS + '<rect width="' + W + '" height="' + W + '" fill="url(#grs)"/>';
+  // Häuser und Bäume am Rand
+  for (const side of [0, 1]) for (let y = -10 + rr() * 30; y < W; y += 100 + rr() * 40) {
+    const w = 44 + rr() * 14, hh = 60 + rr() * 20; g += DRAW.house(side ? W - w - 6 : 6, Math.round(y), Math.round(w), Math.round(hh), ROOFS[Math.floor(rr() * ROOFS.length)]);
+  }
+  g += '<rect x="70" y="0" width="36" height="' + W + '" fill="#d6d3cd"/><rect x="294" y="0" width="36" height="' + W + '" fill="#d6d3cd"/>';
+  for (let y = 0; y < W; y += 20) g += '<path d="M70 ' + y + ' H106 M294 ' + y + ' H330" stroke="#c4c0b8" stroke-width="1"/>';
+  g += '<rect x="104" y="0" width="192" height="' + W + '" fill="#474e5a"/><path d="M106 0 V' + W + ' M294 0 V' + W + '" stroke="#9ca3af" stroke-width="4"/>';
+  g += '<path d="M146 0 V' + W + ' M254 0 V' + W + '" stroke="#fff" stroke-width="1.6" stroke-dasharray="6 8" opacity=".55"/><path d="M200 0 V' + W + '" stroke="#fff" stroke-width="2.5" stroke-dasharray="16 12"/>';
+  for (let y = 30 + rr() * 30; y < W; y += 120 + rr() * 60) { g += DRAW.tree(88, Math.round(y), 9); g += DRAW.tree(312, Math.round(y + 50), 9); }
+  const items = (sc.items || []).slice().sort((a, b) => (a.t === 'zebra' || a.t === 'stop' ? 0 : 1) - (b.t === 'zebra' || b.t === 'stop' ? 0 : 1));
+  for (const it of items) {
+    const x = typeof it.x === 'number' ? it.x : X[it.x || 'r'], y = it.y || 0;
+    if (it.t === 'zebra') { for (let i = 0; i < 9; i++) g += '<rect x="' + (110 + i * 20.5) + '" y="' + (y - 14) + '" width="12" height="28" fill="#fff"/>'; continue; }
+    if (it.t === 'stop') { g += '<g transform="translate(' + x + ' ' + y + ')"><rect x="-1.5" y="0" width="3" height="16" fill="#334155"/><circle cy="-6" r="10" fill="#facc15" stroke="#15803d" stroke-width="2.5"/><text y="-1.5" text-anchor="middle" font-family="Arial" font-weight="900" font-size="13" fill="#15803d">H</text></g>'; continue; }
+    if (it.t === 'tree') { g += DRAW.tree(x, y, it.r || 10); continue; }
+    if (it.t === 'ball') { g += '<g transform="translate(' + x + ' ' + y + ')"><circle cx="2" cy="3" r="6" fill="#000" opacity=".25"/><circle r="6" fill="#f8fafc" stroke="#111" stroke-width="1"/><path d="M-6 0 Q0 -4 6 0 M0 -6 V6" stroke="#ef4444" stroke-width="1.6" fill="none"/></g>' + (it.trail ? '<path d="M' + (x + 26) + ' ' + y + ' L' + (x + 10) + ' ' + y + '" stroke="#fff" stroke-width="2" stroke-dasharray="3 4" opacity=".8"/>' : ''); continue; }
+    const col = COLORS[it.color] || it.color || (it.me ? COLORS.blau : '#64748b');
+    const kind = it.t === 'car' ? 'car' : it.t;
+    g += '<g transform="translate(' + x + ' ' + y + ') rotate(' + (it.rot || 0) + ')">' + (it.move ? '<path d="M0 -26 V' + (-26 - it.move) + '" stroke="#facc15" stroke-width="4" stroke-dasharray="9 6"/><path d="M-7 ' + (-26 - it.move) + ' L0 ' + (-38 - it.move) + ' L7 ' + (-26 - it.move) + ' Z" fill="#facc15"/>' : '') +
+      DRAW.vehicle(kind, col, it) + DRAW.blink(kind, it.blink) + '</g>';
+    if (it.label || it.me) { const lx = x + (x > 200 ? 26 : -26) * (kind === 'bus' || kind === 'truck' ? 1.2 : 1); g += '<g transform="translate(' + lx + ' ' + y + ')"><circle r="13" fill="#fff" stroke="' + col + '" stroke-width="3"/><text y="' + (it.me ? 3.5 : 5) + '" text-anchor="middle" font-size="' + (it.me ? 10 : 14) + '" font-weight="800" font-family="Arial" fill="#111">' + (it.me ? 'Sie' : it.label) + '</text></g>'; }
   }
   return g + '</svg>';
 };

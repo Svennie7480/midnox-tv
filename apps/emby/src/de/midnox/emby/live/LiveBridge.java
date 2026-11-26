@@ -27,9 +27,9 @@ public class LiveBridge {
     public LiveBridge(Context ctx, Out o) {
         c = ctx.getApplicationContext(); out = o;
         U.init(c);
-        // Live-TV startet nicht mit der App: erst wenn die Oberflaeche danach fragt oder nach 45 s Ruhe – mit niedriger Prioritaet
+        // Live-TV startet nicht mit der App: erst wenn die Oberflaeche danach fragt – mit niedriger Prioritaet
         new Thread(new Runnable() { public void run() { Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-            synchronized (wake) { if (!woken) try { wake.wait(45000); } catch (InterruptedException ignored) {} }
+            synchronized (wake) { while (!woken) try { wake.wait(); } catch (InterruptedException ignored) {} }   // erst, wenn die Oberflaeche Live-TV braucht (aus = nie)
             Lib.loadCache(c);
             for (Model.Source s : Lib.sources(c)) if (s.type.equals("stalker")) Stalker.active.put(s.id, U.prefs(c).getInt("mac_" + s.id, 0));
             Epg.loadOverrides(c); Epg.loadCache(c); Logos.load(c);
@@ -52,12 +52,12 @@ public class LiveBridge {
         try {
             JSONArray src = new JSONArray();
             for (Model.Source s : Lib.sources(c)) {
-                JSONObject o = new JSONObject().put("id", s.id).put("name", s.name).put("type", s.type).put("label", s.label()).put("on", s.on);
+                JSONObject o = new JSONObject().put("id", s.id).put("name", s.name).put("type", s.type).put("label", s.label()).put("on", s.on).put("typeOn", Lib.typeOn(c, s.type));
                 String err = Lib.errors.get(s.id); if (err != null) o.put("err", err);
                 if (s.type.equals("stalker")) o.put("macs", Stalker.macs(s).size());
                 src.put(o);
             }
-            return new JSONObject().put("ready", ready).put("sources", src).put("count", Lib.channels.size()).put("loading", Lib.loading)
+            return new JSONObject().put("ready", ready).put("sources", src).put("types", new JSONObject().put("stalker", Lib.typeOn(c, "stalker")).put("xtream", Lib.typeOn(c, "xtream")).put("m3u", Lib.typeOn(c, "m3u"))).put("count", Lib.channels.size()).put("loading", Lib.loading)
                 .put("status", Lib.status).put("epgLoading", Epg.loading).put("epgStatus", Epg.status).put("epgAt", Epg.loadedAt)
                 .put("liveInstalled", liveInstalled()).toString();
         } catch (Exception e) { return "{}"; }
@@ -72,14 +72,32 @@ public class LiveBridge {
         if (chJson != null && chVer == ver) return;
         int v = ver;
         JSONArray a = new JSONArray();
+        Set<String> act = activeIds(); LinkedHashSet<String> gs = new LinkedHashSet<>();
         for (Model.Channel ch : Lib.channels) {
+            if (!act.contains(ch.src)) continue;   // Quelle oder ihre Art abgeschaltet
+            gs.add(ch.group);
             JSONArray r = new JSONArray();
             r.put(ch.id).put(ch.name).put(ch.group).put(ch.num).put(android.text.TextUtils.join("|", Logos.candidates(ch))).put(ch.src);
             a.put(r);
         }
+        List<String> g = new ArrayList<>(); for (String x : Lib.groups) if (gs.contains(x)) g.add(x);
+        grJson = new JSONArray(g).toString();
         chJson = a.toString(); chVer = v;
     }
-    @JavascriptInterface public String groups() { return new JSONArray(Lib.groups).toString(); }
+    volatile String grJson = "[]";
+    Set<String> activeIds() { Set<String> s = new HashSet<>(); for (Model.Source x : Lib.sources(c)) if (Lib.active(c, x)) s.add(x.id); return s; }
+    @JavascriptInterface public String groups() { if (chJson == null && ready) build(); return grJson; }
+    /** Ganze Art von Quellen ein-/ausschalten (stalker, xtream, m3u) */
+    @JavascriptInterface public void setTypeOn(final String type, final boolean on) {
+        U.prefs(c).edit().putBoolean("type_off_" + type, !on).apply();
+        new Thread(new Runnable() { public void run() {
+            Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+            boolean have = false; Set<String> act = activeIds();
+            for (Model.Channel ch : Lib.channels) if (act.contains(ch.src)) { Model.Source so = Lib.source(c, ch.src); if (so != null && so.type.equals(type)) { have = true; break; } }
+            if (on && !have && ready) { reloadAll(); return; }   // Sender dieser Art waren nie geladen
+            ver++; build(); ev("{\"e\":\"channels\"}");
+        }}).start();
+    }
     @JavascriptInterface public String sourceNames() { return new JSONObject(Lib.srcNames).toString(); }
     @JavascriptInterface public String favs() { return new JSONArray(Lib.favs(c)).toString(); }
     @JavascriptInterface public boolean fav(String id) { return Lib.toggleFav(c, id); }

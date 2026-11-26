@@ -1,6 +1,6 @@
 {
- "versionCode": 19,
- "versionName": "2.5",
+ "versionCode": 20,
+ "versionName": "2.6",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Live-TV: Neue Gruppe „waipu.tv“ (wenn die waipu-App installiert ist) – Live-TV, Programm und Aufnahmen öffnen waipu.tv direkt an der richtigen Stelle."
+ "notes": "Einstellungen → Live-TV: Jede Art von Live-TV einzeln ein- und ausschalten – Stalker-Portale, Xtream-Codes, M3U-Listen, midnox-TV-Kanäle und waipu.tv. Ausgeschaltete Arten werden gar nicht erst geladen. „Live-TV im Menü“ wirkt jetzt sofort, ohne Neustart; ist Live-TV aus, lädt die App im Hintergrund auch nichts mehr dafür."
 }

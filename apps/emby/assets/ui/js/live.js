@@ -6,7 +6,7 @@ const FAVG = '★ Favoriten', ALLG = 'Alle Sender', WAIG = 'waipu.tv';
 /** waipu.tv lässt sich nicht einbetten (Kopierschutz) – aber direkt an der richtigen Stelle öffnen */
 const WAIPU = {
   PKG: 'de.exaring.waipu.firetv.live,de.exaring.waipu',
-  has() { if (WAIPU._h == null) WAIPU._h = !!(window.Android && Android.hasApp && Android.hasApp(WAIPU.PKG)); return WAIPU._h; },
+  has() { if (EMBY.settings().waipuOn === false) return false; if (WAIPU._h == null) WAIPU._h = !!(window.Android && Android.hasApp && Android.hasApp(WAIPU.PKG)); return WAIPU._h; },
   ITEMS: [['tv', '📺', 'Live-TV', 'waipu.tv direkt im Fernsehprogramm starten'], ['epg', '🗓️', 'Programm', 'Was läuft wann – Programmübersicht von waipu.tv'], ['recordings', '⏺️', 'Aufnahmen', 'Deine Aufnahmen bei waipu.tv']],
   open(k) { if (!Android.openApp('waipu://' + k, WAIPU.PKG)) UI.toast('waipu.tv ist nicht installiert'); },
 };
@@ -16,24 +16,25 @@ const LIVE = {
   enabled() { return HAS_LIVE && EMBY.settings().liveOn !== false && !(window.KIDS && KIDS.on); },
   byGroup: {}, _jv: -1, _mv: -1, want: false,
   /** midnox-TV-Kanäle (fragen die ganze Emby-Bibliothek ab) erst bauen, wenn Live-TV geöffnet wird */
-  wantMx() { LIVE.want = true; if (window.MXTV && !MXTV.ch.length && !MXTV.building && !MXTV.tried && window.EMBY && EMBY.user) { MXTV.tried = true; MXTV.init(); } },
+  mxOn() { return EMBY.settings().mxOn !== false; },
+  wantMx() { LIVE.want = true; if (window.MXTV && LIVE.mxOn() && !MXTV.ch.length && !MXTV.building && !MXTV.tried && window.EMBY && EMBY.user) { MXTV.tried = true; MXTV.init(); } },
   /** Live-TV wird gleich gebraucht: Daten im Hintergrund vorbereiten */
   open() { LIVE.want = true; if (HAS_LIVE && Live.warm) Live.warm(); LIVE.load(); },
   /** Senderliste holen – nur wenn sie sich geändert hat (große Portale haben zehntausende Sender). */
   load(force) {
     if (!HAS_LIVE) return;
     try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (e) { LIVE.st = {}; }
-    const jv = Live.ver ? Live.ver() : 0, mv = window.MXTV ? MXTV.ver : 0;
+    const jv = Live.ver ? Live.ver() : 0, mv = (window.MXTV ? MXTV.ver : 0) + (LIVE.mxOn() ? 0 : 1e6);   // Schalter „midnox-TV-Kanäle“ zählt mit
     if (LIVE.want) LIVE.wantMx();
     if (!force && jv === LIVE._jv && mv === LIVE._mv && (LIVE.ch.length || !LIVE.st.count)) return;
     LIVE._jv = jv; LIVE._mv = mv;
     let raw = []; try { raw = JSON.parse(Live.channels() || '[]'); } catch (e) {}
     LIVE.ch = raw.map(r => ({ id: r[0], name: r[1], group: r[2], num: r[3], logos: r[4] ? r[4].split('|').filter(Boolean) : [], src: r[5] }));
-    if (window.MXTV) LIVE.ch = MXTV.ch.concat(LIVE.ch);   // eigene Kanäle zuerst
+    if (window.MXTV && LIVE.mxOn()) LIVE.ch = MXTV.ch.concat(LIVE.ch);   // eigene Kanäle zuerst
     LIVE.byId = {}; LIVE.byGroup = {};
     for (const c of LIVE.ch) { LIVE.byId[c.id] = c; (LIVE.byGroup[c.group] || (LIVE.byGroup[c.group] = [])).push(c); }
     try { LIVE.groups = JSON.parse(Live.groups() || '[]'); } catch (e) { LIVE.groups = []; }
-    if (window.MXTV && MXTV.ch.length) LIVE.groups.unshift(MXG);
+    if (window.MXTV && MXTV.ch.length && LIVE.mxOn()) LIVE.groups.unshift(MXG);
     try { LIVE.favs = JSON.parse(Live.favs() || '[]'); } catch (e) { LIVE.favs = []; }
     try { LIVE.names = JSON.parse(Live.sourceNames() || '{}'); } catch (e) { LIVE.names = {}; }
     LIVE.epgC = {}; LIVE.ver++;
@@ -346,7 +347,7 @@ const LIVESET = {
       box.appendChild(h('p', '', (LIVE.ch.length ? LIVE.ch.length + ' Sender' : 'Noch keine Sender') + (st.epgAt ? ' · Programm vom ' + new Date(st.epgAt).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')));
       const l = h('div', 'opts');
       for (const s of st.sources || []) {
-        const e = h('div', 'opt f lvsrc', '<b>' + esc(s.name) + (s.on ? '' : ' <small>(aus)</small>') + '</b><small>' + esc(s.label) + (s.macs ? ' · ' + s.macs + ' MAC' + (s.macs > 1 ? 's' : '') : '') + (s.err ? ' · ⚠️ ' + esc(s.err) : '') + '</small>');
+        const e = h('div', 'opt f lvsrc', '<b>' + esc(s.name) + (!s.on ? ' <small>(aus)</small>' : s.typeOn === false ? ' <small>(Art in den Einstellungen aus)</small>' : '') + '</b><small>' + esc(s.label) + (s.macs ? ' · ' + s.macs + ' MAC' + (s.macs > 1 ? 's' : '') : '') + (s.err ? ' · ⚠️ ' + esc(s.err) : '') + '</small>');
         e._ok = async () => {
           const v = await UI.choose(s.name, [{ label: s.on ? 'Ausschalten' : 'Einschalten', value: 'tog' }, { label: 'Entfernen', value: 'del' }]);
           if (v === 'tog') { Live.toggleSource(s.id); close(); UI.toast('Sender werden neu geladen …', { icon: '📺' }); }
@@ -382,7 +383,10 @@ const LIVESET = {
     Live.pull(p.ip, p.port, pin);
   },
   async add() {
-    const type = await UI.choose('Welche Art von Quelle?', [{ label: 'Stalker-Portal (MAC-Adresse)', value: 'stalker' }, { label: 'Xtream Codes (Benutzer & Passwort)', value: 'xtream' }, { label: 'M3U-Liste (Adresse)', value: 'm3u' }]);
+    const ty = (LIVE.st && LIVE.st.types) || {};
+    const opts = [{ label: 'Stalker-Portal (MAC-Adresse)', value: 'stalker' }, { label: 'Xtream Codes (Benutzer & Passwort)', value: 'xtream' }, { label: 'M3U-Liste (Adresse)', value: 'm3u' }].filter(o => ty[o.value] !== false);   // abgeschaltete Arten nicht anbieten
+    if (!opts.length) { UI.toast('Alle Arten von Quellen sind in den Einstellungen ausgeschaltet', { icon: '📺' }); return; }
+    const type = await UI.choose('Welche Art von Quelle?', opts);
     if (!type) return;
     const url = await TEXT.ask(type === 'stalker' ? 'Portal-Adresse' : type === 'xtream' ? 'Server-Adresse' : 'Adresse der M3U-Liste', { placeholder: type === 'stalker' ? 'http://portal.beispiel.tv:8080/c/' : 'http://…', sub: type === 'stalker' ? 'Tipp: Du kannst hier auch einen ganzen Text mit Portal und MACs einfügen – „Per Handy tippen“.' : '' });
     if (!url) return;

@@ -51,7 +51,7 @@ final class Lib {
         try {
             List<Model.Channel> all = new ArrayList<>();
             for (Model.Source s : sources(c)) {
-                if (!s.on) continue;
+                if (!active(c, s)) continue;
                 status = "Lade " + s.name + " …";
                 String work = U.prefs(c).getString("work_" + s.id, "");   // zuletzt funktionierender Ausweich-Server zuerst
                 if (!work.isEmpty()) s.active = work;
@@ -103,7 +103,7 @@ final class Lib {
 
     static void set(Context c, List<Model.Channel> l) {
         Map<String, String> sn = new HashMap<>();
-        for (Model.Source s : sources(c)) if (s.on) sn.put(s.id, s.name);
+        for (Model.Source s : sources(c)) if (active(c, s)) sn.put(s.id, s.name);
         srcNames = sn;
         Set<String> hidden = hiddenGroups(c);
         List<Model.Channel> vis = new ArrayList<>();
@@ -337,4 +337,9 @@ final class Lib {
         U.prefs(c).edit().putString("favs", new JSONArray(l).toString()).apply();
         return now;
     }
+
+    /** Art der Quelle (stalker / xtream / m3u) in den Einstellungen abgeschaltet? */
+    static boolean typeOn(Context c, String type) { return !U.prefs(c).getBoolean("type_off_" + type, false); }
+    /** Quelle wird genutzt: selbst an und ihre Art nicht abgeschaltet */
+    static boolean active(Context c, Model.Source s) { return s.on && typeOn(c, s.type); }
 }

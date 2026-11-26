@@ -563,9 +563,9 @@ ROUTER.reg('settings', async (scr) => {
   const sect = (t) => list.appendChild(h('div', '', '<div style="font-size:1.05rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);font-weight:700;margin:2rem 0 .8rem">' + t + '</div>'));
   const row = (title, val, fn, icon) => { const e = h('div', 'srv f', '<div class="ic">' + ic(icon || 'gear') + '</div><div style="flex:1"><b>' + esc(title) + '</b><small>' + esc(val) + '</small></div>'); e._ok = () => fn(e); list.appendChild(e); return e; };
   const setVal = (e, v) => { $('small', e).textContent = v; };
-  const choice = (title, key, opts, icon) => {
+  const choice = (title, key, opts, icon, after) => {
     const name = () => (opts.find(o => o[0] === s[key]) || opts[0])[1];
-    row(title, name(), async (e) => { const v = await UI.choose(title, opts.map(o => ({ label: o[1], value: o[0], sel: o[0] === s[key] }))); if (v !== null && v !== undefined) { s[key] = v; save(); setVal(e, name()); } }, icon);
+    row(title, name(), async (e) => { const v = await UI.choose(title, opts.map(o => ({ label: o[1], value: o[0], sel: o[0] === s[key] }))); if (v !== null && v !== undefined) { s[key] = v; save(); setVal(e, name()); if (after) after(v); } }, icon);
   };
   sect('Wiedergabe');
   choice('Maximale Qualität', 'bitrate', [[0, 'Automatisch (beste)'], [80000000, '80 Mbit/s – 4K'], [40000000, '40 Mbit/s – 1080p hoch'], [20000000, '20 Mbit/s – 1080p'], [10000000, '10 Mbit/s – 720p'], [4000000, '4 Mbit/s – sparsam unterwegs'], [1500000, '1,5 Mbit/s – sehr langsam']], 'film');
@@ -581,9 +581,28 @@ ROUTER.reg('settings', async (scr) => {
   choice('Anti-Spoiler', 'spoiler', [[false, 'Aus'], [true, 'An – ungesehene Folgen ohne Bild-Details und Beschreibung']], 'eye');
   choice('Schaust du noch?', 'still', [[3, 'Nach 3 Folgen ohne Tastendruck fragen'], [2, 'Nach 2 Folgen'], [5, 'Nach 5 Folgen'], [0, 'Nie fragen']], 'moon');
   choice('Titelmusik auf Detailseiten', 'themeSongs', [[true, 'An (leise im Hintergrund)'], [false, 'Aus']], 'music');
-  if (window.HAS_LIVE || typeof window.Live !== 'undefined') choice('Live-TV im Menü', 'liveOn', [[true, 'An'], [false, 'Aus']], 'live');
   choice('Vorschaubilder beim Spulen', 'trick', [[true, 'An (wenn der Server sie erzeugt hat)'], [false, 'Aus']], 'tv');
   choice('Bildschirmschoner', 'saver', [[5, 'Nach 5 Minuten'], [3, 'Nach 3 Minuten'], [10, 'Nach 10 Minuten'], [20, 'Nach 20 Minuten'], [0, 'Aus (Fire-TV-eigener)']], 'tv');
+  if (typeof HAS_LIVE !== 'undefined' && HAS_LIVE) {
+    sect('Live-TV');
+    choice('Live-TV im Menü', 'liveOn', [[true, 'An'], [false, 'Aus – Live-TV ganz ausblenden']], 'live', () => { RAIL.build(); if (RAIL.mark) RAIL.mark('settings'); });
+    let lst = {}; try { lst = JSON.parse(Live.status() || '{}'); } catch (e) {}
+    const srcs = lst.sources || [];
+    row('Einzelne Quellen verwalten', srcs.length ? srcs.map(x => x.name + (x.on ? '' : ' (aus)')).join(' · ') : 'Noch keine Quelle eingerichtet', () => LIVESET.open(), 'live');
+    // jede Art von Quelle einzeln: aus = wird gar nicht erst geladen
+    const ty = lst.types || {};
+    const cnt = (t) => srcs.filter(x => x.type === t).length;
+    for (const [t, label, sub] of [['stalker', 'Stalker-Portale', 'MAC-Portale'], ['xtream', 'Xtream-Codes', 'Benutzername & Passwort'], ['m3u', 'M3U-Listen', 'Senderlisten-Links']]) {
+      const val = () => (ty[t] !== false ? 'An' : 'Aus') + ' · ' + (cnt(t) ? cnt(t) + (cnt(t) > 1 ? ' Quellen' : ' Quelle') : 'keine eingerichtet') + ' (' + sub + ')';
+      row(label, val(), async (e) => {
+        const v = await UI.choose(label, [{ label: 'An', value: 'on', sel: ty[t] !== false }, { label: 'Aus – ' + label + ' gar nicht laden', value: 'off', sel: ty[t] === false }]);
+        if (!v) return; ty[t] = v === 'on'; Live.setTypeOn(t, ty[t]); setVal(e, val());
+        UI.toast(ty[t] ? label + ' werden geladen …' : label + ' ausgeschaltet', { icon: '📺' });
+      }, 'live');
+    }
+    choice('midnox-TV-Kanäle', 'mxOn', [[true, 'An – Themenkanäle aus deiner Sammlung'], [false, 'Aus']], 'tv');
+    choice('waipu.tv-Gruppe', 'waipuOn', [[true, 'An (wenn die waipu-App installiert ist)'], [false, 'Aus']], 'tv');
+  }
   sect('Community');
   choice('Anderen zeigen, was ich schaue', 'showWatching', [[true, 'Ja'], [false, 'Nein']], 'user');
   row('Community-Server', s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden'), async (e) => { const v = await TEXT.ask('Adresse des Community-Servers', { value: s.community }); if (v) { s.community = v.trim(); save(); await COMM.start(); setVal(e, s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden')); } }, 'chat');

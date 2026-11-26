@@ -42,7 +42,7 @@ final class Vod {
     static List<Cat> categories(Context c, int kind) {
         List<Cat> out = new ArrayList<>();
         for (Model.Source s : Lib.sources(c)) {
-            if (!s.on) continue;
+            if (!Lib.active(c, s)) continue;
             out.addAll(catsOf(c, s, kind));
         }
         return out;

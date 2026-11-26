@@ -107,7 +107,7 @@ final class Epg {
     static List<String> urls(Context c) {
         LinkedHashSet<String> u = new LinkedHashSet<>();
         for (Model.Source s : Lib.sources(c)) {
-            if (!s.on) continue;
+            if (!Lib.active(c, s)) continue;
             if (!s.epg.trim().isEmpty()) { u.add(s.epg.trim()); continue; }
             if (s.type.equals("xtream")) u.add(Xtream.epgUrl(s));
             else if (s.type.equals("m3u")) { String a = U.prefs(c).getString("epg_auto_" + s.id, ""); if (!a.isEmpty()) u.add(a); }
@@ -133,7 +133,7 @@ final class Epg {
                 try (InputStream in = U.stream(url, null, 120000)) { parse(in, wantIds, wantNames, from, to, m, n); }
                 catch (Exception e) { status = "EPG-Fehler: " + e.getMessage(); }
             }
-            for (Model.Source s : Lib.sources(c)) if (s.on && s.type.equals("stalker")) {
+            for (Model.Source s : Lib.sources(c)) if (Lib.active(c, s) && s.type.equals("stalker")) {
                 try { m.putAll(Stalker.epg(s)); } catch (Exception ignored) {}
             }
             for (List<Model.Prog> l : m.values()) Collections.sort(l, new Comparator<Model.Prog>() { public int compare(Model.Prog a, Model.Prog b) { return Long.compare(a.start, b.start); } });

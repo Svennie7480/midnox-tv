@@ -1,5 +1,5 @@
 'use strict';
-/* midnox Führerschein – alle Bilder werden selbst gezeichnet (SVG): Verkehrszeichen nach StVO und Verkehrsszenen von oben. */
+/* midnox Führerschein – Verkehrszeichen: amtliche StVO-Zeichen (gemeinfrei, Quelle Wikimedia Commons); Verkehrsszenen selbst gezeichnet (SVG). */
 
 const DRAW = {};
 
@@ -33,79 +33,24 @@ const wArrow = (rot, s) => '<g transform="rotate(' + (rot || 0) + ') scale(' + (
 const num = (n, sz) => '<text x="0" y="' + (sz ? sz * .36 : 14) + '" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="' + (sz || 40) + '" fill="#000">' + n + '</text>';
 const end = (inner) => '<svg viewBox="-50 -50 100 100"><circle r="44" fill="#fff" stroke="#222" stroke-width="2.5"/><g opacity=".45">' + (inner || '') + '</g><g stroke="#111" stroke-width="3"><path d="M-30 30 L30 -30 M-34 24 L24 -34 M-24 34 L34 -24"/></g></svg>';
 
-DRAW.SIGNS = {
-  '101': ['Gefahrstelle', tri('<path d="M-5 -26 L5 -26 L3 8 L-3 8 Z"/><circle cy="18" r="5"/>')],
-  '102': ['Kreuzung oder Einmündung mit Vorfahrt von rechts', tri('<path d="M-4 -28 L4 -28 L4 -4 L26 -4 L26 4 L4 4 L4 26 L-4 26 L-4 4 L-26 4 L-26 -4 L-4 -4 Z"/>')],
-  '103-10': ['Kurve (links)', tri('<path d="M8 26 L8 -4 Q8 -16 -6 -18 L-6 -26 L-24 -12 L-6 2 L-6 -6 Q0 -6 0 2 L0 26 Z"/>')],
-  '103-20': ['Kurve (rechts)', tri('<path d="M-8 26 L-8 -4 Q-8 -16 6 -18 L6 -26 L24 -12 L6 2 L6 -6 Q0 -6 0 2 L0 26 Z"/>')],
-  '105-10': ['Doppelkurve (zunächst links)', tri('<path d="M2 28 L2 8 Q2 0 -8 -4 Q-14 -8 -10 -14 L-4 -20 L-10 -24 L8 -30 L6 -12 L0 -16 L-2 -14 Q-4 -10 0 -8 Q10 -2 10 8 L10 28 Z"/>')],
-  '108': ['Gefälle', tri('<path d="M-32 0 L32 24 L-32 24 Z"/>' + '<text x="10" y="-2" text-anchor="middle" font-family="Arial" font-weight="700" font-size="17">10%</text>')],
-  '110': ['Steigung', tri('<path d="M32 0 L-32 24 L32 24 Z"/>' + '<text x="-10" y="-2" text-anchor="middle" font-family="Arial" font-weight="700" font-size="17">10%</text>')],
-  '117-10': ['Seitenwind von links', tri('<path d="M-30 -14 Q-10 -20 6 -14 L6 -20 L22 -10 L6 0 L6 -6 Q-10 -12 -30 -6 Z"/><path d="M-30 4 Q-12 -2 2 4 L2 -2 L18 8 L2 18 L2 12 Q-12 6 -30 12 Z"/><rect x="18" y="14" width="10" height="12"/>')],
-  '142-10': ['Wildwechsel', tri('<path d="M-22 22 L-18 4 Q-20 -4 -12 -6 L10 -6 L16 -16 L14 -24 L18 -22 L20 -16 L24 -24 L26 -20 L22 -12 L26 -6 L20 -2 L16 6 L18 22 L13 22 L11 8 L-8 8 L-12 22 L-17 22 L-14 6 Z"/>')],
-  '112': ['Unebene Fahrbahn', tri('<path d="M-30 18 L-30 8 Q-20 -6 -10 8 Q0 -6 10 8 Q20 -6 30 8 L30 18 Z"/>')],
-  '114': ['Schleuder- oder Rutschgefahr', tri(PICT.skid)],
-  '117': ['Seitenwind', tri(PICT.wind)],
-  '120': ['Verengte Fahrbahn', tri('<path d="M-18 28 L-10 4 L-10 -28 L-4 -28 L-4 6 L-12 28 Z M18 28 L10 4 L10 -28 L4 -28 L4 6 L12 28 Z"/>')],
-  '123': ['Arbeitsstelle', tri(PICT.work)],
-  '125': ['Gegenverkehr', tri('<path d="M-14 26 L-14 -8 L-22 -8 L-11 -26 L0 -8 L-8 -8 L-8 26 Z" /><path d="M14 -26 L14 8 L22 8 L11 26 L0 8 L8 8 L8 -26 Z" fill="' + RED + '"/>')],
-  '131': ['Lichtzeichenanlage', tri('<g transform="scale(.85)">' + PICT.light + '</g>')],
-  '133': ['Fußgänger', tri(PICT.ped)],
-  '136': ['Kinder', tri(PICT.kids)],
-  '138': ['Radverkehr', tri(PICT.bike)],
-  '142': ['Wildwechsel', tri(PICT.deer)],
-  '151': ['Bahnübergang', tri(PICT.train)],
-  '201': ['Andreaskreuz', '<svg viewBox="-50 -50 100 100"><g transform="rotate(35)"><rect x="-48" y="-7" width="96" height="14" fill="#fff" stroke="' + RED + '" stroke-width="2"/><path d="M-36 -7 h12 v14 h-12z M-6 -7 h12 v14 h-12z M24 -7 h12 v14 h-12z" fill="' + RED + '"/></g><g transform="rotate(-35)"><rect x="-48" y="-7" width="96" height="14" fill="#fff" stroke="' + RED + '" stroke-width="2"/><path d="M-36 -7 h12 v14 h-12z M-6 -7 h12 v14 h-12z M24 -7 h12 v14 h-12z" fill="' + RED + '"/></g></svg>'],
-  '205': ['Vorfahrt gewähren!', tri('', true)],
-  '206': ['Halt! Vorfahrt gewähren!', '<svg viewBox="-50 -50 100 100"><path d="M-18 -44 L18 -44 L44 -18 L44 18 L18 44 L-18 44 L-44 18 L-44 -18 Z" fill="' + RED + '" stroke="#fff" stroke-width="3"/><text y="10" text-anchor="middle" font-family="Arial" font-weight="700" font-size="28" fill="#fff">STOP</text></svg>'],
-  '208': ['Vorrang des Gegenverkehrs', ring('<path d="M-12 26 L-12 -8 L-20 -8 L-9 -26 L2 -8 L-6 -8 L-6 26 Z" fill="' + RED + '"/><path d="M12 -26 L12 8 L20 8 L9 26 L-2 8 L6 8 L6 -26 Z"/>')],
-  '209-20': ['Vorgeschriebene Fahrtrichtung – rechts', blueC(wArrow(90))],
-  '211-10': ['Vorgeschriebene Fahrtrichtung – hier links', blueC('<path d="M8 30 L8 -2 Q8 -10 0 -10 L-10 -10 L-10 -22 L-30 -4 L-10 14 L-10 2 L0 2 L0 30 Z" fill="#fff"/>')],
-  '214': ['Vorgeschriebene Fahrtrichtung – geradeaus oder rechts', blueC('<path d="M-6 30 L-6 -8 L-16 -8 L-1 -30 L14 -8 L4 -8 L4 6 L12 6 L12 -2 L30 12 L12 26 L12 18 L4 18 L4 30 Z" fill="#fff"/>')],
-  '215': ['Kreisverkehr', blueC('<g fill="#fff"><path d="M-6 -28 A28 28 0 0 1 26 -4 L32 -4 L20 12 L10 -4 L16 -4 A18 18 0 0 0 -6 -18 Z"/><path d="M-6 -28 A28 28 0 0 1 26 -4 L32 -4 L20 12 L10 -4 L16 -4 A18 18 0 0 0 -6 -18 Z" transform="rotate(120)"/><path d="M-6 -28 A28 28 0 0 1 26 -4 L32 -4 L20 12 L10 -4 L16 -4 A18 18 0 0 0 -6 -18 Z" transform="rotate(240)"/></g>')],
-  '220-20': ['Einbahnstraße (rechtsweisend)', blueR(wArrow(90, 1.2), 110, 44)],
-  '222': ['Vorgeschriebene Vorbeifahrt – rechts vorbei', blueC('<path d="M-18 -20 L8 6 L8 -6 L22 8 L22 26 L4 26 L16 18 L-8 -6 L-18 4 Z" fill="#fff"/>')],
-  '237': ['Radweg', blueC('<g fill="#fff" transform="scale(1.1)">' + PICT.bike.replace(/#000/g, '#fff') + '</g>')],
-  '239': ['Gehweg', blueC('<g fill="#fff" transform="scale(1.1)">' + PICT.ped + '</g>')],
-  '240': ['Gemeinsamer Geh- und Radweg', blueC('<path d="M-38 0 L38 0" stroke="#fff" stroke-width="3"/><g fill="#fff" transform="translate(0 -20) scale(.62)">' + PICT.ped + '</g><g fill="#fff" transform="translate(0 20) scale(.62)">' + PICT.bike.replace(/#000/g, '#fff') + '</g>')],
-  '241-30': ['Getrennter Rad- und Gehweg', blueC('<path d="M0 -40 L0 40" stroke="#fff" stroke-width="3"/><g fill="#fff" transform="translate(-19 0) scale(.62)">' + PICT.bike.replace(/#000/g, '#fff') + '</g><g fill="#fff" transform="translate(19 0) scale(.62)">' + PICT.ped + '</g>')],
-  '250': ['Verbot für Fahrzeuge aller Art', ring('')],
-  '251': ['Verbot für Kraftwagen', ring('<g transform="scale(1.15)">' + PICT.car + '</g>')],
-  '254': ['Verbot für Radverkehr', ring('<g transform="scale(1.1)">' + PICT.bike + '</g>')],
-  '255': ['Verbot für Krafträder', ring('<g transform="scale(1.1)">' + PICT.moto + '</g>')],
-  '259': ['Verbot für Fußgänger', ring('<g transform="scale(1.1)">' + PICT.ped + '</g>')],
-  '260': ['Verbot für Kraftfahrzeuge', ring('<g transform="translate(0 -14) scale(.75)">' + PICT.moto + '</g><g transform="translate(0 16) scale(.8)">' + PICT.car + '</g>')],
-  '262': ['Verbot für Fahrzeuge über angegebenem tatsächlichem Gewicht', ring(num('5,5t', 26))],
-  '264': ['Verbot für Fahrzeuge über angegebener Breite', ring('<path d="M-30 0 L-18 -8 L-18 8 Z M30 0 L18 -8 L18 8 Z"/>' + num('2m', 24))],
-  '265': ['Verbot für Fahrzeuge über angegebener Höhe', ring('<path d="M0 -32 L-8 -20 L8 -20 Z M0 32 L-8 20 L8 20 Z"/>' + num('3,8m', 21))],
-  '267': ['Verbot der Einfahrt', '<svg viewBox="-50 -50 100 100"><circle r="46" fill="' + RED + '" stroke="#fff" stroke-width="2.5"/><rect x="-32" y="-8" width="64" height="16" fill="#fff"/></svg>'],
+// Verkehrszeichen: Bilder (signs/*.png) sind die amtlichen Zeichen nach StVO (gemeinfrei, amtliche Werke; Quelle: Wikimedia Commons).
+// Nur Zeichen mit Zahlenwerten (Tempo, Zusatzzeichen) und das Andreaskreuz sind hier als SVG nachgezeichnet.
+const SIGN_NAMES = {"101": "Gefahrstelle","102": "Kreuzung oder Einmündung mit Vorfahrt von rechts","103-10": "Kurve (links)","103-20": "Kurve (rechts)","105-10": "Doppelkurve (zunächst links)","108": "Gefälle","110": "Steigung","112": "Unebene Fahrbahn","113": "Schnee- oder Eisglätte","114": "Schleuder- oder Rutschgefahr","116": "Splitt, Schotter","117-10": "Seitenwind von rechts","117-20": "Seitenwind von links","120": "Verengte Fahrbahn","123": "Arbeitsstelle","124": "Stau","125": "Gegenverkehr","128": "Bewegliche Brücke","129": "Ufer","131": "Lichtzeichenanlage","133": "Fußgänger","134": "Fußgängerüberweg (Warnung)","136": "Kinder","138": "Radverkehr","142": "Wildwechsel","145": "Kraftomnibusse","150": "Beschrankter Bahnübergang","151": "Bahnübergang","201": "Andreaskreuz","205": "Vorfahrt gewähren!","206": "Halt! Vorfahrt gewähren!","208": "Vorrang des Gegenverkehrs","209-10": "Vorgeschriebene Fahrtrichtung – links","209-20": "Vorgeschriebene Fahrtrichtung – rechts","209-30": "Vorgeschriebene Fahrtrichtung – geradeaus","209-31": "Vorgeschriebene Fahrtrichtung – rechts und links","211-10": "Vorgeschriebene Fahrtrichtung – hier links","214": "Vorgeschriebene Fahrtrichtung – geradeaus oder rechts","214-10": "Vorgeschriebene Fahrtrichtung – geradeaus oder links","215": "Kreisverkehr","220-20": "Einbahnstraße (rechtsweisend)","222": "Vorgeschriebene Vorbeifahrt – rechts vorbei","222-10": "Vorgeschriebene Vorbeifahrt – links vorbei","223.1": "Seitenstreifen befahrbar","224": "Haltestelle","229": "Taxenstand","237": "Radweg","238": "Reitweg","239": "Gehweg","240": "Gemeinsamer Geh- und Radweg","241-30": "Getrennter Rad- und Gehweg","242.1": "Beginn einer Fußgängerzone","244.1": "Beginn einer Fahrradstraße","245": "Bussonderfahrstreifen","250": "Verbot für Fahrzeuge aller Art","251": "Verbot für Kraftwagen","253": "Verbot für Lastkraftwagen über 3,5 t","254": "Verbot für Radverkehr","255": "Verbot für Krafträder","256": "Verbot für Mofas","258": "Verbot für Reiter","259": "Verbot für Fußgänger","260": "Verbot für Kraftfahrzeuge","261": "Verbot für Fahrzeuge mit gefährlichen Gütern","262": "Verbot für Fahrzeuge über angegebenem tatsächlichen Gewicht","263": "Verbot für Fahrzeuge über angegebener Achslast","264": "Verbot für Fahrzeuge über angegebene Breite","265": "Verbot für Fahrzeuge über angegebene Höhe","266": "Verbot für Fahrzeuge über angegebene Länge","267": "Verbot der Einfahrt","268": "Schneeketten sind vorgeschrieben","272": "Verbot des Wendens","273": "Verbot des Fahrens ohne Mindestabstand","274-30": "Zulässige Höchstgeschwindigkeit 30 km/h","274-50": "Zulässige Höchstgeschwindigkeit 50 km/h","274-70": "Zulässige Höchstgeschwindigkeit 70 km/h","274-100": "Zulässige Höchstgeschwindigkeit 100 km/h","274.1": "Beginn einer Tempo-30-Zone","274.2": "Ende einer Tempo-30-Zone","275": "Vorgeschriebene Mindestgeschwindigkeit","276": "Überholverbot für Kraftfahrzeuge aller Art","277": "Überholverbot für Kraftfahrzeuge über 3,5 t","278-50": "Ende der zulässigen Höchstgeschwindigkeit (50)","280": "Ende des Überholverbots","281": "Ende des Überholverbots für Kraftfahrzeuge über 3,5 t","282": "Ende sämtlicher Streckenverbote","283": "Absolutes Haltverbot","286": "Eingeschränktes Haltverbot","301": "Vorfahrt","306": "Vorfahrtstraße","307": "Ende der Vorfahrtstraße","308": "Vorrang vor dem Gegenverkehr","310": "Ortstafel (Anfang)","311": "Ortstafel (Ende)","314": "Parkplatz","316": "Parken und Reisen","318": "Parkscheibe","325.1": "Beginn eines verkehrsberuhigten Bereichs","325.2": "Ende eines verkehrsberuhigten Bereichs","327": "Tunnel","328": "Nothalte- und Pannenbucht","330.1": "Autobahn","330.2": "Ende der Autobahn","331.1": "Kraftfahrstraße","332-20": "Ausfahrt von der Autobahn","350": "Fußgängerüberweg","353": "Einbahnstraße","357": "Sackgasse","358": "Erste Hilfe","359": "Pannenhilfe","1002-12": "Zusatzzeichen: Verlauf der Vorfahrtstraße (abknickend nach links)"};
+const SIGN_PNG = new Set(["101", "102", "103-10", "103-20", "105-10", "108", "110", "112", "113", "114", "116", "117-10", "117-20", "120", "123", "124", "125", "128", "129", "131", "133", "134", "136", "138", "142", "145", "150", "151", "205", "206", "208", "209-10", "209-20", "209-30", "209-31", "211-10", "214", "214-10", "215", "220-20", "222", "222-10", "223.1", "224", "229", "237", "238", "239", "240", "241-30", "242.1", "244.1", "245", "250", "251", "253", "254", "255", "256", "258", "259", "260", "261", "262", "263", "264", "265", "266", "267", "268", "272", "273", "274.1", "274.2", "275", "276", "277", "280", "281", "282", "283", "286", "301", "306", "307", "308", "310", "311", "314", "316", "318", "325.1", "325.2", "327", "328", "330.1", "330.2", "331.1", "332-20", "350", "353", "357", "358", "359"]);
+const ANDREAS = '<svg viewBox="-62 -42 124 84">' + [32,-32].map(a => '<g transform="rotate(' + a + ')"><rect x="-55" y="-9" width="110" height="18" fill="#fff" stroke="#222" stroke-width="0.8"/><rect x="-55" y="-9" width="24" height="18" fill="#c1121f"/><rect x="31" y="-9" width="24" height="18" fill="#c1121f"/></g>').join('') + '</svg>';
+const OWN_SVG = {
   '274-30': ['Zulässige Höchstgeschwindigkeit 30 km/h', ring(num('30'))],
   '274-50': ['Zulässige Höchstgeschwindigkeit 50 km/h', ring(num('50'))],
   '274-70': ['Zulässige Höchstgeschwindigkeit 70 km/h', ring(num('70'))],
   '274-100': ['Zulässige Höchstgeschwindigkeit 100 km/h', ring(num('100', 34))],
-  '274.1': ['Beginn einer Tempo-30-Zone', '<svg viewBox="-60 -70 120 140"><rect x="-56" y="-66" width="112" height="132" rx="6" fill="#fff" stroke="#222" stroke-width="2"/><g transform="translate(0 -14) scale(.8)"><circle r="44" fill="#fff" stroke="' + RED + '" stroke-width="9"/>' + num('30') + '</g><text y="50" text-anchor="middle" font-family="Arial" font-weight="700" font-size="22">ZONE</text></svg>'],
-  '274.2': ['Ende einer Tempo-30-Zone', '<svg viewBox="-60 -70 120 140"><rect x="-56" y="-66" width="112" height="132" rx="6" fill="#fff" stroke="#222" stroke-width="2"/><g opacity=".5"><g transform="translate(0 -14) scale(.8)"><circle r="44" fill="#fff" stroke="#555" stroke-width="5"/>' + num('30') + '</g><text y="50" text-anchor="middle" font-family="Arial" font-weight="700" font-size="22">ZONE</text></g><path d="M-50 56 L50 -56" stroke="#111" stroke-width="5"/></svg>'],
-  '276': ['Überholverbot für Kraftfahrzeuge aller Art', ring('<g transform="translate(-14 2) scale(.62)">' + PICT.carRed + '</g><g transform="translate(14 2) scale(.62)">' + PICT.car + '</g>')],
-  '277': ['Überholverbot für Kraftfahrzeuge über 3,5 t', ring('<g transform="translate(-14 2) scale(.6)"><g fill="#d01c1f">' + PICT.truck + '</g></g><g transform="translate(15 2) scale(.6)">' + PICT.car + '</g>')],
   '278-50': ['Ende der zulässigen Höchstgeschwindigkeit (50)', end(num('50'))],
-  '280': ['Ende des Überholverbots', end('<g transform="translate(-14 2) scale(.62)">' + PICT.car + '</g><g transform="translate(14 2) scale(.62)">' + PICT.car + '</g>')],
-  '282': ['Ende sämtlicher Streckenverbote', end('')],
-  '283': ['Absolutes Haltverbot', ring('<path d="M-31 -31 L31 31 M31 -31 L-31 31" stroke="' + RED + '" stroke-width="9"/>', BLUE)],
-  '286': ['Eingeschränktes Haltverbot', ring('<path d="M-31 -31 L31 31" stroke="' + RED + '" stroke-width="9"/>', BLUE)],
-  '301': ['Vorfahrt (an der nächsten Kreuzung oder Einmündung)', tri('<path d="M-4 -30 L4 -30 L6 -10 L22 -10 L22 -6 L6 -6 L7 28 L-7 28 L-6 -6 L-22 -6 L-22 -10 L-6 -10 Z"/>')],
-  '306': ['Vorfahrtstraße', '<svg viewBox="-50 -50 100 100"><rect x="-32" y="-32" width="64" height="64" transform="rotate(45)" fill="#fff" stroke="#333" stroke-width="1.5"/><rect x="-22" y="-22" width="44" height="44" transform="rotate(45)" fill="' + YEL + '"/></svg>'],
-  '307': ['Ende der Vorfahrtstraße', '<svg viewBox="-50 -50 100 100"><rect x="-32" y="-32" width="64" height="64" transform="rotate(45)" fill="#fff" stroke="#333" stroke-width="1.5"/><rect x="-22" y="-22" width="44" height="44" transform="rotate(45)" fill="' + YEL + '"/><g stroke="#111" stroke-width="4"><path d="M-22 22 L22 -22 M-28 12 L12 -28 M-12 28 L28 -12"/></g></svg>'],
-  '308': ['Vorrang vor dem Gegenverkehr', blueR('<path d="M-12 30 L-12 -8 L-20 -8 L-9 -28 L2 -8 L-6 -8 L-6 30 Z" fill="#fff"/><path d="M12 -30 L12 8 L20 8 L9 28 L-2 8 L6 8 L6 -30 Z" fill="' + RED + '"/>')],
-  '310': ['Ortstafel (Anfang)', '<svg viewBox="-80 -44 160 88"><rect x="-76" y="-40" width="152" height="80" rx="6" fill="' + YEL + '" stroke="#111" stroke-width="3"/><text y="2" text-anchor="middle" font-family="Arial" font-weight="700" font-size="28">Midnox</text><text y="28" text-anchor="middle" font-family="Arial" font-size="13">Kreis Musterland</text></svg>'],
-  '311': ['Ortstafel (Ende)', '<svg viewBox="-80 -44 160 88"><rect x="-76" y="-40" width="152" height="80" rx="6" fill="' + YEL + '" stroke="#111" stroke-width="3"/><text y="-12" text-anchor="middle" font-family="Arial" font-weight="700" font-size="20">Midnox</text><path d="M-66 2 L66 -30" stroke="' + RED + '" stroke-width="6"/><text y="28" text-anchor="middle" font-family="Arial" font-weight="700" font-size="17">Neustadt 8 km</text></svg>'],
-  '314': ['Parken', blueR('<text y="24" text-anchor="middle" font-family="Arial" font-weight="700" font-size="66" fill="#fff">P</text>')],
-  '325.1': ['Beginn eines verkehrsberuhigten Bereichs', blueR('<rect x="-46" y="-28" width="92" height="66" fill="#fff"/><path d="M-40 34 L-14 -2 L40 -2 L40 34 Z" fill="#999"/><path d="M-30 18 L-20 6 L-4 6 L-2 18 Z" fill="' + BLUE + '"/><g transform="translate(14 -6) scale(.45)">' + PICT.ped + '</g><g transform="translate(-30 2) scale(.4)">' + PICT.kids + '</g><circle cx="28" cy="18" r="5" fill="' + BLUE + '"/>', 100, 74)],
-  '330.1': ['Autobahn', blueR('<path d="M-30 34 L-8 -20 L-4 -20 L-8 34 Z M30 34 L8 -20 L4 -20 L8 34 Z M-2 34 L-1 20 L1 20 L2 34 Z M-1 8 L1 8 L1 -4 L-1 -4 Z" fill="#fff"/><path d="M-36 -18 L36 -18 L32 -26 L-32 -26 Z" fill="#fff"/>')],
-  '331.1': ['Kraftfahrstraße', blueR('<g fill="#fff" transform="scale(1.3)">' + PICT.car.replace(/#fff/g, BLUE) + '</g>')],
-  '350': ['Fußgängerüberweg', blueR('<path d="M0 -38 L38 34 L-38 34 Z" fill="#fff"/><g transform="translate(0 12) scale(.55)">' + PICT.ped + '</g><path d="M-26 30 h10 M-10 30 h10 M6 30 h10 M22 30 h6" stroke="#111" stroke-width="5"/>')],
-  '357': ['Sackgasse', blueR('<rect x="-8" y="-30" width="16" height="58" fill="#fff"/><rect x="-26" y="-34" width="52" height="12" fill="' + RED + '"/>')],
   '1002-12': ['Zusatzzeichen: Verlauf der Vorfahrtstraße (abknickend nach links)', '<svg viewBox="-60 -40 120 80"><rect x="-56" y="-36" width="112" height="72" rx="4" fill="#fff" stroke="#111" stroke-width="2"/><path d="M0 28 L0 -2 L-36 -2" fill="none" stroke="#111" stroke-width="9"/><path d="M0 -2 L0 -28 M0 -2 L32 -2" fill="none" stroke="#111" stroke-width="3"/></svg>'],
+  '201': [null, ANDREAS],
 };
+DRAW.SIGNS = {};
+for (const [c, n] of Object.entries(SIGN_NAMES)) DRAW.SIGNS[c] = [n, OWN_SVG[c] ? OWN_SVG[c][1] : (SIGN_PNG.has(c) ? '<img src="signs/' + c + '.png" alt="" draggable="false">' : '')];
+DRAW.PNG = SIGN_PNG;
+
 DRAW.sign = (code, cls) => { const s = DRAW.SIGNS[code]; return s ? '<div class="sign ' + (cls || '') + '">' + s[1] + '</div>' : ''; };
 DRAW.signName = (code) => (DRAW.SIGNS[code] || [code])[0];
 
@@ -245,7 +190,7 @@ DRAW.scene = (sc) => {
   for (const [d, code] of Object.entries(sc.signs || {})) {
     const s = DRAW.SIGNS[code]; if (!s || !signPos[d]) continue;
     const [x, y] = signPos[d];
-    g += '<g transform="translate(' + x + ' ' + y + ')"><rect x="-1.5" y="0" width="3" height="16" fill="#334155"/><svg x="-17" y="-34" width="34" height="34" viewBox="' + (s[1].match(/viewBox="([^"]+)"/) || [, '-50 -50 100 100'])[1] + '">' + s[1].replace(/^<svg[^>]*>|<\/svg>$/g, '') + '</svg></g>';
+    g += '<g transform="translate(' + x + ' ' + y + ')"><rect x="-1.5" y="0" width="3" height="16" fill="#334155"/>' + (SIGN_PNG.has(code) ? '<image href="signs/' + code + '.png" x="-17" y="-34" width="34" height="34" preserveAspectRatio="xMidYMax meet"/>' : '<svg x="-17" y="-34" width="34" height="34" viewBox="' + (s[1].match(/viewBox="([^"]+)"/) || [, '-50 -50 100 100'])[1] + '">' + s[1].replace(/^<svg[^>]*>|<\/svg>$/g, '') + '</svg>') + '</g>';
   }
   if ((sc.extras || []).includes('light')) for (const d of arms) { const [x, y] = signPos[d]; g += '<g transform="translate(' + x + ' ' + y + ')"><rect x="-6" y="-26" width="12" height="30" rx="3" fill="#111"/><circle cy="-19" r="3.5" fill="' + (sc.lights && sc.lights[d] === 'rot' ? '#ef4444' : '#3f3f46') + '"/><circle cy="-11" r="3.5" fill="' + (sc.lights && sc.lights[d] === 'gelb' ? '#facc15' : '#3f3f46') + '"/><circle cy="-3" r="3.5" fill="' + (sc.lights && sc.lights[d] === 'gruen' ? '#22c55e' : '#3f3f46') + '"/></g>'; }
   // Fahrzeuge: in der rechten Spur ihrer Zufahrt, mit Pfeil für die Fahrtrichtung

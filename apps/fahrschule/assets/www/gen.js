@@ -17,12 +17,12 @@ GEN.prep = (list) => { for (const q of list) if (q.a && !q._mixed) { q.a = GEN.s
 
 // ------------------------------------------------------------------ Verkehrszeichen: Was bedeutet …?
 GEN.SIGN_FAM = {
-  gefahr: ['101', '102', '103-10', '103-20', '105-10', '108', '110', '112', '114', '117', '120', '123', '125', '131', '133', '136', '138', '142', '151'],
-  vorfahrt: ['205', '206', '301', '306', '307', '308', '208', '102', '201'],
-  gebot: ['209-20', '211-10', '214', '215', '220-20', '222', '237', '239', '240', '241-30'],
-  verbot: ['250', '251', '254', '255', '259', '260', '262', '264', '265', '267', '276', '277', '283', '286'],
-  tempo: ['274-30', '274-50', '274-70', '274-100', '274.1', '274.2', '278-50', '280', '282'],
-  richt: ['310', '311', '314', '325.1', '330.1', '331.1', '350', '357'],
+  gefahr: ['101', '102', '103-10', '103-20', '105-10', '108', '110', '112', '113', '114', '116', '117-10', '117-20', '120', '123', '124', '125', '128', '129', '131', '133', '134', '136', '138', '142', '145', '150', '151'],
+  vorfahrt: ['205', '206', '301', '306', '307', '308', '208', '201'],
+  gebot: ['209-10', '209-20', '209-30', '209-31', '211-10', '214', '214-10', '215', '220-20', '222', '222-10', '237', '238', '239', '240', '241-30', '242.1', '244.1', '245', '268'],
+  verbot: ['250', '251', '253', '254', '255', '256', '258', '259', '260', '261', '262', '263', '264', '265', '266', '267', '272', '273', '276', '277', '283', '286'],
+  tempo: ['274-30', '274-50', '274-70', '274-100', '274.1', '274.2', '275', '278-50', '280', '281', '282'],
+  richt: ['223.1', '224', '229', '310', '311', '314', '316', '318', '325.1', '325.2', '327', '328', '330.1', '330.2', '331.1', '332-20', '350', '353', '357', '358', '359'],
 };
 GEN.signs = () => {
   const out = [], all = Object.values(GEN.SIGN_FAM).flat();
@@ -59,6 +59,22 @@ GEN.SIGN_TIPS = {
   '311': 'Ab hier gelten die außerörtlichen Regeln: Pkw höchstens 100 km/h, sofern nichts anderes angeordnet ist.',
   '151': 'Kündigt einen Bahnübergang an – meist mit Baken (3, 2, 1 Streifen) davor.',
   '136': 'Mit Kindern rechnen: bremsbereit fahren, Geschwindigkeit verringern.',
+  '117-10': 'Seitenwind: Lenkrad fest halten und Geschwindigkeit anpassen – besonders an Brücken, Waldschneisen und beim Überholen von Lkw.',
+  '117-20': 'Der Windsack zeigt, aus welcher Richtung der Wind kommt.',
+  '113': 'Bei Schnee- oder Eisglätte Geschwindigkeit verringern, sanft lenken und bremsen, großen Abstand halten.',
+  '124': 'Staugefahr: Geschwindigkeit verringern, Warnblinklicht einschalten, Abstand halten.',
+  '134': 'Warnt vor einem Fußgängerüberweg (Zebrastreifen). Fußgängern, die erkennbar queren wollen, musst du das Überqueren ermöglichen.',
+  '150': 'Kündigt einen beschrankten Bahnübergang an. Bei sich senkenden Schranken immer anhalten.',
+  '253': 'Gilt für Kraftfahrzeuge über 3,5 t zulässiger Gesamtmasse, auch mit Anhänger – ausgenommen Pkw und Busse.',
+  '268': 'Es dürfen nur Fahrzeuge mit Schneeketten auf mindestens zwei Antriebsrädern fahren.',
+  '272': 'Wenden ist verboten.',
+  '273': 'Der angegebene Mindestabstand zum Vorausfahrenden darf nicht unterschritten werden (z. B. für Lkw).',
+  '275': 'Wer langsamer fahren müsste, darf hier nicht fahren – die Mindestgeschwindigkeit gilt nur für Kraftfahrzeuge und endet mit Zeichen 279.',
+  '281': 'Das Überholverbot für schwere Kraftfahrzeuge endet.',
+  '244.1': 'In Fahrradstraßen dürfen Radfahrer nebeneinander fahren; andere Fahrzeuge nur, wenn ein Zusatzzeichen es erlaubt. Es gilt höchstens 30 km/h.',
+  '245': 'Der Streifen ist für Linienbusse (und je nach Zusatzzeichen weitere Fahrzeuge) reserviert.',
+  '330.1': 'Auf Autobahnen darfst du nur mit Kraftfahrzeugen fahren, die bauartbedingt schneller als 60 km/h sind. Wenden, Rückwärtsfahren und Halten sind verboten.',
+  '331.1': 'Kraftfahrstraße: nur Kraftfahrzeuge über 60 km/h bauartbedingter Höchstgeschwindigkeit; Halten auf der Fahrbahn ist verboten.',
   '142': 'Besonders bei Dämmerung mit Wild rechnen – Fernlicht abblenden, wenn Tiere auf der Fahrbahn sind, hupen und bremsen.',
 };
 

@@ -1,7 +1,7 @@
 'use strict';
 /* Zusatzstoff Klasse B */
 const BG = 'bgefahr', BV = 'bverhalten', BT = 'btechnik', BU = 'bumwelt';
-QF('kb01', BG, 5, 'Sie fahren auf einer Landstraße bei Nacht. Ein Wildwechsel-Zeichen steht am Rand. Wie verhalten Sie sich?', ['+Geschwindigkeit verringern', '+Fahrbahnränder beobachten', '-Fernlicht dauerhaft einschalten, auch bei Gegenverkehr'], 'Taucht Wild auf: abblenden, hupen, bremsen – nicht riskant ausweichen.', { sign: '142-10' });
+QF('kb01', BG, 5, 'Sie fahren auf einer Landstraße bei Nacht. Ein Wildwechsel-Zeichen steht am Rand. Wie verhalten Sie sich?', ['+Geschwindigkeit verringern', '+Fahrbahnränder beobachten', '-Fernlicht dauerhaft einschalten, auch bei Gegenverkehr'], 'Taucht Wild auf: abblenden, hupen, bremsen – nicht riskant ausweichen.', { sign: '142' });
 QF('kb02', BG, 5, 'Ein Reh steht plötzlich vor Ihnen auf der Fahrbahn. Was tun Sie?', ['+Kräftig bremsen und das Lenkrad gerade halten', '-Ruckartig ausweichen', '-Gas geben'], 'Ein Ausweichmanöver endet oft am Baum oder im Gegenverkehr – gefährlicher als der Zusammenstoß mit dem Tier.');
 QF('kb03', BG, 5, 'Woran erkennen Sie Aquaplaning?', ['+Die Lenkung wird plötzlich leicht', '+Die Motordrehzahl steigt plötzlich', '-Das Fahrzeug wird spürbar langsamer'], 'Auskuppeln, nicht bremsen, Lenkrad gerade halten.');
 QF('kb04', BG, 5, 'Wie verhalten Sie sich bei Aquaplaning?', ['+Auskuppeln und Lenkrad gerade halten', '-Voll bremsen', '-Stark gegenlenken'], 'Sobald die Reifen wieder greifen, kann das Fahrzeug sonst unkontrolliert ausbrechen.');

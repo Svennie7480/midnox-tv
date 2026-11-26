@@ -88,8 +88,8 @@
    "cat": "midnox",
    "pkg": "de.midnox.fahrschule",
    "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-fahrschule.apk",
-   "version": "1.1",
-   "desc": "Theorie-Trainer für den Autoführerschein (Klasse B) auf Fernseher und Handy. Über 600 eigene Übungsfragen mit selbst gezeichneten Verkehrszeichen, Kreuzungen und Straßenszenen – auf Wunsch vorgelesen. Lernmodus mit Karteikasten, Themen-Quiz, Prüfungssimulation (30 Fragen, max. 10 Fehlerpunkte), Fehlertraining, Merkliste, Schilder-Lexikon, Formeln für Anhalteweg & Co. und Statistik. Eigene Fragen – nicht der amtliche Fragenkatalog."
+   "version": "1.2",
+   "desc": "Theorie-Trainer für den Autoführerschein (Klasse B) auf Fernseher und Handy. Über 600 eigene Übungsfragen mit amtlichen Verkehrszeichen, Kreuzungen und Straßenszenen – auf Wunsch vorgelesen. Lernmodus mit Karteikasten, Themen-Quiz, Prüfungssimulation (30 Fragen, max. 10 Fehlerpunkte), Fehlertraining, Merkliste, Schilder-Lexikon, Formeln für Anhalteweg & Co. und Statistik. Eigene Fragen – nicht der amtliche Fragenkatalog."
   },
   {
    "id": "midnox-karten",

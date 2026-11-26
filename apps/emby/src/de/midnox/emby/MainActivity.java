@@ -97,13 +97,13 @@ public class MainActivity extends Activity {
             @Override public void onPlaybackStateChanged(int st) {
                 if (st == Player.STATE_READY) send("{\"e\":\"ready\"}");
                 if (st == Player.STATE_ENDED) send("{\"e\":\"ended\"}");
-                tick();
+                keep(); tick();
             }
             @Override public void onIsPlayingChanged(boolean p) {
-                if (p && surface.getVisibility() == View.VISIBLE) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                else if (!uiAwake) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                tick();
+                keep(); tick();
             }
+            @Override public void onPlayWhenReadyChanged(boolean pwr, int reason) { keep(); }
+            @Override public void onRenderedFirstFrame() { keep(); }
             @Override public void onPlayerError(PlaybackException e) {
                 send("{\"e\":\"error\",\"code\":" + e.errorCode + ",\"msg\":" + q(e.getErrorCodeName() + (e.getCause() != null ? ": " + e.getCause().getMessage() : "")) + "}");
             }
@@ -203,8 +203,23 @@ public class MainActivity extends Activity {
         if (player == null) return;
         player.stop(); player.clearMediaItems();
         surface.setVisibility(View.GONE);
-        if (!uiAwake) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        keep();
         h.removeCallbacks(ticker);
+    }
+
+    /**
+     * Bildschirm wach halten, solange ein Video laufen soll – auch beim Puffern, beim Senderwechsel
+     * und zwischen zwei Sendungen der midnox-TV-Kanäle. Erst nach 30 s ohne Wiedergabe darf der Bildschirmschoner kommen.
+     */
+    final Runnable sleepOk = new Runnable() { public void run() { if (!uiAwake && !wantAwake()) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } };
+    boolean wantAwake() {
+        if (player == null || surface.getVisibility() != View.VISIBLE) return false;
+        int st = player.getPlaybackState();
+        return player.getPlayWhenReady() && st != Player.STATE_IDLE && st != Player.STATE_ENDED;
+    }
+    void keep() {
+        if (wantAwake()) { h.removeCallbacks(sleepOk); getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+        else { h.removeCallbacks(sleepOk); h.postDelayed(sleepOk, 30000); }
     }
 
     // ===================== Tasten =====================
@@ -305,7 +320,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void keepAwake(final boolean on) { h.post(new Runnable() { public void run() {
             uiAwake = on;
             if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            else if (player == null || !player.isPlaying()) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else keep();
         } }); }
         @JavascriptInterface public void bifLoad(final String url, final String id) {
             bifId = id; bifData = null; bifOff = null;
@@ -395,7 +410,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void speed(final double r) { h.post(new Runnable() { public void run() { if (player != null) player.setPlaybackParameters(new PlaybackParameters((float) r)); } }); }
         @JavascriptInterface public void stop() { h.post(new Runnable() { public void run() { stopPlayer(); } }); }
         @JavascriptInterface public void track(final String type, final int group, final int index) { h.post(new Runnable() { public void run() { if (player != null) selectTrack(type, group, index); } }); }
-        @JavascriptInterface public void video(final boolean show) { h.post(new Runnable() { public void run() { surface.setVisibility(show ? View.VISIBLE : View.GONE); } }); }
+        @JavascriptInterface public void video(final boolean show) { h.post(new Runnable() { public void run() { surface.setVisibility(show ? View.VISIBLE : View.GONE); keep(); } }); }
         @JavascriptInterface public void volume(final double v) { h.post(new Runnable() { public void run() { if (player != null) player.setVolume((float) v); } }); }
         @JavascriptInterface public void keyboard(final boolean show) {
             h.post(new Runnable() { public void run() {

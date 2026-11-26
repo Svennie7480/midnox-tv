@@ -1,6 +1,6 @@
 {
- "versionCode": 15,
- "versionName": "2.3.1",
+ "versionCode": 16,
+ "versionName": "2.4",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Deutlich schnellerer Start: Live-TV lädt nicht mehr beim Öffnen der App, sondern erst, wenn du den Live-TV-Reiter öffnest (oder die App eine Weile ruhig läuft). Die midnox-TV-Kanäle fragen den Emby-Server nur noch nacheinander und ohne Beschreibungen ab und werden höchstens einmal am Tag neu gebaut. Veraltete Senderlisten und Programmführer werden erst nach dem Start im Hintergrund aufgefrischt."
+ "notes": "Kein Bildschirmschoner mehr beim Schauen – auch nicht beim Puffern, Umschalten oder zwischen zwei Sendungen. midnox TV hat bis zu 20 neue Themenkanäle: Weihnachtskanal (Nov–Jan) und Halloween-Nacht (Okt), Krimi-Serien, Serien-Drama, Anime & Trick, Serien aus anderen Welten, Doku-Serien, Großes Drama, Trickfilm-Kanal, Western, Krieg & Geschichte, Musik & Musical, Superhelden, Disney & Pixar, Filmklassiker, 2000er-Kino, Neues Kino, Frisch eingetroffen, Kurz & knackig, Überlänge und den Zufallskanal. Es erscheinen nur Kanäle, für die deine Sammlung genug hergibt."
 }

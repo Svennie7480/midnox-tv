@@ -17,6 +17,31 @@ const MXTV = {
     { key: 'familie', name: 'Familienkino', emoji: '🧸', type: 'Movie', genres: ['Familie', 'Family', 'Animation', 'Kinder', 'Kids'] },
     { key: 'doku', name: 'Doku', emoji: '🌍', type: 'Movie,Episode', genres: ['Dokumentation', 'Documentary', 'Doku'] },
     { key: 'retro', name: '80er & 90er Kino', emoji: '📼', type: 'Movie', years: [1980, 1999] },
+    // --- Jahreszeit (nur in der passenden Zeit auf Sendung) ---
+    { key: 'xmas', name: 'Weihnachtskanal', emoji: '🎄', type: 'Movie,Episode', months: [11, 12, 1], title: /weihnacht|christmas|xmas|x-mas|nikolaus|santa|grinch|kevin allein|home alone|polar ?express|bescherung|love actually|tatsächlich liebe|\belf\b|klaus|advent|schneemann|snowman|rentier|holiday/i, genres: ['Weihnacht', 'Christmas', 'Holiday'] },
+    { key: 'halloween', name: 'Halloween-Nacht', emoji: '🎃', type: 'Movie,Episode', months: [10], title: /halloween|hexe|witch|vampir|zombie|geist|ghost|spuk|haunt|kürbis/i, genres: ['Horror'] },
+    // --- Serien nach Art ---
+    { key: 'krimiserie', name: 'Krimi-Serien', emoji: '🕵️', type: 'Episode', mode: 'series', sgenres: ['Krimi', 'Crime', 'Mystery', 'Thriller'] },
+    { key: 'dramaserie', name: 'Serien-Drama', emoji: '🎭', type: 'Episode', mode: 'series', sgenres: ['Drama'] },
+    { key: 'animeserie', name: 'Anime & Trick', emoji: '🎌', type: 'Episode', mode: 'series', sgenres: ['Anime', 'Animation', 'Zeichentrick'] },
+    { key: 'scifiserie', name: 'Serien aus anderen Welten', emoji: '🛸', type: 'Episode', mode: 'series', sgenres: ['Science Fiction', 'Sci-Fi', 'Fantasy'] },
+    { key: 'dokuserie', name: 'Doku-Serien', emoji: '🔍', type: 'Episode', mode: 'series', sgenres: ['Dokumentation', 'Documentary', 'Reality'] },
+    // --- Filme nach Genre ---
+    { key: 'drama', name: 'Großes Drama', emoji: '🎭', type: 'Movie', genres: ['Drama'] },
+    { key: 'trick', name: 'Trickfilm-Kanal', emoji: '🖍️', type: 'Movie', genres: ['Animation', 'Zeichentrick', 'Anime'] },
+    { key: 'western', name: 'Western', emoji: '🤠', type: 'Movie', genres: ['Western'] },
+    { key: 'geschichte', name: 'Krieg & Geschichte', emoji: '⚔️', type: 'Movie', genres: ['Kriegsfilm', 'War', 'Krieg', 'Historie', 'History', 'Geschichte'] },
+    { key: 'musik', name: 'Musik & Musical', emoji: '🎵', type: 'Movie', genres: ['Musik', 'Music', 'Musical'] },
+    { key: 'helden', name: 'Superhelden', emoji: '🦸', type: 'Movie', studios: /marvel|dc (comics|entertainment|films)|dc studios/i, title: /spider|batman|superman|avengers|x-men|wonder woman|deadpool|iron man|thor\b|captain america|guardians of the galaxy|justice league|aquaman|black panther|doctor strange|ant-man/i },
+    { key: 'disney', name: 'Disney & Pixar', emoji: '🏰', type: 'Movie', studios: /disney|pixar/i },
+    // --- Filme nach Jahr & Länge ---
+    { key: 'klassiker', name: 'Filmklassiker', emoji: '🎞️', type: 'Movie', years: [1900, 1979] },
+    { key: 'nuller', name: '2000er-Kino', emoji: '💿', type: 'Movie', years: [2000, 2009] },
+    { key: 'neu', name: 'Neues Kino', emoji: '✨', type: 'Movie', recentYears: 3 },
+    { key: 'frisch', name: 'Frisch eingetroffen', emoji: '🆕', type: 'Movie,Episode', addedDays: 45 },
+    { key: 'kurz', name: 'Kurz & knackig', emoji: '⏱️', type: 'Movie', maxMin: 95 },
+    { key: 'epos', name: 'Überlänge', emoji: '🏔️', type: 'Movie', minMin: 150 },
+    { key: 'zufall', name: 'Zufallskanal', emoji: '🎲', type: 'Movie,Episode' },
   ],
   MIN_ITEMS: 5, MIN_HOURS: 6, MIN_MOVIE: 20 * 60e3, MIN_EP: 5 * 60e3,
 
@@ -25,7 +50,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv_' + EMBY.user.id;
+    const ck = 'mxtv2_' + EMBY.user.id;   // 2: neue Kanäle
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -35,7 +60,7 @@ const MXTV = {
     }
     MXTV.building = true;
     try {
-      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
+      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Studios,DateCreated', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
       const [mv, ep, se] = await MXTV.seq([
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
@@ -46,13 +71,39 @@ const MXTV = {
       const movies = (mv.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_MOVIE * 1e4), eps = (ep.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_EP * 1e4);
       const hasG = (gs, want) => (gs || []).some(g => want.some(w => g.toLowerCase().indexOf(w.toLowerCase()) >= 0));
       const out = [];
+      const now = new Date(), month = now.getMonth() + 1, year = now.getFullYear();
+      const studio = (i, re) => (i.Studios || []).some(x => re.test(x.Name || ''));
+      const sname = {}; for (const s2 of (se.Items || [])) sname[s2.Id] = s2.Name || '';
       for (const d of MXTV.DEFS) {
+        if (d.months && !d.months.includes(month)) continue;                                   // Jahreszeit-Kanäle nur in ihrer Zeit
+        const movieOk = (i) => {
+          const min = i.RunTimeTicks / 6e8;
+          if (d.years && !(i.ProductionYear >= d.years[0] && i.ProductionYear <= d.years[1])) return false;
+          if (d.recentYears && !(i.ProductionYear >= year - d.recentYears + 1)) return false;
+          if (d.maxMin && min > d.maxMin) return false;
+          if (d.minMin && min < d.minMin) return false;
+          if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
+          // Titel ODER Genre ODER Studio – was angegeben ist, reicht einzeln
+          const any = [d.title && d.title.test(i.Name || ''), d.genres && hasG(i.Genres, d.genres), d.studios && studio(i, d.studios)].filter(x => x !== undefined);
+          return !any.length || any.some(Boolean);
+        };
+        const epOk = (i) => {
+          if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
+          const gs = i.Genres && i.Genres.length ? i.Genres : sg[i.SeriesId];
+          if (d.sgenres && !hasG(sg[i.SeriesId], d.sgenres)) return false;
+          if (d.title) return d.title.test(i.Name || '') || d.title.test(sname[i.SeriesId] || '') || (d.key !== 'halloween' && !!d.genres && hasG(gs, d.genres));   // z. B. Weihnachtsfolgen
+          return !d.genres || hasG(gs, d.genres);
+        };
+        if (d.studios && !d.title && d.type === 'Movie' && !movies.some(i => i.Studios)) continue;
         let pool = [];
-        if (d.type.indexOf('Movie') >= 0) pool = pool.concat(movies.filter(i => (!d.genres || hasG(i.Genres, d.genres)) && (!d.years || (i.ProductionYear >= d.years[0] && i.ProductionYear <= d.years[1]))));
-        if (d.type.indexOf('Episode') >= 0) pool = pool.concat(eps.filter(i => (!d.genres || hasG(i.Genres && i.Genres.length ? i.Genres : sg[i.SeriesId], d.genres)) && (!d.sgenres || hasG(sg[i.SeriesId], d.sgenres))));
+        if (d.type.indexOf('Movie') >= 0) pool = pool.concat(movies.filter(movieOk));
+        if (d.type.indexOf('Episode') >= 0) pool = pool.concat(eps.filter(epOk));
+        const minItems = d.months ? 3 : MXTV.MIN_ITEMS, minH = d.months || d.addedDays ? 3 : MXTV.MIN_HOURS;
         const total = pool.reduce((a, i) => a + i.RunTimeTicks / 10000, 0);
-        if (pool.length < MXTV.MIN_ITEMS || total < MXTV.MIN_HOURS * 3600e3) continue;
-        if (d.key === 'familie' && out.some(c => c.key === 'kino') && pool.length > movies.length * 0.8) continue;   // kein Doppel
+        if (pool.length < minItems || total < minH * 3600e3) continue;
+        // kein Doppel: Kanal weglassen, wenn er fast dasselbe zeigt wie ein schon vorhandener
+        const ids = new Set(pool.map(i => i.Id));
+        if (out.some(c => { let same = 0; for (const it of c.items) if (ids.has(it.i)) same++; return same >= ids.size * 0.85 && same >= c.items.length * 0.85; })) continue;
         out.push({ key: d.key, name: d.name, emoji: d.emoji, mode: d.mode || '', items: pool.map(slim) });
       }
       // „Filmabend“ weglassen, wenn es nur einen Filmkanal gäbe, der identisch wäre

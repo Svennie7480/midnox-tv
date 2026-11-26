@@ -37,7 +37,7 @@ const LIVE = {
       case 'loading': try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} LIVE.refresh(true); break;
       case 'epg':
         if (e.id) delete LIVE.epgC[e.id]; else { LIVE.epgC = {}; try { LIVE.st = JSON.parse(Live.status() || '{}'); } catch (x) {} if (!e.id && Live.ver && Live.ver() !== LIVE._jv) LIVE.load(); }
-        clearTimeout(LIVE._et); LIVE._et = setTimeout(() => { LIVE.refresh(true); if (TVP.active && !TVP.listOn) TVP.banner(false); }, e.id ? 800 : 200);   // gebündelt statt bei jedem Sender
+        clearTimeout(LIVE._et); LIVE._et = setTimeout(() => { LIVE.refresh(true); if (TVP.active && !TVP.listOn) TVP.banner(false, null, true); }, e.id ? 800 : 200);   // gebündelt statt bei jedem Sender
         break;
       case 'tune': TVP.onTune(e); break;
       case 'import': if (LIVE._imp) { const f = LIVE._imp; LIVE._imp = null; f(e); } else UI.toast(e.msg, { icon: e.ok ? '📺' : '⚠️' }); break;
@@ -473,8 +473,10 @@ const TVP = {
   // ---- Einblendungen ----
   loading(on) { const o = $('#osd'); if (o) o.classList.toggle('loading', !!on); },
   status(t) { const s = $('#osd .tvstat'); if (s) s.textContent = t; },
-  banner(show, previewId) {
+  /** soft: nur Inhalt auffrischen (neue Programminfos) – nicht einblenden und den Ausblend-Timer nicht neu starten */
+  banner(show, previewId, soft) {
     const o = $('#osd'); if (!o || !TVP.active) return;
+    if (soft && (o.classList.contains('hid') || TVP.pend)) return;
     const c = LIVE.byId[previewId || TVP.id]; if (!c) return;
     const nn = LIVE.nowNext(c.id);
     let b = $('.tvb', o); if (!b) { b = h('div', 'tvb'); o.appendChild(b); }
@@ -495,6 +497,7 @@ const TVP = {
       tb.appendChild(onOk(h('div', 'btn', '✕'), () => TVP.stop()));
       b.appendChild(tb);
     }
+    if (soft) return;
     o.classList.add('show'); o.classList.remove('hid');
     if (!show) TVP.hideSoon();
   },

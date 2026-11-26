@@ -1,6 +1,6 @@
 {
- "versionCode": 17,
- "versionName": "2.4.1",
+ "versionCode": 18,
+ "versionName": "2.4.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "midnox TV: Serienfolgen landen nur noch nach dem Genre der Serie in einem Kanal – keine Simpsons mehr im Doku-Kanal. Nicht erkannte Dateien erscheinen mit lesbarem Titel statt Dateinamen (z. B. „Die Simpsons · Folge 21“)."
+ "notes": "Live-TV: Die Senderanzeige blendet sich nach dem Einschalten wieder aus – neue Programminfos im Hintergrund holen sie nicht mehr dauernd zurück."
 }

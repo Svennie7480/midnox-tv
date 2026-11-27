@@ -59,7 +59,7 @@ if (TOUCH) {
     build() {
       let bar = $('#tabbar'); if (!bar) { bar = h('nav', ''); bar.id = 'tabbar'; document.body.appendChild(bar); }
       bar.innerHTML = '';
-      const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']]
+      const items = window.SENIOR && SENIOR.on() ? SENIOR.rail() : KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']]
         : (window.LIVE && LIVE.enabled() ? [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['live', 'Live-TV', 'live'], ['more', 'Mehr', 'menu']] : [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['search', 'Suche', 'search'], ['more', 'Mehr', 'menu']]);
       for (const [id, label, icon] of items) {
         const b = h('div', 'tab', ic(icon) + '<span>' + label + '</span>'); b.dataset.id = id;

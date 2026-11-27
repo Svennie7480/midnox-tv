@@ -243,6 +243,16 @@ public class MainActivity extends Activity {
             case KeyEvent.KEYCODE_MEDIA_PREVIOUS: name = "prev"; break;
             case KeyEvent.KEYCODE_MEDIA_STOP: name = "stop"; break;
             case KeyEvent.KEYCODE_SEARCH: name = "search"; break;
+            case KeyEvent.KEYCODE_0: case KeyEvent.KEYCODE_NUMPAD_0: name = "d0"; break;
+            case KeyEvent.KEYCODE_1: case KeyEvent.KEYCODE_NUMPAD_1: name = "d1"; break;
+            case KeyEvent.KEYCODE_2: case KeyEvent.KEYCODE_NUMPAD_2: name = "d2"; break;
+            case KeyEvent.KEYCODE_3: case KeyEvent.KEYCODE_NUMPAD_3: name = "d3"; break;
+            case KeyEvent.KEYCODE_4: case KeyEvent.KEYCODE_NUMPAD_4: name = "d4"; break;
+            case KeyEvent.KEYCODE_5: case KeyEvent.KEYCODE_NUMPAD_5: name = "d5"; break;
+            case KeyEvent.KEYCODE_6: case KeyEvent.KEYCODE_NUMPAD_6: name = "d6"; break;
+            case KeyEvent.KEYCODE_7: case KeyEvent.KEYCODE_NUMPAD_7: name = "d7"; break;
+            case KeyEvent.KEYCODE_8: case KeyEvent.KEYCODE_NUMPAD_8: name = "d8"; break;
+            case KeyEvent.KEYCODE_9: case KeyEvent.KEYCODE_NUMPAD_9: name = "d9"; break;
         }
         if (name == null) return super.dispatchKeyEvent(e);
         if (e.getAction() == KeyEvent.ACTION_DOWN) js("window.KEY&&KEY(" + q(name) + "," + e.getRepeatCount() + ")");

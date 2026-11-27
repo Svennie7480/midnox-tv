@@ -289,7 +289,7 @@ const RAIL = {
   items: [['home', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['live', 'Live-TV', 'live'], ['music', 'Musik', 'music'], ['community', 'Community', 'chat'], ['match', 'Was gucken?', 'heart'], ['search', 'Suche', 'search'], ['settings', 'Einstellungen', 'gear']],
   build() {
     const r = $('#rail'); r.innerHTML = '<div class="logo">m</div><div class="lt">midnox <b>' + (KIDS.on ? 'Kids' : 'Media') + '</b></div>';
-    const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']] : RAIL.items;
+    const items = KIDS.on ? [['kidshome', 'Start', 'home'], ['movies', 'Filme', 'film'], ['shows', 'Serien', 'tv'], ['music', 'Musik', 'music'], ['search', 'Suche', 'search']] : (window.SENIOR && SENIOR.on() ? SENIOR.rail() : RAIL.items);
     for (const [id, label, icon] of items) {
       if (id === 'music' && !EMBY.hasMusic) continue;
       if (id === 'live' && !(window.LIVE && LIVE.enabled())) continue;
@@ -297,7 +297,7 @@ const RAIL = {
       onOk(el, () => { if (ROUTER.top() && ROUTER.top().name === id && ROUTER.stack.length === 1) { ROUTER.backFromRail(); return; } ROUTER.go(id, null, { root: true }); });
       r.appendChild(el);
     }
-    const me = h('div', 'me'); me.dataset.id = 'me'; me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); onOk(me, () => KIDS.on ? PROFILES.leave() : ROUTER.go('me', null, { root: true })); r.appendChild(me);
+    if (!(window.SENIOR && SENIOR.on())) { const me = h('div', 'me'); me.dataset.id = 'me'; me.appendChild(avatar(EMBY.user.name, EMBY.userImg())); me.appendChild(h('span', '', esc(EMBY.user.name))); onOk(me, () => KIDS.on ? PROFILES.leave() : ROUTER.go('me', null, { root: true })); r.appendChild(me); }
     r.classList.remove('hidden');
   },
   mark(name) { $$('#rail .ri').forEach(e => e.classList.toggle('cur', e.dataset.id === name || (ROUTER.stack[0] && ROUTER.stack[0].name === e.dataset.id))); },

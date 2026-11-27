@@ -1,6 +1,6 @@
 {
- "versionCode": 28,
- "versionName": "2.9.3",
+ "versionCode": 29,
+ "versionName": "2.10",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neue Filmreihen-Kanäle: American Pie und Final Destination. Mehr Schauspieler-Kanäle (bis zu 20 statt 10, schon ab 5 Filmen). Dazu die Korrekturen aus 2.9.1/2.9.2: Serientitel im Programm, keine Serienfolgen in Filmkanälen, genauere Genres, Marvel ohne Agatha Christie."
+ "notes": "Neu: Senioren-Modus (Einstellungen → Darstellung). Große Schrift, kräftiger gelber Fokus, eine einfache Startseite mit großen Kacheln (Fernsehen, Weiterschauen, Filme, Serien), Uhrzeit und Datum, nur 4 Menüpunkte. Auf Wunsch startet die App direkt im Fernsehen. Fehlermeldungen in einfacher Sprache, Einstellungen nur für Helfer (mit PIN). Dazu Zifferntasten für Kanalnummern im Live-TV."
 }

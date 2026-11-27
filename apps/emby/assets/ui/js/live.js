@@ -504,7 +504,7 @@ const TVP = {
     if (!TVP.active) return;
     clearTimeout(TVP.wd);
     const k = TVP.k + 1; TVP.k = k;
-    TVP.status('Versuche anderen Weg … (' + why + ')');
+    TVP.status(SENIOR.on() ? 'Einen Moment bitte, wir versuchen es nochmal …' : 'Versuche anderen Weg … (' + why + ')');
     Live.tune(TVP.req, TVP.id, k);
   },
   ev(e) {
@@ -515,7 +515,7 @@ const TVP = {
     else if (e.e === 'error' || e.e === 'ended') { if (TVP.active) TVP.next(e.e === 'ended' ? 'Stream beendet' : (e.msg || 'Fehler').replace(/^ERROR_CODE_/, '')); }
     else if (e.e === 'tick') { if (e.state === 3 && !TVP.ready) TVP.ev({ e: 'ready' }); TVP.loading(e.state === 2 && e.wantPlay); }
   },
-  async fail(title, text) { await UI.alert(title, text); if (TVP.active && !TVP.ready) TVP.stop(); },
+  async fail(title, text) { if (SENIOR.on()) { title = 'Dieser Sender geht gerade nicht'; text = 'Das ist nicht schlimm. Bitte mit „Zurück“ zur Startseite gehen und einen anderen Sender wählen.'; } await UI.alert(title, text); if (TVP.active && !TVP.ready) TVP.stop(); },
   zap(d) {
     const i = TVP.ids.indexOf(TVP.pend || TVP.id); if (i < 0) return;
     const n = TVP.ids[(i + d + TVP.ids.length) % TVP.ids.length];
@@ -538,6 +538,15 @@ const TVP = {
   // ---- Einblendungen ----
   loading(on) { const o = $('#osd'); if (o) o.classList.toggle('loading', !!on); },
   status(t) { const s = $('#osd .tvstat'); if (s) s.textContent = t; },
+  /** Kanalnummer per Zifferntasten (Tastatur/Fernbedienung mit Zahlen): „1“ „2“ → Kanal 12 */
+  digit(d) {
+    TVP.num = ((TVP.num || '') + d).slice(-4); TVP.banner(false); TVP.status('Kanal ' + TVP.num + ' …');
+    clearTimeout(TVP.numT);
+    TVP.numT = setTimeout(() => {
+      const n = +TVP.num; TVP.num = ''; const c = LIVE.ch.find(x => +x.num === n);
+      if (c && c.id !== TVP.id) TVP.tune(c.id); else { TVP.status(c ? '' : 'Kein Sender mit der Nummer ' + n); setTimeout(() => { if (!TVP.ready || !c) TVP.status(''); }, 1800); }
+    }, 1400);
+  },
   /** soft: nur Inhalt auffrischen (neue Programminfos) – nicht einblenden und den Ausblend-Timer nicht neu starten */
   banner(show, previewId, soft) {
     const o = $('#osd'); if (!o || !TVP.active) return;
@@ -609,6 +618,7 @@ const TVP = {
       if (k === 'menu' && NAV.cur && NAV.cur._menu) { NAV.cur._menu(); return; }
       return;
     }
+    if (/^d\d$/.test(k)) { TVP.digit(k[1]); return; }
     if (k === 'up' || k === 'next' || k === 'chup') { TVP.zap(-1); return; }
     if (k === 'down' || k === 'prev' || k === 'chdown') { TVP.zap(1); return; }
     if (k === 'ok' && TVP.mx && TVP.mx.locked) { MXSHOW.unlock(); return; }

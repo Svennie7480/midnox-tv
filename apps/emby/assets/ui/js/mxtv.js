@@ -134,6 +134,8 @@ const MXTV = {
     { key: 'tf', name: 'Transformers', emoji: '🤖', re: /transformers|bumblebee/i },
     { key: 'jw', name: 'John Wick', emoji: '🐶', re: /john wick/i },
     { key: 'conj', name: 'Conjuring-Universum', emoji: '🪆', re: /conjuring|annabelle|the nun\b|la llorona/i },
+    { key: 'pie', name: 'American Pie', emoji: '🥧', re: /american pie|american wedding|american reunion|wie ein heißer apfelkuchen/i },
+    { key: 'fd', name: 'Final Destination', emoji: '💀', re: /final destination/i },
     { key: 'saw', name: 'Saw', emoji: '🪚', re: /^saw\b|jigsaw|spiral/i },
     { key: 'scream', name: 'Scream', emoji: '📞', re: /^scream\b/i },
     { key: 'shrek', name: 'Shrek', emoji: '🧅', re: /shrek|der gestiefelte kater|puss in boots/i },
@@ -143,7 +145,7 @@ const MXTV = {
     { key: 'mcu', name: 'Marvel Cinematic Universe', emoji: '🛡️', re: /avengers|iron man|captain america|thor\b|guardians of the galaxy|ant-man|black panther|doctor strange|spider-man: (homecoming|far from home|no way home)|black widow|shang-chi|eternals|captain marvel|wandavision|\bloki\b|\bhawkeye\b|falcon and the winter soldier|moon knight|ms\. marvel|she-hulk|secret invasion|agatha all along|agatha harkness|thunderbolts|deadpool (&|and) wolverine/i },
     { key: 'tatort', name: 'Tatort-Sonntag', emoji: '🔦', re: /^tatort\b|polizeiruf 110/i },
   ],
-  MAX_SERIES: 10, MAX_STARS: 10, MIN_SER_EPS: 12, MIN_STAR: 6,
+  MAX_SERIES: 10, MAX_STARS: 20, MIN_SER_EPS: 12, MIN_STAR: 5,
   /** Hauptdarsteller je Film (die ersten 5 der Besetzung) – höchstens einmal pro Woche von Emby geholt */
   async stars(movies) {
     const ck = 'mxstars_' + EMBY.user.id; let cast = null;
@@ -166,7 +168,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv8_' + EMBY.user.id;   // 8: Serientitel, Genres genauer, keine Folgen in Filmkanälen
+    const ck = 'mxtv9_' + EMBY.user.id;   // 9: mehr Reihen & Stars; 8: Serientitel, Genres genauer, keine Folgen in Filmkanälen
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');

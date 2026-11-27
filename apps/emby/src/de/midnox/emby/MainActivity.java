@@ -292,6 +292,7 @@ public class MainActivity extends Activity {
     static int le(byte[] b, int o) { return (b[o] & 0xff) | (b[o + 1] & 0xff) << 8 | (b[o + 2] & 0xff) << 16 | (b[o + 3] & 0xff) << 24; }
     final class Bridge {
         @JavascriptInterface public boolean isTv() { return isTv; }
+        @JavascriptInterface public boolean isAuto() { return getPackageName().endsWith(".auto"); }
         @JavascriptInterface public boolean metered() {
             try { android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE); return cm != null && cm.isActiveNetworkMetered(); } catch (Exception e) { return false; }
         }

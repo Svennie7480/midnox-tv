@@ -2,7 +2,7 @@
 'use strict';
 
 const SENIOR = {
-  lvl() { return window.KIDS && KIDS.on ? 0 : (+(EMBY.settings().senior) || 0); },
+  lvl() { if (window.KIDS && KIDS.on) return 0; const v = EMBY.settings().senior; return window.AUTO && v === undefined ? 1 : (+v || 0); },
   on() { return SENIOR.lvl() > 0; },
   /** Schriftgröße/Kontrast: Klassen auf <html> und <body> */
   apply() {
@@ -30,6 +30,7 @@ const SENIOR = {
   },
   /** Beim Start gleich fernsehen – wartet kurz, bis die Senderliste da ist */
   autostart() {
+    if (window.AUTO) return;
     const s = EMBY.settings(); if (!SENIOR.on() || s.seniorStart === 'home' || !window.LIVE || !LIVE.enabled()) return;
     LIVE.open(); let n = 0;
     const t = setInterval(() => {

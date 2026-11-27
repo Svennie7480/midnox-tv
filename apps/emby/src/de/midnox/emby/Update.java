@@ -14,7 +14,8 @@ import java.net.*;
  * emby-update.json: {"versionCode":17,"versionName":"2.7","apk":"https://…/midnox-emby.apk","notes":"…"}
  */
 final class Update {
-    static final String URL = "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/emby-update.json";
+    static String URL = "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/emby-update.json";
+    static String url(android.content.Context c) { return c.getPackageName().endsWith(".auto") ? "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/emby-auto-update.json" : URL; }
     interface Cb { void result(JSONObject update); }   // null = kein Update
 
     static int ownCode(Context c) { try { return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionCode; } catch (Exception e) { return 0; } }
@@ -27,7 +28,7 @@ final class Update {
         new Thread(new Runnable() { public void run() {
             JSONObject res = null;
             try {
-                JSONObject u = new JSONObject(U.get(URL + "?t=" + System.currentTimeMillis() / 3600000L));
+                JSONObject u = new JSONObject(U.get(url(c) + "?t=" + System.currentTimeMillis() / 3600000L));
                 U.prefs(c).edit().putLong("upd_checked", System.currentTimeMillis()).apply();
                 if (u.optInt("versionCode") > ownCode(c) && !u.optString("apk").isEmpty()) res = u;
             } catch (Exception ignored) {}

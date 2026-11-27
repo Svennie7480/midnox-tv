@@ -1,5 +1,6 @@
 // midnox Media – Touch-Modus für Handy und Tablet: gleiche Oberfläche, aber Antippen, Wischen, natives Scrollen und Tab-Leiste.
 'use strict';
+window.AUTO = (() => { try { return !!(HAS_ANDROID && Android.isAuto && Android.isAuto()) || /[?&]auto=1/.test(location.search); } catch (e) { return false; } })();
 const TOUCH = (() => {
   let t = false;
   try { t = HAS_ANDROID ? (Android.isTv ? !Android.isTv() : false) : (/[?&]touch=1/.test(location.search) || (matchMedia('(pointer: coarse)').matches && !/[?&]tv=1/.test(location.search))); } catch (e) {}
@@ -8,7 +9,7 @@ const TOUCH = (() => {
 window.TOUCH = TOUCH;
 
 if (TOUCH) {
-  document.body.classList.add('touch');
+  document.body.classList.add('touch'); if (window.AUTO) document.body.classList.add('auto');
   const sizeCls = () => {
     const w = innerWidth, hh = innerHeight, small = Math.min(w, hh);
     document.body.classList.toggle('phone', small < 600);
@@ -16,7 +17,8 @@ if (TOUCH) {
     document.body.classList.toggle('portrait', hh > w);
     document.body.classList.toggle('landscape', w >= hh);
     // Grundgröße: Handy hoch ~13 px, Handy quer ~11 px, Tablet bis 18 px
-    document.documentElement.style.fontSize = Math.max(11, Math.min(18, Math.min(w / 30, hh / 34))) + 'px';
+    const car = window.AUTO ? 0.9 : 1;
+    document.documentElement.style.fontSize = Math.max(11, Math.min(18, Math.min(w / 30, hh / 34))) * car + 'px';
   };
   sizeCls(); addEventListener('resize', sizeCls);
 

@@ -1,6 +1,6 @@
 {
- "versionCode": 29,
- "versionName": "2.10",
+ "versionCode": 30,
+ "versionName": "2.10.1",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Neu: Senioren-Modus (Einstellungen → Darstellung). Große Schrift, kräftiger gelber Fokus, eine einfache Startseite mit großen Kacheln (Fernsehen, Weiterschauen, Filme, Serien), Uhrzeit und Datum, nur 4 Menüpunkte. Auf Wunsch startet die App direkt im Fernsehen. Fehlermeldungen in einfacher Sprache, Einstellungen nur für Helfer (mit PIN). Dazu Zifferntasten für Kanalnummern im Live-TV."
+ "notes": "Senioren-Modus: Der Knopf „Einstellungen (für Helfer)“ sitzt jetzt fest unten auf der Startseite und ist mit der Taste „runter“ erreichbar. Kacheln etwas kompakter."
 }

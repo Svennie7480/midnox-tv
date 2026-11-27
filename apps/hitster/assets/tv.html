@@ -1,0 +1,228 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox Hitster</title>
+<style>
+  :root{--bg:#0B0A14;--card:#17162a;--line:#2a2840;--mut:#9aa0c0;--ac:#F59E0B}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
+  #root{position:absolute;inset:0;padding:4vh 5vw;display:flex;flex-direction:column;gap:2.5vh;
+    background:radial-gradient(circle at 80% 0%,#2a1650 0,transparent 55%),radial-gradient(circle at 0% 100%,#3a1330 0,transparent 50%),var(--bg)}
+  h1{margin:0;font-size:6vh;letter-spacing:.2vh}
+  h1 b{color:var(--ac)}
+  .sub{color:var(--mut);font-size:2.6vh}
+  .row{display:flex;gap:3vw;flex:1;min-height:0}
+  .join{display:flex;flex-direction:column;align-items:center;gap:1.5vh;text-align:center}
+  .join .qr{background:#fff;padding:2vh;border-radius:2vh}
+  .join .qr svg{width:30vh;height:30vh;display:block}
+  .join .url{font-size:2.4vh;color:#fff;font-weight:700}
+  .join .hint{font-size:2.2vh;color:var(--mut)}
+  .plist{flex:1;display:flex;flex-wrap:wrap;align-content:flex-start;gap:1.5vh}
+  .pl{display:flex;align-items:center;gap:1vh;background:var(--card);border:.3vh solid var(--line);border-radius:5vh;padding:1.2vh 2.4vh;font-size:3.2vh;font-weight:700}
+  .pl .d{width:2vh;height:2vh;border-radius:50%}
+  .btn{display:inline-block;background:var(--ac);color:#111;border-radius:1.6vh;padding:1.6vh 3.6vh;font-size:3vh;font-weight:900}
+  .opt{display:flex;align-items:center;gap:2vw;background:var(--card);border:.4vh solid var(--line);border-radius:2vh;padding:2vh 3vh;font-size:3.6vh}
+  .opt.f{border-color:var(--ac);background:#2a2010}
+  .opt .k{flex:1;color:var(--mut)}
+  .opt .v{font-weight:900;min-width:30vh;text-align:center}
+  .opt .ar{color:var(--ac);font-size:4vh}
+  /* Spiel */
+  .top{display:flex;align-items:center;gap:2vw}
+  .top .who{font-size:4.6vh;font-weight:900}
+  .score{margin-left:auto;display:flex;gap:1.2vh;flex-wrap:wrap;justify-content:flex-end}
+  .sc{background:var(--card);border:.3vh solid var(--line);border-radius:3vh;padding:.8vh 2vh;font-size:2.6vh;font-weight:700}
+  .sc.act{border-color:var(--ac);background:#2a2010}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;gap:5vw;min-height:0}
+  .disc{width:34vh;height:34vh;border-radius:50%;background:repeating-radial-gradient(circle,#111 0 .6vh,#1d1b2e .6vh 1.2vh);display:flex;align-items:center;justify-content:center;font-size:12vh;box-shadow:0 0 6vh #7C3AED66;animation:spin 3s linear infinite}
+  .disc.pause{animation-play-state:paused}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .disc span{animation:spin 3s linear infinite reverse}
+  .cover{width:34vh;height:34vh;border-radius:2vh;object-fit:cover;box-shadow:0 0 6vh #0009}
+  .info{display:flex;flex-direction:column;gap:1.2vh;max-width:50vw}
+  .info .big{font-size:5.6vh;font-weight:900;line-height:1.1}
+  .info .art{font-size:3.6vh;color:var(--mut)}
+  .info .yr{font-size:11vh;font-weight:900;color:var(--ac);line-height:1}
+  .res{font-size:4vh;font-weight:900}
+  .res.ok{color:#34d399}.res.no{color:#f87171}
+  .bar{height:1.2vh;background:var(--line);border-radius:1vh;overflow:hidden;width:40vw}
+  .bar i{display:block;height:100%;width:0;background:var(--ac)}
+  .tlw{height:19vh;display:flex;gap:1.2vh;align-items:stretch;overflow:hidden;justify-content:center}
+  .tc{flex:0 0 auto;width:15vh;background:var(--card);border:.3vh solid var(--line);border-radius:1.6vh;padding:1.2vh;display:flex;flex-direction:column;justify-content:center;text-align:center}
+  .tc .y{font-size:4.2vh;font-weight:900;color:var(--ac)}
+  .tc .t{font-size:1.7vh;line-height:1.2;max-height:5.2vh;overflow:hidden}
+  .tc .a{font-size:1.5vh;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tc.new{border-color:#34d399;box-shadow:0 0 3vh #34d39966}
+  .more{align-self:center;color:var(--mut);font-size:2.4vh}
+  .hintbar{color:var(--mut);font-size:2.2vh}
+  .win{margin:auto;text-align:center}
+  .win .em{font-size:20vh}.win .nm{font-size:9vh;font-weight:900}
+  #toast{position:absolute;left:50%;bottom:6vh;transform:translateX(-50%);background:#000c;padding:1.6vh 3vh;border-radius:2vh;font-size:2.8vh;display:none}
+</style></head>
+<body>
+<div id="root"></div><div id="toast"></div>
+<audio id="au" preload="auto"></audio>
+<script src="/lib/qrcode.js"></script>
+<script src="/sound.js"></script>
+<script>
+(function(){
+const $=s=>document.querySelector(s), root=$('#root'), au=$('#au');
+const esc=s=>(s+'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.random()*(i+1)|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function toast(t,ms){ const e=$('#toast'); e.textContent=t; e.style.display='block'; clearTimeout(toast.t); toast.t=setTimeout(()=>e.style.display='none',ms||2500); }
+const PAL=['#7C3AED','#3B5BF0','#06B6D4','#10B981','#F59E0B','#EF4444','#EC4899','#8B5CF6'];
+let players=[], seq=0, scene='lobby', ipUrl='', POOL=[], G=null;
+const byId=id=>players.find(p=>p.pid===id);
+function push(pid,view){ fetch('/push?to='+pid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(view)}).catch(()=>{}); }
+const broadcast=v=>players.forEach(p=>push(p.pid,v));
+async function tvLoop(){ while(true){ try{ const r=await fetch('/tvpoll?since='+seq); const j=await r.json(); seq=j.seq; for(const e of j.evs) onEvent(e); }catch(e){ await sleep(400); } } }
+async function initInfo(){ try{ ipUrl='http://'+Android.ip()+':'+Android.port()+'/p'; }catch(e){ try{ const j=await (await fetch('/info')).json(); ipUrl='http://'+j.ip+':'+j.port+'/p'; }catch(_){ ipUrl=location.origin+'/p'; } } }
+function qrSvg(url){ try{ const q=qrcode(0,'M'); q.addData(url); q.make(); return q.createSvgTag({cellSize:4,margin:1,scalable:true}); }catch(e){ return ''; } }
+
+// ---- Einstellungen ----
+const MODES=[['Alle Jahrzehnte',()=>true],['Bis 1979',s=>s.y<=1979],['Die 80er',s=>s.y>=1980&&s.y<=1989],['Die 90er',s=>s.y>=1990&&s.y<=1999],['2000 bis heute',s=>s.y>=2000],['Deutsche Hits',s=>s.l==='de']];
+const SET=Object.assign({mode:0,goal:10,skips:2},JSON.parse(localStorage.getItem('hit_set')||'{}'));
+const ROWS=[{k:'mode',n:'Musik',vals:MODES.map(m=>m[0])},{k:'goal',n:'Ziel (Karten)',vals:[5,7,10,12,15],num:1},{k:'skips',n:'Wechsel-Joker pro Spieler',vals:[0,1,2,3],num:1}];
+let setRow=0;
+function rowVal(r){ return r.num?r.vals.indexOf(SET[r.k]):SET[r.k]; }
+
+// ---- Lobby ----
+function renderLobby(){
+  scene='lobby';
+  const shortUrl=ipUrl.replace('http://','');
+  root.innerHTML='<h1>midnox <b>Hitster</b></h1><div class="sub">Hör den Song, ordne ihn in deine Zeitleiste ein – wer zuerst '+SET.goal+' Karten hat, gewinnt.</div>'
+   +'<div class="row"><div class="join"><div class="qr">'+qrSvg(ipUrl)+'</div><div class="url">'+esc(shortUrl)+'</div><div class="hint">Handy im selben WLAN:<br>Code scannen oder Adresse öffnen.</div></div>'
+   +'<div style="flex:1;display:flex;flex-direction:column;gap:2.5vh"><div class="plist">'+(players.length?players.map(p=>'<div class="pl"><span class="d" style="background:'+p.color+'"></span>'+p.emoji+' '+esc(p.name)+'</div>').join(''):'<div class="sub">Noch niemand da – scannt den Code!</div>')+'</div>'
+   +'<div><span class="btn" style="opacity:'+(players.length?1:.4)+'">OK  ▶ Weiter zu den Einstellungen</span></div></div></div>'
+   +'<div class="hintbar">Zurück = App beenden</div>';
+}
+function renderSetup(){
+  scene='setup';
+  root.innerHTML='<h1>Spiel <b>einstellen</b></h1><div class="sub">'+players.length+' Spieler</div><div style="display:flex;flex-direction:column;gap:2vh;max-width:80vw">'
+   +ROWS.map((r,i)=>{ const v=r.vals[rowVal(r)]; return '<div class="opt'+(i===setRow?' f':'')+'"><span class="k">'+r.n+'</span><span class="ar">◀</span><span class="v">'+v+'</span><span class="ar">▶</span></div>'; }).join('')
+   +'<div class="opt'+(setRow===ROWS.length?' f':'')+'" style="justify-content:center;font-weight:900;font-size:4.4vh">▶ SPIEL STARTEN</div></div>'
+   +'<div class="hintbar">↑↓ wählen · ◀▶ ändern · OK bestätigen · Zurück = Lobby</div>';
+}
+function setKey(k){
+  const n=ROWS.length;
+  if(k==='up'){ setRow=(setRow+n)%(n+1); SND.play('select'); }
+  else if(k==='down'){ setRow=(setRow+1)%(n+1); SND.play('select'); }
+  else if((k==='left'||k==='right')&&setRow<n){ const r=ROWS[setRow]; let i=rowVal(r)+(k==='right'?1:-1); i=(i+r.vals.length)%r.vals.length; SET[r.k]=r.num?r.vals[i]:i; localStorage.setItem('hit_set',JSON.stringify(SET)); SND.play('tick'); }
+  else if(k==='ok'){ if(setRow===n) startGame(); else setKey('right'); return; }
+  else if(k==='back'){ renderLobby(); return; }
+  renderSetup();
+}
+
+// ---- Spiel ----
+function nextSong(){
+  while(G.deck.length){ const s=G.deck.pop(); if(!G.used.has(s.id)){ G.used.add(s.id); return s; } }
+  return null;
+}
+async function startGame(){
+  if(!players.length){ toast('Erst Spieler beitreten lassen'); return; }
+  const f=MODES[SET.mode][1]; let pool=POOL.filter(f);
+  if(pool.length<players.length*SET.goal+10) pool=POOL.slice();
+  G={deck:shuffle(pool),used:new Set(),tl:{},skips:{},turn:0,order:shuffle(players.map(p=>p.pid)),phase:'load',song:null,goal:SET.goal};
+  players.forEach(p=>{ G.tl[p.pid]=[]; G.skips[p.pid]=SET.skips; });
+  for(const p of players){ const s=nextSong(); G.tl[p.pid]=[s]; }
+  SND.play('start'); SND.resume();
+  startTurn();
+}
+const curP=()=>byId(G.order[G.turn%G.order.length]);
+async function loadPreview(s){ for(let i=0;i<2;i++){ try{ const j=await (await fetch('/prev?id='+s.id)).json(); if(j.p) return j.p; }catch(e){} await sleep(500); } return ''; }
+async function drawPlayable(){
+  for(let i=0;i<8;i++){ const s=nextSong(); if(!s) return null; const u=await loadPreview(s); if(u){ s.url=u; return s; } }
+  return null;
+}
+function tcHtml(c,cls){ return '<div class="tc '+(cls||'')+'"><div class="y">'+c.y+'</div><div class="t">'+esc(c.t)+'</div><div class="a">'+esc(c.a)+'</div></div>'; }
+function scoreHtml(){ return '<div class="score">'+G.order.map(id=>{ const p=byId(id); return '<div class="sc'+(p===curP()?' act':'')+'" style="border-left:1.2vh solid '+p.color+'">'+p.emoji+' '+esc(p.name)+' · '+G.tl[id].length+'/'+G.goal+'</div>'; }).join('')+'</div>'; }
+function tlHtml(p,newId){ const t=G.tl[p.pid], max=9; let s=t, more=''; if(t.length>max){ const idx=newId?t.findIndex(c=>c.id===newId):-1; const st=Math.min(Math.max(0,(idx<0?t.length-max:idx-4)),t.length-max); s=t.slice(st,st+max); more=(st>0?'<div class="more">◀ '+st+'</div>':''); if(st+max<t.length) more+=''; } return '<div class="tlw">'+more+s.map(c=>tcHtml(c,c.id===newId?'new':'')).join('')+(t.length>max&&s[s.length-1]!==t[t.length-1]?'<div class="more">▶</div>':'')+'</div>'; }
+function tlView(p,place){ return {t:'timeline',place,title:place?'Du bist dran!':'',sub:place?'Wo gehört der Song hin?':'',cards:G.tl[p.pid].map(c=>({y:c.y,t:c.t,a:c.a})),skips:G.skips[p.pid]}; }
+let tick=0;
+function playAudio(url){ clearInterval(tick); au.src=url; au.currentTime=0; au.play().catch(()=>{}); tick=setInterval(()=>{ const b=$('.bar i'); if(b&&au.duration) b.style.width=(au.currentTime/au.duration*100)+'%'; const d=$('.disc'); if(d) d.classList.toggle('pause',au.paused||au.ended); },200); }
+async function startTurn(){
+  const p=curP(); G.phase='load'; G.song=null;
+  root.innerHTML='<div class="top"><div class="who">'+p.emoji+' '+esc(p.name)+' ist dran</div>'+scoreHtml()+'</div><div class="stage"><div class="disc pause"><span>💿</span></div></div>';
+  push(p.pid,{t:'wait',emoji:'🎧',title:'Gleich geht’s los…'});
+  const s=await drawPlayable();
+  if(!s){ endGame(null); return; }
+  G.song=s; G.phase='listen'; showListen();
+}
+function showListen(){
+  const p=curP(), s=G.song;
+  root.innerHTML='<div class="top"><div class="who">'+p.emoji+' '+esc(p.name)+' ist dran</div>'+scoreHtml()+'</div>'
+   +'<div class="stage"><div class="disc"><span>❓</span></div><div class="info"><div class="big">Welches Jahr?</div><div class="art">Hör zu und ordne den Song in deine Zeitleiste ein.</div><div class="bar"><i></i></div></div></div>'
+   +tlHtml(p)+'<div class="hintbar">OK = Song nochmal · Menü = anderer Song (Joker) · Zurück = Spiel beenden</div>';
+  playAudio(s.url); SND.play('go');
+  players.forEach(q=>push(q.pid,q===p?tlView(p,true):Object.assign(tlView(q,false),{title:p.emoji+' '+p.name+' ist dran',sub:'Hör zu und denk mit! Deine Zeitleiste:'})));
+}
+async function swapSong(){
+  const p=curP(); if(G.phase!=='listen'||G.skips[p.pid]<=0)return; G.skips[p.pid]--; G.phase='load'; au.pause();
+  const s=await drawPlayable(); if(!s){ endGame(null); return; } G.song=s; G.phase='listen'; showListen();
+}
+function fits(t,i,y){ return (i===0||t[i-1].y<=y)&&(i===t.length||y<=t[i].y); }
+function reveal(pos){
+  const p=curP(), s=G.song, t=G.tl[p.pid]; if(G.phase!=='listen')return; G.phase='reveal';
+  const ok=fits(t,Math.max(0,Math.min(t.length,pos)),s.y);
+  if(ok){ let i=t.findIndex(c=>c.y>s.y); if(i<0)i=t.length; t.splice(i,0,s); }
+  SND.play(ok?'correct':'wrong');
+  const win=ok&&t.length>=G.goal;
+  const cover='https://cdn-images.dzcdn.net/images/cover/'+s.c+'/500x500-000000-80-0-0.jpg';
+  root.innerHTML='<div class="top"><div class="who">'+p.emoji+' '+esc(p.name)+'</div>'+scoreHtml()+'</div>'
+   +'<div class="stage"><img class="cover" src="'+cover+'" onerror="this.style.visibility=\'hidden\'"><div class="info"><div class="yr">'+s.y+'</div><div class="big">'+esc(s.t)+'</div><div class="art">'+esc(s.a)+'</div>'
+   +'<div class="res '+(ok?'ok':'no')+'">'+(ok?'✔ Richtig – Karte gewonnen!':'✘ Leider falsch – Karte weg')+'</div></div></div>'
+   +tlHtml(p,ok?s.id:null)+'<div class="hintbar">OK = weiter</div>';
+  players.forEach(q=>{
+    if(q===p) push(q.pid,{t:'buttons',title:(ok?'✔ Richtig! ':'✘ Falsch. ')+s.y,sub:s.t+' – '+s.a,btns:[{id:'next',label:win?'🏆 Weiter':'Weiter ▶',bg:'#7C3AED'}]});
+    else push(q.pid,{t:'wait',emoji:ok?'✅':'❌',title:s.y+' · '+s.t,sub:s.a+(ok?' – '+p.name+' hat’s!':' – '+p.name+' lag daneben')});
+  });
+  G.win=win?p:null;
+}
+function nextTurn(){
+  if(G.phase!=='reveal')return; au.pause();
+  if(G.win){ endGame(G.win); return; }
+  G.turn++; startTurn();
+}
+function endGame(w){
+  scene='end'; au.pause(); G.phase='end';
+  if(w){ SND.play('fanfare'); root.innerHTML='<div class="win"><div class="em">🏆</div><div class="nm" style="color:'+w.color+'">'+w.emoji+' '+esc(w.name)+'</div><div class="sub" style="font-size:4vh">gewinnt mit '+G.tl[w.pid].length+' Karten!</div><div style="margin-top:4vh"><span class="btn">OK ▶ Nochmal spielen</span></div></div>';
+    players.forEach(q=>push(q.pid,{t:'done',emoji:q===w?'🏆':'🎉',title:q===w?'Du hast gewonnen!':w.name+' gewinnt',sub:'Danke fürs Mitspielen'})); }
+  else { root.innerHTML='<div class="win"><div class="em">🎵</div><div class="nm">Keine Songs mehr</div><div class="sub" style="font-size:3.4vh">Prüft die Internetverbindung oder wählt eine andere Musikauswahl.</div><div style="margin-top:4vh"><span class="btn">OK ▶ Zurück</span></div></div>'; broadcast({t:'done',emoji:'🎵',title:'Spiel zu Ende'}); }
+  scene='end';
+}
+function toLobby(){ au.pause(); G=null; players.forEach(p=>push(p.pid,{t:'wait',emoji:p.emoji,title:'Gleich geht’s weiter',sub:'Der Fernseher wählt das nächste Spiel.'})); renderLobby(); }
+
+// ---- Ereignisse ----
+function onEvent(e){
+  if(e.t==='join'){ if(byId(e.pid))return; const d=e.d||{}; const p={pid:e.pid,name:(d.name||'Gast').slice(0,12),emoji:d.emoji||'🙂',color:d.color||PAL[players.length%PAL.length]}; players.push(p); SND.play('join');
+    if(scene==='lobby'){ renderLobby(); push(p.pid,{t:'wait',emoji:p.emoji,title:'Drin, '+p.name+'!',sub:'Gleich geht’s los…'}); }
+    else { push(p.pid,{t:'wait',emoji:'🎮',title:'Willkommen!',sub:'Du bist beim nächsten Spiel dabei.'}); if(scene==='setup')renderSetup(); }
+  } else if(e.t==='ev'){ const p=byId(e.pid); if(!p||!G)return; const d=e.d||{};
+    if(G.phase==='listen'&&p===curP()){
+      if(typeof d.pos==='number') reveal(d.pos);
+      else if(d.replay){ au.currentTime=0; au.play().catch(()=>{}); }
+      else if(d.skip) swapSong();
+    } else if(G.phase==='reveal'&&p===curP()&&d.btn==='next') nextTurn();
+  }
+}
+window.TV={ key(k){ SND.resume();
+  if(scene==='lobby'){ if(k==='ok'){ if(players.length){ setRow=0; renderSetup(); SND.play('select'); } else toast('Erst Spieler beitreten lassen'); } else if(k==='back'){ try{ Android.exit(); }catch(e){} } return; }
+  if(scene==='setup'){ setKey(k); return; }
+  if(scene==='end'){ if(k==='ok'||k==='back') toLobby(); return; }
+  if(!G)return;
+  if(k==='back'){ if(confirmEnd){ toLobby(); } else { confirmEnd=true; toast('Nochmal „Zurück“ = Spiel abbrechen'); setTimeout(()=>confirmEnd=false,2500); } return; }
+  if(G.phase==='listen'){ if(k==='ok'){ au.currentTime=0; au.play().catch(()=>{}); } else if(k==='menu') swapSong(); }
+  else if(G.phase==='reveal'&&k==='ok') nextTurn();
+} };
+let confirmEnd=false;
+au.addEventListener('error',()=>{ if(G&&G.phase==='listen') swapSong2(); });
+async function swapSong2(){ G.phase='load'; const s=await drawPlayable(); if(!s){ endGame(null); return; } G.song=s; G.phase='listen'; showListen(); }
+
+(async function init(){
+  try{ POOL=await (await fetch('/pool.json')).json(); }catch(e){ POOL=[]; }
+  await initInfo(); renderLobby(); tvLoop();
+  setInterval(()=>{ if(scene==='lobby')renderLobby(); },0x7fffffff);
+})();
+})();
+</script>
+</body></html>

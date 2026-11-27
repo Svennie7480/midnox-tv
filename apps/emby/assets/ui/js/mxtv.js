@@ -140,7 +140,7 @@ const MXTV = {
     { key: 'toy', name: 'Toy Story', emoji: '🤠', re: /toy story|lightyear/i },
     { key: 'ice', name: 'Ice Age', emoji: '🦣', re: /ice age/i },
     { key: 'minions', name: 'Minions', emoji: '🍌', re: /minions|ich - einfach unverbesserlich|ich – einfach unverbesserlich|despicable me/i },
-    { key: 'mcu', name: 'Marvel Cinematic Universe', emoji: '🛡️', re: /avengers|iron man|captain america|thor\b|guardians of the galaxy|ant-man|black panther|doctor strange|spider-man: (homecoming|far from home|no way home)|black widow|shang-chi|eternals|captain marvel|wandavision|loki|hawkeye|falcon and the winter soldier|moon knight|ms\. marvel|she-hulk|secret invasion|agatha|thunderbolts|deadpool (&|and) wolverine/i },
+    { key: 'mcu', name: 'Marvel Cinematic Universe', emoji: '🛡️', re: /avengers|iron man|captain america|thor\b|guardians of the galaxy|ant-man|black panther|doctor strange|spider-man: (homecoming|far from home|no way home)|black widow|shang-chi|eternals|captain marvel|wandavision|\bloki\b|\bhawkeye\b|falcon and the winter soldier|moon knight|ms\. marvel|she-hulk|secret invasion|agatha all along|agatha harkness|thunderbolts|deadpool (&|and) wolverine/i },
     { key: 'tatort', name: 'Tatort-Sonntag', emoji: '🔦', re: /^tatort\b|polizeiruf 110/i },
   ],
   MAX_SERIES: 10, MAX_STARS: 10, MIN_SER_EPS: 12, MIN_STAR: 6,

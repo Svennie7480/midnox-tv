@@ -1,6 +1,6 @@
 {
- "versionCode": 26,
- "versionName": "2.9.1",
+ "versionCode": 27,
+ "versionName": "2.9.2",
  "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-emby.apk",
- "notes": "Eigene Kanäle verbessert: In Serienkanälen steht jetzt immer die Serie im Titel (z. B. „Die Simpsons: Folgenname“), nicht nur der Folgenname. Filmkanäle zeigen keine Serienfolgen mehr (auch nicht, wenn sie in der Filmbibliothek liegen). Genre-Kanäle sortieren genauer: Hauptgenre zählt, keine Dokus, Kinder- oder Trickfilme in Krimi-, Horror- und Drama-Kanälen. Neu: Abenteuer-Kino."
+ "notes": "Marvel-Kanal korrigiert: „Agatha Christie“ gehört nicht mehr dazu (nur noch „Agatha All Along“). Dazu die Verbesserungen aus 2.9.1: Serientitel im Programm, keine Serienfolgen in Filmkanälen, genauere Genres."
 }

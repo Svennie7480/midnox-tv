@@ -15,13 +15,23 @@ const PIXAR = /^(toy story|das große krabbeln|a bug's life|die monster ag|monst
 /** Bekannte deutsche Krimireihen – zählen auch, wenn Emby kein Land/Genre hat */
 const DE_KRIMI = /tatort|polizeiruf|soko\b|der alte|derrick|der kommissar|rosenheim|hubert (und|ohne) staller|großstadtrevier|wilsberg|bulle von tölz|ein fall für zwei|der staatsanwalt|notruf hafenkante|die chefin|usedom-krimi|nord bei nordwest|friesland|kroatien-krimi|barcelona-krimi|kommissar dupin|der bozen-krimi|steirer|kommissar rex|alarm für cobra|der fahnder|schimanski|stralsund|nachtschicht|ein starkes team|helen dorn|unter verdacht|der kriminalist|sokos|die toten vom bodensee|der zürich-krimi|harter brocken|kommissarin heller|der irland-krimi|marie brand|kommissar marthaler|mord mit aussicht|watzmann ermittelt/i;
 const RAW = /\.S\d{1,2}E\d{1,3}\.|\b(1080p|720p|2160p|x26[45]|WEB-?DL|BluRay|AC3D?)\b/i;   // Dateiname statt Titel
+/** Folgen, die in der Filmbibliothek gelandet sind (Dateiname/Ordner mit S01E02, „Staffel 2“, 1x05 …) */
+const EPI = /\bS\d{1,2}[ ._-]?E\d{1,3}\b|\b\d{1,2}x\d{2}\b|[\\/](staffel|season)[ ._-]?\d|\b(folge|episode)[ ._-]?\d{1,3}\b/i;
+/** Genres als ganze Wörter vergleichen („Action & Adventure“ = Action + Adventure), nicht irgendwo im Text */
+const gnorm = (x) => String(x || '').toLowerCase().replace(/[-_]/g, ' ').trim();
+const gtoks = (g) => gnorm(g).split(/\s*(?:&|\/|,| und )\s*/).filter(Boolean);
+const NOT_DOC = ['Dokumentation', 'Documentary', 'Doku', 'Reality', 'Talk', 'News', 'Nachrichten', 'Game Show', 'Spielshow', 'Soap'];
+const NOT_KIDS = ['Kinder', 'Kids'], NOT_TOON = ['Animation', 'Anime', 'Zeichentrick', 'Cartoon'];
+/** Kanäle für Erwachsene: ohne Kinder- und Trickfilme */
+const GROWN = new Set(['krimikino', 'krimiklassik', 'krimineu', 'gangster', 'raetsel', 'dekrimi', 'spannung', 'actionthrill', 'grusel', 'horrorklassik', 'horrorneu', 'psycho', 'horrorlach', 'drama', 'western', 'westernklassik', 'neowestern', 'geschichte', 'herz', 'krimiserie', 'dramaserie', 'dekrimiserie', 'gruselserie', 'nordicnoir', 'ukkrimi', 'scifiserie', 'actionserie', 'serien']);
 const MXTV = {
   ch: [], byId: {}, at0: 0, building: false,
   DEFS: [
     { key: 'serien', name: 'Serien-Marathon', emoji: '📺', type: 'Episode', mode: 'series' },
     { key: 'sitcom', name: 'Sitcom-Kanal', emoji: '😂', type: 'Episode', mode: 'series', sgenres: ['Comedy', 'Komödie', 'Sitcom'] },
     { key: 'kino', name: 'Filmabend', emoji: '🎬', type: 'Movie' },
-    { key: 'action', name: 'Action Nonstop', emoji: '💥', type: 'Movie', genres: ['Action', 'Abenteuer', 'Adventure'] },
+    { key: 'action', name: 'Action Nonstop', emoji: '💥', type: 'Movie', genres: ['Action'] },
+    { key: 'abenteuer', name: 'Abenteuer-Kino', emoji: '🧭', type: 'Movie', genres: ['Abenteuer', 'Adventure'], excl: ['Action'] },
     { key: 'actionklassik', name: 'Action-Klassiker', emoji: '🔫', type: 'Movie', genres: ['Action'], years: [1970, 1999] },
     { key: 'blockbuster', name: 'Blockbuster-Action', emoji: '💣', type: 'Movie', genres: ['Action'], years: [2010, 2100] },
     { key: 'actionthrill', name: 'Action-Thriller', emoji: '🚨', type: 'Movie', allG: [['Action'], ['Thriller', 'Krimi', 'Crime']] },
@@ -29,11 +39,11 @@ const MXTV = {
     { key: 'actionscifi', name: 'Sci-Fi-Action', emoji: '🤖', type: 'Movie', allG: [['Action'], ['Science Fiction', 'Sci-Fi']] },
     { key: 'actionserie', name: 'Action-Serien', emoji: '🧨', type: 'Episode', mode: 'series', sgenres: ['Action'] },
     { key: 'lachen', name: 'Lachkanal', emoji: '🤣', type: 'Movie', genres: ['Komödie', 'Comedy'] },
-    { key: 'spannung', name: 'Spannung', emoji: '🔪', type: 'Movie', genres: ['Thriller', 'Krimi', 'Crime', 'Mystery'] },
+    { key: 'spannung', name: 'Spannung', emoji: '🔪', type: 'Movie', genres: ['Thriller', 'Mystery'] },
     { key: 'krimikino', name: 'Krimi-Kino', emoji: '🕵️‍♂️', type: 'Movie', genres: ['Krimi', 'Crime'] },
     { key: 'krimiklassik', name: 'Krimi-Klassiker', emoji: '🎩', type: 'Movie', genres: ['Krimi', 'Crime', 'Mystery'], years: [1900, 1999] },
     { key: 'krimineu', name: 'Neue Krimis', emoji: '🔎', type: 'Movie', genres: ['Krimi', 'Crime'], years: [2010, 2100] },
-    { key: 'gangster', name: 'Gangster-Kino', emoji: '🎰', type: 'Movie', allG: [['Krimi', 'Crime'], ['Drama']], title: /mafia|pate|godfather|gangster|scarface|goodfellas|casino|mob\b|narcos|heat\b|departed|irishman/i },
+    { key: 'gangster', name: 'Gangster-Kino', emoji: '🎰', type: 'Movie', allG: [['Krimi', 'Crime'], ['Drama']], title: /mafia|pate|godfather|gangster|scarface|goodfellas|casino|mob\b|heat\b|departed|irishman/i },
     { key: 'raetsel', name: 'Rätsel-Krimi', emoji: '🧩', type: 'Movie', genres: ['Mystery'] },
     { key: 'dekrimi', name: 'Deutsche Krimi-Filme', emoji: '🚓', type: 'Movie', genres: ['Krimi', 'Crime', 'Thriller'], country: /german|deutschland|ddr|bundesrepublik/i },
     { key: 'grusel', name: 'Gänsehaut', emoji: '👻', type: 'Movie', genres: ['Horror'] },
@@ -43,8 +53,8 @@ const MXTV = {
     { key: 'horrorlach', name: 'Horror zum Lachen', emoji: '🤡', type: 'Movie', allG: [['Horror'], ['Komödie', 'Comedy']] },
     { key: 'gruselserie', name: 'Grusel-Serien', emoji: '🕯️', type: 'Episode', mode: 'series', sgenres: ['Horror'] },
     { key: 'scifi', name: 'Sci-Fi & Fantasy', emoji: '🚀', type: 'Movie', genres: ['Science Fiction', 'Sci-Fi', 'Fantasy'] },
-    { key: 'herz', name: 'Herzkino', emoji: '💕', type: 'Movie', genres: ['Liebesfilm', 'Romance', 'Romanze'] },
-    { key: 'familie', name: 'Familienkino', emoji: '🧸', type: 'Movie', genres: ['Familie', 'Family', 'Animation', 'Kinder', 'Kids'] },
+    { key: 'herz', name: 'Herzkino', emoji: '💕', type: 'Movie', genres: ['Liebesfilm', 'Romance', 'Romanze', 'Romant'] },
+    { key: 'familie', name: 'Familienkino', emoji: '🧸', type: 'Movie', genres: ['Familie', 'Family', 'Kinder', 'Kids'] },
     { key: 'doku', name: 'Doku', emoji: '🌍', type: 'Movie,Episode', genres: ['Dokumentation', 'Documentary', 'Doku'] },
     { key: 'retro', name: '80er & 90er Kino', emoji: '📼', type: 'Movie', years: [1980, 1999] },
     // --- Jahreszeit (nur in der passenden Zeit auf Sendung) ---
@@ -61,7 +71,7 @@ const MXTV = {
     { key: 'scifiserie', name: 'Serien aus anderen Welten', emoji: '🛸', type: 'Episode', mode: 'series', sgenres: ['Science Fiction', 'Sci-Fi', 'Fantasy'] },
     { key: 'dokuserie', name: 'Doku-Serien', emoji: '🔍', type: 'Episode', mode: 'series', sgenres: ['Dokumentation', 'Documentary', 'Reality'] },
     // --- Filme nach Genre ---
-    { key: 'drama', name: 'Großes Drama', emoji: '🎭', type: 'Movie', genres: ['Drama'] },
+    { key: 'drama', name: 'Großes Drama', emoji: '🎭', type: 'Movie', genres: ['Drama'], top: 2, excl: ['Komödie', 'Comedy', 'Horror', 'Action'] },
     { key: 'trick', name: 'Trickfilm-Kanal', emoji: '🖍️', type: 'Movie', genres: ['Animation', 'Zeichentrick', 'Anime'] },
     { key: 'trickklassik', name: 'Zeichentrick-Klassiker', emoji: '🐭', type: 'Movie', genres: ['Animation', 'Zeichentrick'], years: [1900, 2004] },
     { key: 'tricknew', name: 'Neue Animationsfilme', emoji: '🌈', type: 'Movie', genres: ['Animation'], years: [2015, 2100] },
@@ -156,7 +166,7 @@ const MXTV = {
   async seq(fns) { const out = []; for (const f of fns) out.push(await f()); return out; },
   async init(force) {
     if (!EMBY.user || MXTV.building) return;
-    const ck = 'mxtv7_' + EMBY.user.id;   // 7: Altersfreigaben
+    const ck = 'mxtv8_' + EMBY.user.id;   // 8: Serientitel, Genres genauer, keine Folgen in Filmkanälen
     if (!force) {
       try {
         const c = JSON.parse(localStorage.getItem(ck) || 'null');
@@ -166,21 +176,28 @@ const MXTV = {
     }
     MXTV.building = true;
     try {
-      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Studios,DateCreated,ProductionLocations,OfficialRating', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
+      const f = { Recursive: true, Fields: 'Genres,ProductionYear,RunTimeTicks,SeriesId,SeriesName,ParentIndexNumber,IndexNumber,Studios,DateCreated,ProductionLocations,OfficialRating,Path', EnableImageTypes: 'Primary', ImageTypeLimit: 1, EnableUserData: false, EnableImages: false };   // ohne Beschreibungen: viel weniger Last für den Emby-Server
       const [mv, ep, se] = await MXTV.seq([
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Movie', Limit: 4000 }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', Object.assign({ IncludeItemTypes: 'Episode', Limit: 12000, SortBy: 'SeriesSortName,ParentIndexNumber,IndexNumber' }, f)).catch(() => ({})),
         () => EMBY.get('/Users/' + EMBY.user.id + '/Items', { IncludeItemTypes: 'Series', Recursive: true, Fields: 'Genres,CommunityRating,ProductionLocations', EnableImages: false, Limit: 4000 }).catch(() => ({})),
       ]);
       const sg = {}; for (const s of (se.Items || [])) sg[s.Id] = s.Genres || [];
-      const slim = (i) => ({ i: i.Id, n: MXTV.clean(i), s: i.Type === 'Episode' ? (i.SeriesName || '') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '', t: i.Type === 'Episode' ? 'e' : 'm', r: MXTV.age(i.OfficialRating) });
-      const movies = (mv.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_MOVIE * 1e4), eps = (ep.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_EP * 1e4);
-      const hasG = (gs, want) => (gs || []).some(g => want.some(w => g.toLowerCase().indexOf(w.toLowerCase()) >= 0));
+      const slim = (i) => ({ i: i.Id, n: MXTV.clean(i, i.Type === 'Episode' ? (i.SeriesName || sname[i.SeriesId] || '') : ''), s: i.Type === 'Episode' ? (i.SeriesName || sname[i.SeriesId] || 'Serie') + ' · S' + (i.ParentIndexNumber || 0) + 'E' + (i.IndexNumber || 0) : (i.ProductionYear ? String(i.ProductionYear) : ''), o: (i.Overview || '').slice(0, 220), d: Math.round((i.RunTimeTicks || 0) / 10000), g: i.Type === 'Episode' ? i.SeriesId : '', t: i.Type === 'Episode' ? 'e' : 'm', r: MXTV.age(i.OfficialRating) });
+      const movies = (mv.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_MOVIE * 1e4 && !MXTV.isEpisodic(i)), eps = (ep.Items || []).filter(i => i.RunTimeTicks > MXTV.MIN_EP * 1e4);
+      const hasG = (gs, want, top) => (top ? (gs || []).slice(0, top) : (gs || [])).some(g => gtoks(g).some(t => want.some(w => t.indexOf(gnorm(w)) === 0)));
       const out = [];
       const now = new Date(), month = now.getMonth() + 1, year = now.getFullYear();
       const studio = (i, re) => (i.Studios || []).some(x => re.test(x.Name || ''));
       const ctx = { studio, hasG };
       const sname = {}, sloc = {}; for (const s2 of (se.Items || [])) { sname[s2.Id] = s2.Name || ''; sloc[s2.Id] = s2.ProductionLocations || []; }
+      const exclOf = (d) => {   // was in diesem Kanal nichts verloren hat
+        if (d.fn || d.studios) return [];
+        let x = (d.excl || []).slice();
+        if (!/doku/.test(d.key)) x = x.concat(NOT_DOC);
+        if (GROWN.has(d.key)) x = x.concat(NOT_KIDS, d.key === 'herz' || d.key === 'drama' ? [] : NOT_TOON);
+        return x;
+      };
       for (const d of MXTV.DEFS) {
         if (d.months && !d.months.includes(month)) continue;                                   // Jahreszeit-Kanäle nur in ihrer Zeit
         const movieOk = (i) => {
@@ -191,10 +208,12 @@ const MXTV = {
           if (d.minMin && min < d.minMin) return false;
           if (d.addedDays && !(i.DateCreated && now - new Date(i.DateCreated) < d.addedDays * 864e5)) return false;
           if (d.fn) return d.fn(i, ctx);
-          if (d.allG && !d.allG.every(g => hasG(i.Genres, g))) return false;                  // z. B. Action UND Komödie
+          if (exclOf(d) .length && hasG(i.Genres, exclOf(d))) return false;                   // z. B. keine Dokus, Kinder- oder Trickfilme im Horrorkanal
+          if (d.allG && !d.allG.every(g => hasG(i.Genres, g, 4))) return false;               // z. B. Action UND Komödie
+          const topN = d.top || 3;
           if (d.country && !(i.ProductionLocations || []).some(x => d.country.test(x))) return false;
           // Titel ODER Genre ODER Studio – was angegeben ist, reicht einzeln
-          const any = [d.title && d.title.test(i.Name || ''), d.genres && hasG(i.Genres, d.genres), d.studios && studio(i, d.studios)].filter(x => x !== undefined);
+          const any = [d.title && d.title.test(i.Name || ''), d.genres && hasG(i.Genres, d.genres, topN), d.studios && studio(i, d.studios)].filter(x => x !== undefined);
           return !any.length || any.some(Boolean);
         };
         const epOk = (i) => {
@@ -203,10 +222,11 @@ const MXTV = {
           const sgs = sg[i.SeriesId], gs = sgs && sgs.length ? sgs : (RAW.test(i.Name || '') ? [] : i.Genres);
           if (d.stitle && d.stitle.test(sname[i.SeriesId] || '')) return true;                 // bekannte Reihe (z. B. Tatort) zählt immer
           if (d.country && !(sloc[i.SeriesId] || []).some(x => d.country.test(x))) return false;
-          if (d.sgenres && !hasG(sg[i.SeriesId], d.sgenres)) return false;
-          if (d.allG && !d.allG.every(g => hasG(gs, g))) return false;
+          if (exclOf(d).length && hasG(gs, exclOf(d))) return false;
+          if (d.sgenres && !hasG(sg[i.SeriesId], d.sgenres, d.top || 3)) return false;
+          if (d.allG && !d.allG.every(g => hasG(gs, g, 4))) return false;
           if (d.title) return d.title.test(i.Name || '') || d.title.test(sname[i.SeriesId] || '') || (d.key !== 'halloween' && !!d.genres && hasG(gs, d.genres));   // z. B. Weihnachtsfolgen
-          return !d.genres || hasG(gs, d.genres);
+          return !d.genres || hasG(gs, d.genres, d.top || 3);
         };
         if (d.studios && !d.title && d.type === 'Movie' && !movies.some(i => i.Studios)) continue;
         let pool = [];
@@ -264,13 +284,26 @@ const MXTV = {
     } finally { MXTV.building = false; }
   },
   /** Nicht erkannte Dateien („Die.Simpsons.S33E21.German…1080p“) bekommen einen lesbaren Titel */
-  clean(i) {
+  /** Ist das eigentlich eine Serienfolge (liegt aber in der Filmbibliothek)? */
+  isEpisodic(i) {
+    if (i.SeriesId || i.SeriesName) return true;
+    if (EPI.test(i.Path || '')) return true;
+    return RAW.test(i.Name || '') && /\bS\d{1,2}E\d{1,3}\b/i.test(i.Name || '');
+  },
+  /** Titel für Programm und Player: bei Serien „Serie: Folge“, nicht erkannte Dateien („Die.Simpsons.S33E21.German…1080p“) bekommen einen lesbaren Titel */
+  clean(i, ser) {
     const n = i.Name || '';
-    if (!RAW.test(n)) return n;
     if (i.Type === 'Episode') {
-      const m = n.match(/^(.*?)[. _-]+S(\d{1,2})E(\d{1,3})/i), ser = i.SeriesName || (m ? m[1].replace(/[._]/g, ' ').trim() : '');
-      return (ser ? ser + ' · ' : '') + 'Folge ' + (i.IndexNumber || (m ? +m[3] : ''));
+      const m = n.match(/^(.*?)[. _-]+S(\d{1,2})E(\d{1,3})/i);
+      ser = ser || i.SeriesName || (m ? m[1].replace(/[._]/g, ' ').trim() : '');
+      const num = 'S' + (i.ParentIndexNumber != null ? i.ParentIndexNumber : (m ? +m[2] : 0)) + 'E' + (i.IndexNumber || (m ? +m[3] : 0));
+      const ep = RAW.test(n) || !n ? '' : n;
+      if (!ser) return ep || num;
+      if (!ep) return ser + ' · ' + num;
+      if (ep.toLowerCase().indexOf(ser.toLowerCase()) === 0) return ep;
+      return ser + ': ' + ep;
     }
+    if (!RAW.test(n)) return n;
     return n.replace(/[._]/g, ' ').replace(/\b(19|20)\d\d\b.*$|\b(German|DL|AC3D?|1080p|720p|2160p|WEB|x26[45]|BluRay).*$/i, '').trim() || n;
   },
   ver: 0,

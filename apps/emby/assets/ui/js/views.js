@@ -613,6 +613,13 @@ ROUTER.reg('settings', async (scr) => {
   sect('Community');
   choice('Anderen zeigen, was ich schaue', 'showWatching', [[true, 'Ja'], [false, 'Nein']], 'user');
   row('Community-Server', s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden'), async (e) => { const v = await TEXT.ask('Adresse des Community-Servers', { value: s.community }); if (v) { s.community = v.trim(); save(); await COMM.start(); setVal(e, s.community + (COMM.ok ? ' · verbunden' : ' · nicht verbunden')); } }, 'chat');
+  if (EMBY.user.admin) {
+    sect('Server');
+    row('Bibliothek nach neuen Filmen durchsuchen', 'Startet den Scan auf dem Server – neue Filme und Serien erscheinen nach und nach', async () => {
+      try { await EMBY.post('/Library/Refresh'); UI.toast('Der Server sucht jetzt nach neuen Inhalten …', { icon: '🔄' }); setTimeout(() => { if (window.APP) APP.dirty = true; }, 60000); }
+      catch (e) { UI.toast('Scan konnte nicht gestartet werden', { icon: '⚠️' }); }
+    }, 'refresh');
+  }
   sect('Konto');
   row('Angemeldet als ' + EMBY.user.name + (EMBY.user.admin ? ' (Administrator)' : ''), EMBY.server.name + ' · ' + EMBY.server.url, () => {}, 'user');
   row('Benutzer wechseln', 'Anderes Profil auf diesem Server', () => { EMBY.closeSocket(); ROUTER.go('login', EMBY.server, { root: true }); $('#rail').classList.add('hidden'); }, 'user');

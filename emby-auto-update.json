@@ -1,1 +1,6 @@
-{"versionCode":1,"versionName":"1.0","apk":"https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-media-auto.apk","notes":"midnox Media Auto: Fürs Auto (BYD) – große Touch-Kacheln, Quer- und Hochformat."}
+{
+ "versionCode": 2,
+ "versionName": "1.1",
+ "apk": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-media-auto.apk",
+ "notes": "Neu: Bibliothek nach neuen Filmen durchsuchen (Einstellungen > Server, für Administratoren)."
+}

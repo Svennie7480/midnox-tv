@@ -1,0 +1,374 @@
+<!doctype html><html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>midnox Infoscreen – Editor</title>
+<style>
+  :root{--bg:#0B0A14;--card:#16152a;--card2:#1d1c36;--line:#2c2a48;--tx:#f3f2fb;--mut:#9a98bd;--ac:#8B5CF6;--ac2:#F59E0B;--ok:#34d399;--bad:#f87171}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,'Segoe UI',Roboto,sans-serif;min-height:100vh;
+    background-image:radial-gradient(900px 500px at 90% -10%,#3b1a7a55,transparent),radial-gradient(700px 500px at -10% 110%,#4a134255,transparent)}
+  a{color:var(--ac2)}
+  header{display:flex;align-items:center;gap:18px;padding:12px 22px;border-bottom:1px solid var(--line);background:#0b0a14cc;position:sticky;top:0;z-index:20;backdrop-filter:blur(8px)}
+  .logo{font-weight:900;font-size:19px;letter-spacing:.3px}.logo b{color:var(--ac2)}
+  nav{display:flex;gap:4px}
+  nav button,.btn{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
+  nav button.on{background:var(--ac);border-color:var(--ac)}
+  nav button:hover,.btn:hover{border-color:var(--ac)}
+  .btn.pri{background:var(--ac);border-color:var(--ac);font-weight:700}
+  .btn.warn{border-color:#7f1d1d;color:#fecaca}.btn.warn:hover{background:#7f1d1d}
+  .btn.sm{padding:4px 10px;font-size:13px;border-radius:8px}
+  .btn:disabled{opacity:.45;cursor:default}
+  .sp{flex:1}
+  main{padding:22px;max-width:1500px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 16px}h2{font-size:17px;margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+  .scr h3{margin:0 0 4px;font-size:18px}.scr .m{color:var(--mut);font-size:13px;margin-bottom:12px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#555;margin-right:6px}.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  label.f{display:block;margin:0 0 12px}label.f>span{display:block;color:var(--mut);font-size:13px;margin-bottom:4px}
+  input[type=text],input[type=password],input[type=number],input[type=date],input[type=time],input[type=url],select,textarea{width:100%;background:#0f0e1f;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:9px 11px;font:inherit}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--ac);border-color:transparent}
+  textarea{min-height:92px;resize:vertical}
+  input[type=color]{width:54px;height:38px;border:1px solid var(--line);border-radius:8px;background:#0f0e1f;padding:2px}
+  .chk{display:flex;align-items:center;gap:9px;margin:0 0 12px;cursor:pointer}.chk input{width:18px;height:18px;accent-color:var(--ac)}
+  .login{max-width:420px;margin:9vh auto}.login .logo{font-size:28px;margin-bottom:14px}
+  .err{color:var(--bad);margin:8px 0}.hint{color:var(--mut);font-size:13px}
+  /* Editor */
+  .ed{display:grid;grid-template-columns:300px minmax(380px,1fr) minmax(360px,520px);gap:16px;align-items:start}
+  @media(max-width:1200px){.ed{grid-template-columns:260px 1fr}.ed .pvcol{grid-column:1/-1}}
+  @media(max-width:800px){.ed{grid-template-columns:1fr}}
+  .sl-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .si{display:flex;align-items:center;gap:8px;background:var(--card2);border:2px solid transparent;border-radius:12px;padding:8px 10px;cursor:pointer}
+  .si.sel{border-color:var(--ac)}.si.off{opacity:.5}.si.over{border-color:var(--ac2)}
+  .si .ic{font-size:20px}.si .tt{flex:1;min-width:0}.si .tt b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}.si .tt small{color:var(--mut)}
+  .si .bt{display:flex;gap:2px}.si .bt button{background:none;border:0;color:var(--mut);cursor:pointer;font-size:15px;padding:2px 4px;border-radius:6px}.si .bt button:hover{background:#ffffff18;color:#fff}
+  .tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+  .tabs button{background:none;border:0;color:var(--mut);padding:9px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent}.tabs button.on{color:#fff;border-color:var(--ac2)}
+  .box{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .days{display:flex;gap:6px;flex-wrap:wrap}.days button{border:1px solid var(--line);background:#0f0e1f;color:var(--tx);border-radius:8px;padding:6px 10px;cursor:pointer}.days button.on{background:var(--ac);border-color:var(--ac)}
+  .pv{position:relative;width:100%;background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  .pv iframe{position:absolute;left:0;top:0;border:0;transform-origin:0 0}
+  .pvcol{position:sticky;top:76px}
+  .mi{display:flex;gap:6px;align-items:center;margin-bottom:6px}.mi input{flex:1}
+  .mi .n{flex:1.4}.mi .d{flex:1.6}.mi .p{flex:.6;min-width:70px}
+  .thumb{width:100%;aspect-ratio:16/10;object-fit:cover;background:#000;border-radius:10px;display:block}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .mc{background:var(--card2);border:2px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;position:relative}.mc:hover{border-color:var(--ac)}
+  .mc small{display:block;color:var(--mut);margin-top:4px;font-size:12px;word-break:break-all}
+  .bar{height:8px;background:#0f0e1f;border-radius:6px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+  .modal{position:fixed;inset:0;background:#000b;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px}
+  .modal .card{width:min(1000px,100%);max-height:88vh;overflow:auto}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:22px;text-align:center;color:var(--mut);margin-bottom:14px}.drop.over{border-color:var(--ac2);color:#fff}
+  .tg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .tp{border:2px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;background:var(--card2);font-size:13px}.tp.on{border-color:var(--ac2)}
+  .tp i{display:block;height:36px;border-radius:8px;margin-bottom:6px}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#000e;border:1px solid var(--line);padding:10px 18px;border-radius:12px;z-index:90;display:none}
+  .banner{background:#4c1d95;padding:8px 22px;font-size:14px;display:flex;gap:12px;align-items:center}
+  table{width:100%;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+</style></head><body>
+<div id="app"></div><div id="toast"></div>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const h=(t,a,...c)=>{ const e=document.createElement(t); for(const k in (a||{})){ const v=a[k]; if(v==null||v===false) continue; if(k==='class') e.className=v; else if(k.slice(0,2)==='on') e.addEventListener(k.slice(2),v); else if(k in e&&k!=='list'&&k!=='style') e[k]=v; else e.setAttribute(k,v===true?'':v); } c.flat(9).forEach(x=>{ if(x==null||x===false) return; e.append(x.nodeType?x:String(x)); }); return e; };
+const rnd=()=>Math.random().toString(36).slice(2,8);
+const clone=o=>JSON.parse(JSON.stringify(o));
+let toastT=0; function toast(t,bad){ const e=$('#toast'); e.textContent=t; e.style.color=bad?'#fecaca':'#fff'; e.style.display='block'; clearTimeout(toastT); toastT=setTimeout(()=>e.style.display='none',3200); }
+async function A(a,body,q){
+  const r=await fetch('?a='+a+(q||''),{method:body===undefined?'GET':'POST',headers:{'X-MX':'1','Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
+  let j={}; try{ j=await r.json(); }catch(e){}
+  if(r.status===401&&j.err==='login'){ ME=null; render(); throw new Error('login'); }
+  if(!r.ok) throw new Error(j.err||('Fehler '+r.status)); return j;
+}
+const fail=e=>{ if(e&&e.message!=='login') toast(e.message||'Fehler',true); };
+const fmtSize=n=>n>1e9?(n/1e9).toFixed(1)+' GB':n>1e6?(n/1e6).toFixed(1)+' MB':Math.round(n/1e3)+' KB';
+
+let ME=null, view='home', SCR=[], USED=0, QUOTA=0, D=null, DSID='', sel=0, tab='slide', dirty=false, MEDIA=[], pvFrame=null, pvFocus=true;
+const TYPES={image:'🖼️ Bild',video:'🎬 Video',text:'📝 Text',menu:'🍽️ Speisekarte / Preisliste',clock:'🕒 Uhr & Datum',weather:'⛅ Wetter',qr:'🔳 QR-Code'};
+const ICON={image:'🖼️',video:'🎬',text:'📝',menu:'🍽️',clock:'🕒',weather:'⛅',qr:'🔳'};
+const DEF={image:{src:'',fit:'contain',kb:true,cap:'',dur:10},video:{src:'',sound:false,fit:'contain',cap:'',dur:10},text:{head:'',body:'',badge:'',align:'center',bg:'',dur:10},
+  menu:{head:'Speisekarte',sub:'',items:[{n:'Tagesgericht',d:'',p:'9,90 €',h:false}],foot:'',bg:'',dur:15},clock:{head:'',dur:10},weather:{city:'',lat:0,lon:0,dur:12},qr:{head:'',url:'https://',cap:'',dur:12}};
+const TH=[['auto','Automatisch','Feiertage & Jahreszeiten','linear-gradient(90deg,#8B5CF6,#dc2626,#16a34a,#f59e0b)'],['midnox','midnox','Dunkel, Violett & Gold','linear-gradient(135deg,#3b1a7a,#0B0A14)'],['clean','Hell & schlicht','Weiß, dezent','#f6f5f1'],
+ ['weihnachten','Weihnachten','Schnee, Rot & Gold','linear-gradient(135deg,#14391f,#3d0d12)'],['silvester','Silvester','Feuerwerk','linear-gradient(135deg,#04040f,#2a0d3d)'],['ostern','Ostern','Pastell, Blüten','linear-gradient(135deg,#fff9d9,#fbe3f1)'],
+ ['halloween','Halloween','Orange & Fledermäuse','linear-gradient(135deg,#3a0f55,#0c0612)'],['valentin','Valentinstag','Herzen','linear-gradient(135deg,#3a0a1e,#7a1237)'],['fruehling','Frühling','Hell, Blüten','linear-gradient(135deg,#eaf8e4,#fdf1f7)'],
+ ['sommer','Sommer','Sonne & Himmel','linear-gradient(135deg,#0b7fb8,#f6c445)'],['herbst','Herbst','Laub, Warmtöne','linear-gradient(135deg,#341a08,#7c3a0e)'],['winter','Winter','Schnee, Blau','linear-gradient(135deg,#0b1d33,#1f4068)']];
+const WD=[[1,'Mo'],[2,'Di'],[3,'Mi'],[4,'Do'],[5,'Fr'],[6,'Sa'],[0,'So']];
+const newSlide=t=>Object.assign({id:rnd(),type:t,on:true,name:'',dur:10,sch:{use:false,from:'',to:'',days:[],t1:'',t2:''}},clone(DEF[t]));
+const sLabel=s=>s.name||s.head||(s.type==='image'||s.type==='video'?(s.cap||TYPES[s.type].slice(3)):s.city||TYPES[s.type].slice(3));
+
+/* ---------- Eingabe-Helfer (binden direkt an Objekte) ---------- */
+function touch(list){ dirty=true; pvPost(); const b=$('#savebtn'); if(b) b.textContent='Speichern & veröffentlichen ●'; if(list) renderList(); }
+function field(label,o,k,opt){ opt=opt||{}; let i;
+  if(opt.type==='textarea') i=h('textarea',{value:o[k]||'',maxLength:opt.max||1500,oninput:e=>{o[k]=e.target.value;touch(opt.list);}});
+  else if(opt.type==='select') i=h('select',{onchange:e=>{o[k]=opt.num?+e.target.value:e.target.value;touch(opt.list);}},opt.options.map(x=>h('option',{value:x[0],selected:String(o[k])===String(x[0])},x[1])));
+  else i=h('input',{type:opt.type||'text',value:o[k]??'',min:opt.min,max:opt.max,maxLength:opt.maxlen,placeholder:opt.ph||'',oninput:e=>{o[k]=opt.type==='number'?(+e.target.value||0):e.target.value;touch(opt.list);}});
+  return h('label',{class:'f'},h('span',{},label),i,opt.hint?h('div',{class:'hint'},opt.hint):null);
+}
+const check=(label,o,k,list)=>h('label',{class:'chk'},h('input',{type:'checkbox',checked:!!o[k],onchange:e=>{o[k]=e.target.checked;touch(list);}}),label);
+
+/* ---------- Ansichten ---------- */
+async function render(){
+  const app=$('#app'); app.innerHTML='';
+  if(!ME){ try{ ME=await A('me'); }catch(e){} }
+  if(!ME||!ME.login) return app.append(loginView());
+  app.append(headerView());
+  if(ME.master&&ME.as&&ME.as!==ME.accounts[0].id) { const a=ME.accounts.find(x=>x.id===ME.as); app.append(h('div',{class:'banner'},'👤 Du bearbeitest das Konto: ',h('b',{},a?a.name:''),h('button',{class:'btn sm',onclick:async()=>{await A('acc_as',{id:''});ME=null;D=null;view='home';render();}},'Zurück zu meinem Konto'))); }
+  const m=h('main'); app.append(m);
+  if(view==='home') await homeView(m); else if(view==='edit') editView(m); else if(view==='media') await mediaView(m); else if(view==='account') accountView(m);
+}
+function loginView(){
+  const setup=ME&&ME.setup, u=h('input',{type:'text',autocomplete:'username'}), p=h('input',{type:'password',autocomplete:setup?'new-password':'current-password'}), n=h('input',{type:'text',value:'midnox'}), e=h('div',{class:'err'});
+  const go=async()=>{ e.textContent=''; try{ await A(setup?'setup':'login',{user:u.value,pw:p.value,name:n.value}); ME=null; view='home'; render(); }catch(x){ e.textContent=x.message; } };
+  p.addEventListener('keydown',ev=>{ if(ev.key==='Enter') go(); });
+  return h('div',{class:'login card'},h('div',{class:'logo'},'midnox ',h('b',{},'Infoscreen')),
+    h('p',{class:'hint'},setup?'Willkommen! Lege jetzt dein Hauptkonto an.':'Bitte anmelden.'),
+    setup?h('label',{class:'f'},h('span',{},'Name (Firma / Betrieb)'),n):null,
+    h('label',{class:'f'},h('span',{},'Benutzername'),u),h('label',{class:'f'},h('span',{},setup?'Passwort (mind. 8 Zeichen)':'Passwort'),p),e,
+    h('button',{class:'btn pri',onclick:go},setup?'Konto anlegen':'Anmelden'));
+}
+function headerView(){
+  const go=v=>async()=>{ if(view==='edit'&&dirty&&!confirm('Ungespeicherte Änderungen verwerfen?')) return; dirty=false; view=v; render(); };
+  return h('header',{},h('div',{class:'logo'},'midnox ',h('b',{},'Infoscreen')),
+    h('nav',{},h('button',{class:view==='home'||view==='edit'?'on':'',onclick:go('home')},'📺 Bildschirme'),h('button',{class:view==='media'?'on':'',onclick:go('media')},'🖼️ Medien'),h('button',{class:view==='account'?'on':'',onclick:go('account')},ME.master?'⚙️ Konto & Kunden':'⚙️ Konto')),
+    h('div',{class:'sp'}),h('span',{class:'hint'},ME.name),h('button',{class:'btn sm',onclick:async()=>{await A('logout',{});ME=null;render();}},'Abmelden'));
+}
+async function loadScr(){ const r=await A('scr_list'); SCR=r.screens; USED=r.used; QUOTA=r.quota; return r; }
+async function homeView(m){
+  let r; try{ r=await loadScr(); }catch(e){ return; }
+  m.append(h('div',{class:'row',style:'margin-bottom:16px'},h('h1',{style:'margin:0'},'Deine Bildschirme'),h('div',{class:'sp'}),
+    h('button',{class:'btn pri',onclick:async()=>{ const n=prompt('Name des Bildschirms (z. B. „Eingang“ oder „Theke“):','Neuer Bildschirm'); if(!n) return; try{ const x=await A('scr_add',{name:n}); await openScreen(x.id); }catch(e){fail(e);} }},'＋ Neuer Bildschirm')));
+  if(!SCR.length) m.append(h('div',{class:'card'},h('p',{},'Noch kein Bildschirm angelegt.'),h('p',{class:'hint'},'1. „Neuer Bildschirm“ anlegen · 2. Fire-TV-App „midnox Infoscreen“ starten – dort erscheint ein 6-stelliger Code · 3. Hier beim Bildschirm auf „Fernseher koppeln“ klicken und den Code eingeben.')));
+  const g=h('div',{class:'grid'}); m.append(g);
+  SCR.forEach(s=>{
+    const on=s.devices.some(d=>r.now-d.seen<120), last=Math.max(0,...s.devices.map(d=>d.seen));
+    g.append(h('div',{class:'card scr'},h('h3',{},s.name),
+      h('div',{class:'m'},h('span',{class:'dot'+(on?' on':'')}),s.devices.length?(on?'Online':'Zuletzt '+(last?new Date(last*1000).toLocaleString('de-DE',{dateStyle:'short',timeStyle:'short'}):'–')):'Kein Fernseher gekoppelt',' · ',s.slides.filter(x=>x.on).length,' aktive Folien · ',(TH.find(t=>t[0]===s.set.theme)||TH[0])[1]),
+      h('div',{class:'row'},h('button',{class:'btn pri sm',onclick:()=>openScreen(s.id)},'✏️ Bearbeiten'),h('button',{class:'btn sm',onclick:()=>pair(s.id)},'📡 Fernseher koppeln'),
+        h('button',{class:'btn sm',onclick:()=>window.open('?a=player&prev='+s.id,'_blank')},'▶ Vorschau'),
+        h('button',{class:'btn sm warn',onclick:async()=>{ if(!confirm('Bildschirm „'+s.name+'“ wirklich löschen? Gekoppelte Fernseher werden getrennt.')) return; try{await A('scr_del',{id:s.id});render();}catch(e){fail(e);} }},'🗑'))));
+  });
+  m.append(h('p',{class:'hint',style:'margin-top:18px'},'Speicher: '+fmtSize(USED)+' von '+fmtSize(QUOTA)+' belegt'));
+}
+async function pair(sid){
+  const c=prompt('Code vom Fernseher eingeben (6 Ziffern):'); if(!c) return;
+  try{ await A('claim',{code:c,sid}); toast('✔ Fernseher gekoppelt – er zeigt gleich die Folien.'); if(view==='home') render(); else if(view==='edit'){ await reloadDevices(); render(); } }catch(e){ fail(e); }
+}
+async function reloadDevices(){ await loadScr(); }
+async function openScreen(id){ await loadScr(); const s=SCR.find(x=>x.id===id); if(!s) return; DSID=id; D=clone(s); sel=0; tab='slide'; dirty=false; view='edit'; render(); }
+
+/* ---------- Bildschirm-Editor ---------- */
+function editView(m){
+  m.append(h('div',{class:'row',style:'margin-bottom:14px'},h('button',{class:'btn',onclick:async()=>{ if(dirty&&!confirm('Ungespeicherte Änderungen verwerfen?')) return; dirty=false; view='home'; render(); }},'← Bildschirme'),
+    h('input',{type:'text',value:D.name,style:'max-width:340px;font-weight:700',oninput:e=>{D.name=e.target.value;touch();}}),h('div',{class:'sp'}),
+    h('button',{class:'btn pri',id:'savebtn',onclick:save},dirty?'Speichern & veröffentlichen ●':'Speichern & veröffentlichen')));
+  const ed=h('div',{class:'ed'}); m.append(ed);
+  const left=h('div',{class:'card'},h('div',{class:'row'},h('h2',{style:'margin:0;flex:1'},'Folien'),addMenu()),h('div',{class:'sl-list',id:'slist'})); ed.append(left);
+  const mid=h('div',{class:'card',id:'mid'}); ed.append(mid);
+  const pvc=h('div',{class:'card pvcol'},h('div',{class:'row',style:'margin-bottom:8px'},h('b',{},'Live-Vorschau'),h('div',{class:'sp'}),h('button',{class:'btn sm',onclick:()=>{pvFocus=!pvFocus;pvPost();renderMid();}},pvFocus?'▶ Ablauf zeigen':'⏸ Gewählte Folie'),h('button',{class:'btn sm',onclick:()=>window.open('?a=player&prev='+DSID,'_blank')},'↗')),
+    h('div',{class:'pv',id:'pv'}),h('p',{class:'hint'},'Das ist die Vorschau. Veröffentlicht wird erst mit „Speichern“ – der Fernseher übernimmt es innerhalb von 30 Sekunden.')); ed.append(pvc);
+  renderList(); renderMid(); setupPreview();
+}
+function addMenu(){
+  const sel=h('select',{style:'width:auto;padding:6px 8px',onchange:e=>{ const t=e.target.value; e.target.value=''; if(!t) return; D.slides.push(newSlide(t)); sel_(D.slides.length-1); touch(true); renderMid(); }},
+    h('option',{value:''},'＋ Folie'),Object.keys(TYPES).map(t=>h('option',{value:t},TYPES[t])));
+  return sel;
+}
+function sel_(i){ sel=i; }
+function renderList(){
+  const l=$('#slist'); if(!l) return; l.innerHTML='';
+  if(!D.slides.length) l.append(h('p',{class:'hint'},'Noch keine Folien. Oben „＋ Folie“ wählen.'));
+  D.slides.forEach((s,i)=>{
+    const it=h('div',{class:'si'+(i===sel&&tab==='slide'?' sel':'')+(s.on?'':' off'),draggable:true,
+      onclick:()=>{ sel=i; tab='slide'; renderList(); renderMid(); pvPost(); },
+      ondragstart:e=>{ e.dataTransfer.setData('text/plain',String(i)); },
+      ondragover:e=>{ e.preventDefault(); it.classList.add('over'); }, ondragleave:()=>it.classList.remove('over'),
+      ondrop:e=>{ e.preventDefault(); const f=+e.dataTransfer.getData('text/plain'); if(f===i||isNaN(f)) return; const [x]=D.slides.splice(f,1); D.slides.splice(i,0,x); sel=i; touch(true); renderMid(); }},
+      h('div',{class:'ic'},ICON[s.type]),h('div',{class:'tt'},h('b',{},sLabel(s)),h('small',{},s.type==='video'?'bis Ende':s.dur+' s',s.sch.use?' · Zeitplan':'',s.on?'':' · aus')),
+      h('div',{class:'bt'},h('button',{title:'nach oben',onclick:e=>{e.stopPropagation(); if(i>0){ [D.slides[i-1],D.slides[i]]=[D.slides[i],D.slides[i-1]]; sel=i-1; touch(true); renderMid(); } }},'▲'),
+        h('button',{title:'nach unten',onclick:e=>{e.stopPropagation(); if(i<D.slides.length-1){ [D.slides[i+1],D.slides[i]]=[D.slides[i],D.slides[i+1]]; sel=i+1; touch(true); renderMid(); } }},'▼'),
+        h('button',{title:'kopieren',onclick:e=>{e.stopPropagation(); const c=clone(s); c.id=rnd(); c.name=(s.name||sLabel(s))+' (Kopie)'; D.slides.splice(i+1,0,c); sel=i+1; touch(true); renderMid(); }},'⧉'),
+        h('button',{title:'löschen',onclick:e=>{e.stopPropagation(); if(!confirm('Folie „'+sLabel(s)+'“ löschen?')) return; D.slides.splice(i,1); sel=Math.max(0,Math.min(sel,D.slides.length-1)); touch(true); renderMid(); }},'🗑')));
+    l.append(it);
+  });
+  const st=h('div',{class:'si'+(tab==='set'?' sel':''),style:'margin-top:10px',onclick:()=>{tab='set';renderList();renderMid();pvPost();}},h('div',{class:'ic'},'🎨'),h('div',{class:'tt'},h('b',{},'Design & Einstellungen'),h('small',{},'Theme, Laufband, Logo, Drehung')));
+  const dv=h('div',{class:'si'+(tab==='dev'?' sel':''),onclick:()=>{tab='dev';renderList();renderMid();pvPost();}},h('div',{class:'ic'},'📡'),h('div',{class:'tt'},h('b',{},'Geräte'),h('small',{},(SCR.find(x=>x.id===DSID)||{devices:[]}).devices.length+' gekoppelt')));
+  l.append(st,dv);
+}
+function renderMid(){
+  const m=$('#mid'); if(!m) return; m.innerHTML='';
+  if(tab==='set') return m.append(settingsForm());
+  if(tab==='dev') return m.append(devicesForm());
+  const s=D.slides[sel]; if(!s) return m.append(h('p',{class:'hint'},'Wähle links eine Folie oder lege eine neue an.'));
+  m.append(h('div',{class:'row',style:'margin-bottom:10px'},h('h2',{style:'margin:0'},TYPES[s.type]),h('div',{class:'sp'}),check('Aktiv',s,'on',true)));
+  m.append(field('Interner Name (nur im Editor sichtbar)',s,'name',{list:true,ph:sLabel(s)}));
+  const F=FORMS[s.type]; if(F) m.append(F(s));
+  if(s.type!=='video') m.append(field('Anzeigedauer (Sekunden)',s,'dur',{type:'number',min:3,max:900,list:true}));
+  else m.append(h('p',{class:'hint'},'Videos laufen bis zum Ende. Empfohlen: MP4 (H.264).'));
+  m.append(scheduleBox(s));
+}
+function scheduleBox(s){
+  const c=s.sch, b=h('div',{class:'box'});
+  b.append(check('Nur zu bestimmten Zeiten zeigen (Zeitplan)',c,'use',true));
+  const re=()=>{ const x=$('#mid'); const keep=x.scrollTop; renderMid(); };
+  b.firstChild.firstChild.addEventListener('change',()=>{ renderMid(); });
+  if(!c.use) return b;
+  b.append(h('div',{class:'row'},h('div',{style:'flex:1'},field('Von Datum',c,'from',{type:'date',list:true})),h('div',{style:'flex:1'},field('Bis Datum',c,'to',{type:'date',list:true}))));
+  b.append(h('div',{class:'hint',style:'margin:-6px 0 10px'},'Leer lassen = ohne Datumsgrenze (z. B. Angebot nur 1.–15. Dezember).'));
+  const days=h('div',{class:'days',style:'margin-bottom:12px'}); WD.forEach(([v,n])=>days.append(h('button',{class:c.days.includes(v)?'on':'',onclick:e=>{ const i=c.days.indexOf(v); if(i<0)c.days.push(v); else c.days.splice(i,1); e.target.classList.toggle('on'); touch(true); }},n)));
+  b.append(h('span',{class:'hint'},'Wochentage (keine Auswahl = jeden Tag)'),days);
+  b.append(h('div',{class:'row'},h('div',{style:'flex:1'},field('Von Uhrzeit',c,'t1',{type:'time',list:true})),h('div',{style:'flex:1'},field('Bis Uhrzeit',c,'t2',{type:'time',list:true}))));
+  b.append(h('div',{class:'hint'},'Beispiel: Frühstückskarte 07:00 – 11:00. Über Mitternacht geht auch (z. B. 22:00 – 02:00).'));
+  return b;
+}
+function picker(label,o,k,kind,list){
+  const w=h('div',{class:'box'}); const draw=()=>{ w.innerHTML=''; w.append(h('div',{class:'hint',style:'margin-bottom:6px'},label));
+    if(o[k]){ w.append(kind==='video'?h('video',{class:'thumb',src:o[k],muted:true,preload:'metadata',style:'max-width:260px'}):h('img',{class:'thumb',src:o[k],style:'max-width:260px'})); }
+    w.append(h('div',{class:'row',style:'margin-top:8px'},h('button',{class:'btn sm pri',onclick:()=>mediaModal(kind,u=>{o[k]=u; touch(list); draw();})},o[k]?'Ändern …':(kind==='video'?'Video wählen / hochladen …':'Bild wählen / hochladen …')),o[k]?h('button',{class:'btn sm',onclick:()=>{o[k]='';touch(list);draw();}},'Entfernen'):null)); };
+  draw(); return w;
+}
+const FORMS={
+  image:s=>h('div',{},picker('Bild',s,'src','image',true),field('Darstellung',s,'fit',{type:'select',options:[['contain','Ganz zeigen (mit Rand)'],['cover','Bildschirm füllen (zuschneiden)']]}),check('Langsamer Zoom (Ken-Burns-Effekt)',s,'kb'),field('Beschriftung (optional)',s,'cap',{list:false})),
+  video:s=>h('div',{},picker('Video',s,'src','video',true),field('Darstellung',s,'fit',{type:'select',options:[['contain','Ganz zeigen (mit Rand)'],['cover','Bildschirm füllen (zuschneiden)']]}),check('Ton abspielen',s,'sound'),field('Beschriftung (optional)',s,'cap')),
+  text:s=>h('div',{},field('Auffälliges Etikett (z. B. „Angebot“, „Neu“)',s,'badge',{maxlen:40}),field('Überschrift',s,'head',{list:true,maxlen:200}),field('Text',s,'body',{type:'textarea'}),field('Ausrichtung',s,'align',{type:'select',options:[['center','Mittig'],['left','Linksbündig']]}),picker('Hintergrundbild (optional)',s,'bg','image')),
+  menu:s=>menuForm(s),
+  clock:s=>h('div',{},field('Beschriftung über der Uhr (optional)',s,'head',{ph:'z. B. Willkommen'})),
+  weather:s=>weatherForm(s),
+  qr:s=>qrForm(s)
+};
+function menuForm(s){
+  const w=h('div',{}); w.append(field('Überschrift',s,'head',{list:true}),field('Unterzeile (optional)',s,'sub'),picker('Hintergrundbild (optional)',s,'bg','image'));
+  const box=h('div',{class:'box'}); const draw=()=>{ box.innerHTML=''; box.append(h('b',{},'Einträge'));
+    s.items.forEach((it,i)=>{ box.append(h('div',{class:'mi'},
+      h('input',{type:'text',class:'n',value:it.n,placeholder:it.h?'Gruppe, z. B. Getränke':'Name',oninput:e=>{it.n=e.target.value;touch();}}),
+      it.h?h('div',{class:'d hint'},'— Überschrift —'):h('input',{type:'text',class:'d',value:it.d,placeholder:'Beschreibung (optional)',oninput:e=>{it.d=e.target.value;touch();}}),
+      it.h?null:h('input',{type:'text',class:'p',value:it.p,placeholder:'Preis',oninput:e=>{it.p=e.target.value;touch();}}),
+      h('button',{class:'btn sm',onclick:()=>{ if(i>0){[s.items[i-1],s.items[i]]=[s.items[i],s.items[i-1]];touch();draw();} }},'▲'),h('button',{class:'btn sm',onclick:()=>{ if(i<s.items.length-1){[s.items[i+1],s.items[i]]=[s.items[i],s.items[i+1]];touch();draw();} }},'▼'),
+      h('button',{class:'btn sm warn',onclick:()=>{s.items.splice(i,1);touch();draw();}},'✕'))); });
+    box.append(h('div',{class:'row',style:'margin-top:10px'},h('button',{class:'btn sm',onclick:()=>{s.items.push({n:'',d:'',p:'',h:false});touch();draw();}},'＋ Eintrag'),h('button',{class:'btn sm',onclick:()=>{s.items.push({n:'',d:'',p:'',h:true});touch();draw();}},'＋ Gruppe'),
+      h('button',{class:'btn sm',onclick:()=>{ const t=prompt('Zeilen einfügen – je Zeile: Name;Preis;Beschreibung\nZeile mit # am Anfang = Gruppenüberschrift\n\nBeispiel:\n#Getränke\nCola 0,3 l;2,90 €\nPizza Margherita;8,50 €;mit Mozzarella'); if(!t) return; t.split('\n').forEach(l=>{ l=l.trim(); if(!l) return; if(l[0]==='#') s.items.push({n:l.slice(1).trim(),d:'',p:'',h:true}); else { const p=l.split(';'); s.items.push({n:(p[0]||'').trim(),p:(p[1]||'').trim(),d:(p[2]||'').trim(),h:false}); } }); touch(); draw(); }},'📋 Aus Text einfügen'))); };
+  draw(); w.append(box,field('Fußzeile (optional)',s,'foot',{ph:'z. B. Alle Preise inkl. MwSt.'})); return w;
+}
+function weatherForm(s){
+  const w=h('div',{}); const res=h('div',{}); const q=h('input',{type:'text',placeholder:'Ort suchen, z. B. Lübeck',value:s.city||''});
+  const go=async()=>{ res.innerHTML=''; try{ const r=await (await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(q.value)+'&count=6&language=de&format=json')).json(); (r.results||[]).forEach(x=>res.append(h('div',{class:'si',style:'margin-top:6px',onclick:()=>{ s.city=x.name; s.lat=x.latitude; s.lon=x.longitude; touch(true); renderMid(); }},h('div',{class:'tt'},h('b',{},x.name),h('small',{},[x.admin1,x.country].filter(Boolean).join(', ')))))); if(!(r.results||[]).length) res.append(h('p',{class:'hint'},'Nichts gefunden.')); }catch(e){ res.append(h('p',{class:'err'},'Ortssuche nicht erreichbar.')); } };
+  q.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+  w.append(h('label',{class:'f'},h('span',{},'Ort'),h('div',{class:'row'},h('div',{style:'flex:1'},q),h('button',{class:'btn',onclick:go},'Suchen'))),res,h('p',{class:'hint'},s.lat?('Gewählt: '+s.city+' ('+s.lat+', '+s.lon+')'):'Noch kein Ort gewählt.')); return w;
+}
+function qrForm(s){
+  const w=h('div',{}); w.append(field('Überschrift (optional)',s,'head'),field('Link oder Text im QR-Code',s,'url',{ph:'https://…'}),field('Beschriftung unter dem Code',s,'cap',{ph:'z. B. Scannen & Speisekarte öffnen'}));
+  const ss=h('input',{type:'text',placeholder:'WLAN-Name'}), pw=h('input',{type:'text',placeholder:'WLAN-Passwort'});
+  w.append(h('div',{class:'box'},h('b',{},'WLAN-Zugang für Gäste'),h('div',{class:'row',style:'margin:8px 0'},h('div',{style:'flex:1'},ss),h('div',{style:'flex:1'},pw)),h('button',{class:'btn sm',onclick:()=>{ if(!ss.value) return; const e=x=>x.replace(/([\\;,:"])/g,'\\$1'); s.url='WIFI:T:WPA;S:'+e(ss.value)+';P:'+e(pw.value)+';;'; s.head=s.head||'Gratis WLAN'; touch(true); renderMid(); }},'QR-Code für WLAN erzeugen'))); return w;
+}
+function settingsForm(){
+  const S=D.set, w=h('div',{}); w.append(h('h2',{},'Design'));
+  const g=h('div',{class:'tg'}); TH.forEach(t=>g.append(h('div',{class:'tp'+(S.theme===t[0]?' on':''),onclick:()=>{S.theme=t[0];touch();renderMid();}},h('i',{style:'background:'+t[3]}),h('b',{},t[1]),h('div',{class:'hint'},t[2]))));
+  w.append(g,h('p',{class:'hint'},'„Automatisch“ wechselt selbst: Weihnachten (1.–26.12.), Silvester, Valentinstag, Ostern, Halloween und die vier Jahreszeiten.'));
+  w.append(h('div',{class:'row',style:'margin:12px 0'},h('label',{class:'f',style:'margin:0'},h('span',{},'Akzentfarbe (optional)'),h('div',{class:'row'},h('input',{type:'color',value:S.accent||'#8B5CF6',oninput:e=>{S.accent=e.target.value;touch();}}),h('button',{class:'btn sm',onclick:()=>{S.accent='';touch();renderMid();}},'Zurücksetzen'))),
+    h('div',{style:'flex:1'},field('Schrift',S,'font',{type:'select',options:[['sans','Modern (Sans)'],['serif','Klassisch (Serif)'],['round','Rund & freundlich']]}))));
+  w.append(check('Effekte (Schnee, Blüten, Feuerwerk …)',S,'effects'));
+  w.append(h('h2',{style:'margin-top:18px'},'Anzeige'),
+    field('Übergang zwischen Folien',S,'trans',{type:'select',options:[['fade','Überblenden'],['slide','Schieben'],['zoom','Zoom'],['none','Ohne']]}),
+    field('Bildschirm-Drehung',S,'orient',{type:'select',num:true,options:[[0,'Querformat (normal)'],[90,'Hochformat – Fernseher nach rechts gedreht (90°)'],[270,'Hochformat – Fernseher nach links gedreht (270°)'],[180,'Auf den Kopf (180°)']],hint:'Für Fernseher, die hochkant aufgehängt sind. Die Vorschau zeigt das Ergebnis aufrecht.'}),
+    check('Uhrzeit oben rechts einblenden',S,'clock'),
+    check('Laufband unten einblenden',S,'tickerOn'),field('Text im Laufband',S,'ticker',{ph:'z. B. Heute Ruhetag · Montag ab 17 Uhr geöffnet · Gutscheine erhältlich'}),
+    picker('Logo (oben links, am besten PNG mit transparentem Hintergrund)',S,'logo','image'),
+    field('Kiosk-PIN am Fernseher (4–8 Ziffern)',S,'pin',{maxlen:8,hint:'Mit der Fernbedienung 5× „Zurück“ drücken, dann PIN eingeben, um die App zu verlassen.'}));
+  return w;
+}
+function devicesForm(){
+  const sc=SCR.find(x=>x.id===DSID)||{devices:[]}, w=h('div',{}); w.append(h('h2',{},'Gekoppelte Fernseher'));
+  if(!sc.devices.length) w.append(h('p',{class:'hint'},'Noch kein Fernseher gekoppelt.'));
+  sc.devices.forEach(d=>w.append(h('div',{class:'si',style:'margin-bottom:6px'},h('div',{class:'ic'},'📺'),h('div',{class:'tt'},h('b',{},'Fernseher …'+d.dev.slice(-4)),h('small',{},d.seen?'zuletzt gesehen '+new Date(d.seen*1000).toLocaleString('de-DE'):'noch nicht gemeldet')),
+    h('button',{class:'btn sm warn',onclick:async()=>{ if(!confirm('Fernseher trennen? Er zeigt dann wieder einen Kopplungscode.')) return; try{ await A('unpair',{dev:d.dev}); await loadScr(); renderList(); renderMid(); }catch(e){fail(e);} }},'Trennen'))));
+  w.append(h('div',{class:'box'},h('b',{},'Neuen Fernseher koppeln'),h('p',{class:'hint'},'App „midnox Infoscreen“ am Fire TV starten – der Code steht groß auf dem Bildschirm.'),
+    h('button',{class:'btn pri',onclick:()=>{ if(dirty){ toast('Bitte zuerst speichern.',true); return; } pair(DSID); }},'📡 Code eingeben …')));
+  return w;
+}
+async function save(){
+  const b=$('#savebtn'); b.disabled=true;
+  try{ const r=await A('scr_save',{id:DSID,screen:D}); D.slides=r.slides; D.set=r.set; D.ver=r.ver; dirty=false; sel=Math.min(sel,Math.max(0,D.slides.length-1)); toast('✔ Veröffentlicht – der Fernseher aktualisiert sich in Kürze.'); await loadScr(); renderList(); renderMid(); b.textContent='Speichern & veröffentlichen'; }
+  catch(e){ fail(e); } b.disabled=false;
+}
+addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key==='s'&&view==='edit'){ e.preventDefault(); save(); } });
+addEventListener('beforeunload',e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+
+/* ---------- Live-Vorschau ---------- */
+function setupPreview(){
+  const box=$('#pv'); const port=D.set.orient===90||D.set.orient===270;
+  const iw=port?720:1280, ih=port?1280:720;
+  pvFrame=h('iframe',{src:'?a=player&prev='+DSID,width:iw,height:ih,onload:()=>setTimeout(pvPost,400)}); box.innerHTML=''; box.append(pvFrame);
+  const fit=()=>{ const w=box.clientWidth; const maxH=Math.max(260,innerHeight-330); let k=Math.min(w/iw,maxH/ih); box.style.height=Math.round(ih*k)+'px'; box.style.width=Math.round(iw*k)+'px'; pvFrame.style.transform='scale('+k+')'; };
+  fit(); addEventListener('resize',fit); window._pvfit=fit; window._pvport=port;
+}
+let pvT=0;
+function pvPost(){
+  clearTimeout(pvT); pvT=setTimeout(()=>{
+    if(!pvFrame||!D) return; const port=D.set.orient===90||D.set.orient===270; if(port!==window._pvport){ setupPreview(); return; }
+    const s=D.slides[sel], focus=(tab==='slide'&&pvFocus&&s)?s.id:'';
+    const slides=D.slides.filter(x=>x.on||x.id===focus);
+    try{ pvFrame.contentWindow.postMessage({t:'mxp',content:{ver:0,name:D.name,set:D.set,slides},focus},location.origin); }catch(e){}
+  },120);
+}
+
+/* ---------- Medien ---------- */
+function resizeImg(file){
+  return new Promise(res=>{
+    if(!/^image\/(jpeg|png|webp)$/.test(file.type)) return res(file);
+    const img=new Image(), u=URL.createObjectURL(file);
+    img.onload=()=>{ URL.revokeObjectURL(u); const L=2200, m=Math.max(img.width,img.height);
+      if(m<=L&&!(file.size>3e6&&file.type!=='image/png')) return res(file);
+      const k=Math.min(1,L/m), c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      const png=file.type==='image/png'; c.toBlob(b=>{ if(!b||b.size>=file.size&&m<=L) return res(file); const nm=file.name.replace(/\.\w+$/,png?'.png':'.jpg'); res(new File([b],nm,{type:png?'image/png':'image/jpeg'})); },png?'image/png':'image/jpeg',.86); };
+    img.onerror=()=>{ URL.revokeObjectURL(u); res(file); }; img.src=u;
+  });
+}
+async function uploadFile(f,onp){
+  f=await resizeImg(f); const CH=1024*1024, n=Math.max(1,Math.ceil(f.size/CH)), uid=rnd()+rnd(); let last=null;
+  for(let i=0;i<n;i++){
+    const r=await fetch('?a=up&uid='+uid+'&i='+i+'&n='+n+'&name='+encodeURIComponent(f.name),{method:'POST',headers:{'X-MX':'1'},body:f.slice(i*CH,(i+1)*CH)});
+    const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.err||'Upload fehlgeschlagen'); last=j; onp&&onp((i+1)/n);
+  } return last;
+}
+function mediaUI(kind,onPick){
+  const wrap=h('div',{}); const grid=h('div',{class:'mgrid'}); const bar=h('div',{class:'bar'},h('i',{style:'width:0'})); const info=h('div',{class:'hint'});
+  const load=async()=>{ try{ const r=await A('media_list'); MEDIA=r.media; USED=r.used; QUOTA=r.quota; draw(); }catch(e){fail(e);} };
+  const draw=()=>{ grid.innerHTML=''; const l=MEDIA.filter(m=>!kind||m.type===kind||kind==='any'); if(!l.length) grid.append(h('p',{class:'hint'},'Noch keine Dateien.'));
+    l.forEach(m=>{ const used=(SCR||[]).reduce((a,s)=>a+s.slides.filter(x=>x.src===m.url||x.bg===m.url).length+(s.set.logo===m.url?1:0),0);
+      grid.append(h('div',{class:'mc',onclick:()=>onPick&&onPick(m.url)},m.type==='video'?h('video',{class:'thumb',src:m.url,muted:true,preload:'metadata'}):h('img',{class:'thumb',src:m.url,loading:'lazy'}),h('small',{},m.name,' · ',fmtSize(m.size),used?' · in Benutzung':''),
+        h('button',{class:'btn sm warn',style:'position:absolute;right:6px;top:6px',onclick:async e=>{ e.stopPropagation(); if(!confirm((used?'Diese Datei wird noch verwendet! ':'')+'Wirklich löschen?')) return; try{ await A('media_del',{url:m.url}); load(); }catch(x){fail(x);} }},'🗑'))); });
+    info.textContent='Speicher: '+fmtSize(USED)+' von '+fmtSize(QUOTA); };
+  const inp=h('input',{type:'file',multiple:true,accept:kind==='video'?'video/*':kind==='image'?'image/*':'image/*,video/*',style:'display:none',onchange:()=>up(inp.files)});
+  const up=async files=>{ for(const f of files){ try{ info.textContent='Lade hoch: '+f.name+' …'; const r=await uploadFile(f,p=>bar.firstChild.style.width=Math.round(p*100)+'%'); bar.firstChild.style.width='0'; if(files.length===1&&onPick&&(!kind||kind==='any'||r.type===kind)){ onPick(r.url); return; } }catch(e){ fail(e); } } load(); };
+  const drop=h('div',{class:'drop',ondragover:e=>{e.preventDefault();drop.classList.add('over');},ondragleave:()=>drop.classList.remove('over'),ondrop:e=>{e.preventDefault();drop.classList.remove('over');up(e.dataTransfer.files);}},
+    h('div',{},'Dateien hierher ziehen oder '),h('button',{class:'btn pri',style:'margin-top:8px',onclick:()=>inp.click()},'📁 Dateien auswählen'),inp,h('div',{class:'hint',style:'margin-top:8px'},kind==='video'?'MP4 (H.264) empfohlen – große Videos werden in Stücken hochgeladen.':'Fotos werden automatisch auf Bildschirmgröße verkleinert. Auch Videos (MP4) möglich.'));
+  wrap.append(drop,bar,info,grid); load(); return wrap;
+}
+function mediaModal(kind,onPick){
+  const m=h('div',{class:'modal',onclick:e=>{ if(e.target===m) m.remove(); }}); const c=h('div',{class:'card'},h('div',{class:'row',style:'margin-bottom:10px'},h('h2',{style:'margin:0;flex:1'},kind==='video'?'Video wählen':'Bild wählen'),h('button',{class:'btn',onclick:()=>m.remove()},'Schließen')),mediaUI(kind,u=>{ m.remove(); onPick(u); }));
+  m.append(c); document.body.append(m);
+}
+async function mediaView(m){ try{ await loadScr(); }catch(e){} m.append(h('h1',{},'Medien'),h('div',{class:'card'},mediaUI('any',null))); }
+
+/* ---------- Konto ---------- */
+function accountView(m){
+  const o=h('input',{type:'password'}), n=h('input',{type:'password'});
+  m.append(h('h1',{},'Konto'),h('div',{class:'card',style:'max-width:520px;margin-bottom:16px'},h('h2',{},'Passwort ändern'),h('label',{class:'f'},h('span',{},'Altes Passwort'),o),h('label',{class:'f'},h('span',{},'Neues Passwort (mind. 8 Zeichen)'),n),
+    h('button',{class:'btn pri',onclick:async()=>{ try{ await A('pw_change',{old:o.value,new:n.value}); o.value=n.value=''; toast('✔ Passwort geändert'); }catch(e){fail(e);} }},'Ändern')));
+  if(ME.master){
+    const nm=h('input',{type:'text'}), us=h('input',{type:'text'}), pw=h('input',{type:'text'});
+    const rows=ME.accounts.map(a=>h('tr',{},h('td',{},h('b',{},a.name),a.master?' (Hauptkonto)':''),h('td',{},a.user),h('td',{},h('div',{class:'row'},
+      h('button',{class:'btn sm pri',onclick:async()=>{ await A('acc_as',{id:a.id}).catch(fail); ME=null; D=null; view='home'; render(); }},'Als Kunde bearbeiten'),
+      a.master?null:h('button',{class:'btn sm',onclick:async()=>{ const p=prompt('Neues Passwort für '+a.name+' (mind. 8 Zeichen):'); if(!p) return; try{ await A('acc_pw',{id:a.id,pw:p}); toast('✔ Passwort geändert'); }catch(e){fail(e);} }},'Passwort'),
+      a.master?null:h('button',{class:'btn sm warn',onclick:async()=>{ if(!confirm('Konto „'+a.name+'“ mit allen Bildschirmen und Dateien unwiderruflich löschen?')) return; try{ await A('acc_del',{id:a.id}); ME=null; render(); }catch(e){fail(e);} }},'Löschen')))));
+    m.append(h('div',{class:'card',style:'margin-bottom:16px'},h('h2',{},'Kunden-Konten'),h('p',{class:'hint'},'Jeder Kunde bekommt eigene Bildschirme und Medien. Du kannst jederzeit „als Kunde“ für ihn einrichten.'),h('table',{},h('tr',{},h('th',{},'Name'),h('th',{},'Login'),h('th',{})),rows)),
+      h('div',{class:'card',style:'max-width:520px'},h('h2',{},'Neues Kunden-Konto'),h('label',{class:'f'},h('span',{},'Name (Betrieb)'),nm),h('label',{class:'f'},h('span',{},'Benutzername'),us),h('label',{class:'f'},h('span',{},'Passwort (mind. 8 Zeichen)'),pw),
+        h('button',{class:'btn pri',onclick:async()=>{ try{ await A('acc_add',{name:nm.value,user:us.value,pw:pw.value}); ME=null; render(); }catch(e){fail(e);} }},'Konto anlegen')));
+  }
+  m.append(h('p',{class:'hint',style:'margin-top:18px'},'midnox Infoscreen '+(ME.ver||'')));
+}
+render();
+})();
+</script>
+</body></html>

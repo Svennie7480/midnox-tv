@@ -74,6 +74,15 @@
       "desc": "Das Musik-Ratespiel für den Fernseher: Der Fernseher spielt einen Song-Ausschnitt, ihr ratet nicht den Titel, sondern ordnet ihn in eure Zeitleiste ein – älter oder neuer als eure Karten? Richtig = Karte gehört dir, wer zuerst 10 Karten hat, gewinnt. Handys sind die Controller (QR-Code scannen, keine App für Gäste nötig). Rund 500 Hits von den 50ern bis heute, Auswahl nach Jahrzehnt oder deutsche Hits, Wechsel-Joker, bis 8 Spieler. Braucht Internet (Song-Ausschnitte von Deezer)."
     },
     {
+      "id": "midnox-infoscreen",
+      "name": "midnox Infoscreen",
+      "cat": "midnox",
+      "pkg": "de.midnox.infoscreen",
+      "url": "https://raw.githubusercontent.com/Svennie7480/midnox-tv/main/release/midnox-infoscreen.apk",
+      "version": "1.0",
+      "desc": "Digitale Beschilderung für Gaststätten, Praxen, Läden und Vereine: Der Fernseher zeigt rund um die Uhr Bilder, Videos, Speisekarten, Angebote, Uhr, Wetter und QR-Codes. Gepflegt wird alles bequem am PC (Editor mit Live-Vorschau, Zeitplänen, Laufband und Logo). Automatische Themes für Feiertage und Jahreszeiten. Kiosk-Modus mit Autostart und PIN. Kopplung per 6-stelligem Code."
+    },
+    {
       "id": "midnox-krimi",
       "name": "midnox Krimi-Abend",
       "cat": "midnox",

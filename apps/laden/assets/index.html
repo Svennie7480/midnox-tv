@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>midnox Laden</title>
+<link rel="stylesheet" href="lib/leaflet.css">
+<style>
+:root{--bg:#0B0A14;--card:#17152a;--card2:#201d3a;--tx:#f2f0ff;--mu:#9a96c0;--am:#F59E0B;--gr:#34d399;--rd:#f87171;--bl:#60a5fa;--r:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:15px/1.35 system-ui,Roboto,sans-serif}
+body.big{font-size:19px}
+#app{display:flex;flex-direction:column;height:100%}
+#main{flex:1;overflow-y:auto;padding:10px 12px 14px;-webkit-overflow-scrolling:touch}
+nav{display:flex;background:#100e1f;border-top:1px solid #2a2750}
+nav button{flex:1;background:none;border:0;color:var(--mu);padding:9px 2px 8px;font:inherit;font-size:.75em;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button b{font-size:1.55em;line-height:1}
+nav button.on{color:var(--am)} nav button:focus{outline:2px solid var(--am)}
+h1{font-size:1.15em;margin:2px 0 8px;font-weight:800} h1 span{color:var(--am)}
+h2{font-size:1em;margin:14px 0 6px;color:var(--mu);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:.78em}
+.card{background:var(--card);border-radius:var(--r);padding:11px 12px;margin:0 0 9px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+input,select,textarea{background:#0f0d1d;color:var(--tx);border:1px solid #34306a;border-radius:10px;padding:9px 10px;font:inherit;width:100%;min-width:0}
+input:focus,select:focus,button:focus{outline:2px solid var(--am)}
+label{display:block;font-size:.8em;color:var(--mu);margin:7px 0 3px}
+.btn{background:var(--am);color:#1a1200;border:0;border-radius:11px;padding:10px 14px;font:inherit;font-weight:800}
+.btn.s{background:var(--card2);color:var(--tx);font-weight:600} .btn.g{background:var(--gr);color:#04261b} .btn.d{background:#3a1c27;color:#fecaca}
+.chip{display:inline-block;background:var(--card2);color:var(--mu);border:0;border-radius:99px;padding:6px 12px;margin:0 5px 6px 0;font:inherit;font-size:.85em}
+.chip.on{background:var(--am);color:#1a1200;font-weight:800}
+.st{display:flex;gap:10px;align-items:stretch;background:var(--card);border-radius:var(--r);padding:10px 12px;margin:0 0 8px;border:0;color:inherit;width:100%;text-align:left;font:inherit}
+.st .pr{min-width:84px;text-align:right}
+.st .pr b{font-size:1.25em;display:block}
+.st .nm{font-weight:700}
+.mu{color:var(--mu);font-size:.85em}
+.tag{display:inline-block;font-size:.72em;border-radius:6px;padding:1px 6px;margin-right:4px;font-weight:700;background:#2a2750;color:#c9c5f2}
+.tag.dc{background:#5b2a00;color:#ffd08a} .tag.ac{background:#0b3a5c;color:#a5d8ff} .tag.fr{background:#05402c;color:#7ef2c2}
+.ok{color:var(--gr)} .wa{color:var(--am)} .no{color:var(--rd)}
+#map{height:62vh;border-radius:var(--r);margin-bottom:8px}
+.leaflet-container{background:#0B0A14;font:inherit}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #fff;display:flex;align-items:center;justify-content:center}
+.pin i{transform:rotate(45deg);font-style:normal;font-size:10px;font-weight:800;color:#111}
+#sheet{position:fixed;left:0;right:0;bottom:0;max-height:86%;overflow:auto;background:#1a1832;border-radius:20px 20px 0 0;padding:14px 14px 22px;box-shadow:0 -8px 30px #000a;display:none;z-index:999}
+#sheet.on{display:block}
+#toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:#2b2757;color:#fff;border-radius:99px;padding:9px 16px;display:none;z-index:1000;max-width:90%;text-align:center}
+table{width:100%;border-collapse:collapse} td,th{padding:6px 4px;text-align:left;border-bottom:1px solid #2a2750;font-size:.92em} th{color:var(--mu);font-weight:600;font-size:.8em}
+td input{padding:6px 7px}
+.bar{height:9px;border-radius:5px;background:var(--am)}
+.big-n{font-size:1.9em;font-weight:800;line-height:1.1}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi .card{margin:0} .kpi .mu{display:block}
+.gauge{height:12px;border-radius:7px;background:#0f0d1d;overflow:hidden;margin-top:6px}.gauge div{height:100%;background:linear-gradient(90deg,#f87171,#F59E0B,#34d399)}
+details summary{cursor:pointer;color:var(--mu);margin:8px 0}
+</style></head>
+<body><div id="app"><div id="main"></div>
+<nav id="nav"></nav></div>
+<div id="sheet"></div><div id="toast"></div>
+<script src="lib/leaflet.js"></script>
+<script>
+/* ===== Basis ===== */
+const $=s=>document.querySelector(s), esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=x=>(x==null||isNaN(x)?'–':x.toFixed(2).replace('.',',')+' €');
+const n1=x=>(x==null||isNaN(x)?'–':(Math.round(x*10)/10).toString().replace('.',','));
+const num=v=>{const x=parseFloat(String(v).replace(',','.'));return isNaN(x)?null:x};
+function toast(t,ms){const e=$('#toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',ms||2600)}
+
+const DEF_TARIFFS=[
+ {n:'EnBW',k:'enbw',ac:.56,dc:.56,fee:0,note:'mobility+ S; mit M/L günstiger'},
+ {n:'Ionity',k:'ionity',ac:.70,dc:.70,fee:0,note:'Go/App; mit Passport 0,39–0,49'},
+ {n:'Aldi',k:'aldi',ac:.29,dc:.47,fee:0,note:'Ad-hoc je nach Standort'},
+ {n:'Lidl / Kaufland',k:'lidl,kaufland',ac:.44,dc:.44,fee:0,note:'mit Lidl Plus/Kaufland-App'},
+ {n:'Fastned',k:'fastned',ac:.65,dc:.65,fee:0,note:'mit Gold-Abo ca. 0,51'},
+ {n:'Allego',k:'allego',ac:.60,dc:.68,fee:0,note:''},
+ {n:'EWE Go',k:'ewe',ac:.52,dc:.52,fee:0,note:'Ad-hoc 0,84'},
+ {n:'Tesla',k:'tesla',ac:.60,dc:.60,fee:0,note:'Fremdmarken ohne Abo'},
+ {n:'Shell Recharge',k:'shell',ac:.59,dc:.59,fee:0,note:''},
+ {n:'Aral pulse',k:'aral',ac:.59,dc:.59,fee:0,note:''},
+ {n:'Andere (Standard)',k:'*',ac:.55,dc:.65,fee:0,note:'für alle übrigen Betreiber'}
+];
+const DEF={car:{name:'BYD Dolphin Surf',cap:43.2,ac:11,dc:85,cons:15},home:.30,tariffs:DEF_TARIFFS,log:[],
+ ha:{url:'',token:'',e:{soc:'',odo:'',chg:'',rng:''}},loc:{lat:53.8655,lon:10.6866,label:'Lübeck',gps:false},
+ q:{radius:5,type:'all',minkw:0,sort:'price',from:20,to:80,view:'list'},big:null};
+let S=load();
+function load(){try{const j=JSON.parse(localStorage.getItem('ml'));return merge(JSON.parse(JSON.stringify(DEF)),j||{})}catch(e){return JSON.parse(JSON.stringify(DEF))}}
+function merge(a,b){for(const k in b){if(b[k]&&typeof b[k]=='object'&&!Array.isArray(b[k])&&a[k]&&typeof a[k]=='object'&&!Array.isArray(a[k]))merge(a[k],b[k]);else a[k]=b[k]}return a}
+function save(){try{localStorage.setItem('ml',JSON.stringify(S))}catch(e){}}
+if(S.big==null)S.big=!!(window.Android&&Android.tv&&Android.tv());
+document.body.classList.toggle('big',!!S.big);
+
+/* ===== HTTP (nativ über Android, sonst fetch) ===== */
+let hid=0;const hcb={};
+window.__http=(id,code,body)=>{const f=hcb[id];delete hcb[id];f&&f({status:code,body})};
+function http(method,url,token,body){
+  if(window.Android&&Android.http)return new Promise(res=>{const id=++hid;hcb[id]=res;Android.http(id,method,url,token||'',body||'')});
+  return fetch(url,{method,headers:token?{Authorization:'Bearer '+token}:{},body:body||undefined}).then(async r=>({status:r.status,body:await r.text()})).catch(e=>({status:0,body:String(e)}));
+}
+const haBase=()=>S.ha.url.replace(/\/+$/,'');
+async function ha(path,method,body){
+  if(!S.ha.url||!S.ha.token)throw new Error('Home Assistant nicht eingerichtet');
+  const r=await http(method||'GET',haBase()+path,S.ha.token,body);
+  if(r.status==401)throw new Error('Token ungültig (401)');
+  if(r.status<200||r.status>=300)throw new Error(r.status?'HA-Fehler '+r.status:'Keine Verbindung: '+r.body);
+  try{return JSON.parse(r.body)}catch(e){return r.body}
+}
+
+/* ===== Tarife / Preise ===== */
+function tariffFor(hay){
+  hay=hay.toLowerCase();let def=null;
+  for(const t of S.tariffs){if(t.k.trim()=='*'){def=t;continue}
+    for(let k of t.k.split(',')){k=k.trim().toLowerCase();if(k&&hay.includes(k))return t}}
+  return def||DEF_TARIFFS[DEF_TARIFFS.length-1];
+}
+function oscharge(tags){ // z. B. "0.49 EUR/kWh"
+  const c=tags['charge']||tags['charge:conditional']; if(!c)return null;
+  const m=String(c).match(/(\d+[.,]?\d*)\s*(€|eur)?\s*\/\s*kwh/i); return m?parseFloat(m[1].replace(',','.')):null;
+}
+const LOSS={ac:.10,dc:.05};
+function kwhNeeded(kind){const d=Math.max(0,(S.q.to-S.q.from))/100*S.car.cap;return d*(1+LOSS[kind])}
+function priceOf(st,kind){
+  if(st.free)return{p:0,src:'kostenlos (OSM)',fee:0};
+  const o=oscharge(st.tags);if(o!=null)return{p:o,src:'OSM-Angabe',fee:0};
+  const t=tariffFor(st.hay);return{p:t[kind],src:t.n,fee:t.fee||0,note:t.note};
+}
+function costOf(st,kind){const pr=priceOf(st,kind);return{...pr,cost:kwhNeeded(kind)*pr.p+pr.fee}}
+function minutes(kwh,kw,kind){ // grobe Schätzung
+  if(!kw)return null;const car=kind=='ac'?S.car.ac:S.car.dc;const p=Math.min(kw,car);
+  const eff=kind=='ac'?p*0.92:p*(S.q.to>80?0.55:0.72);return kwh/eff*60;
+}
+const dur=m=>m==null?'–':(m<60?Math.round(m)+' min':Math.floor(m/60)+' h '+String(Math.round(m%60)).padStart(2,'0')+' min');
+
+/* ===== Overpass ===== */
+let ST=[],stInfo='';
+const OV=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+function kwOf(v){if(!v)return 0;let m=0;String(v).split(';').forEach(x=>{let n=parseFloat(String(x).replace(',','.'));if(isNaN(n))return;if(/kw/i.test(x)){}else if(n>1000)n/=1000;m=Math.max(m,n)});return m}
+function cntOf(v){const n=parseInt(v);return isNaN(n)?1:n}
+function parseEl(e){
+  const t=e.tags||{};const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);if(lat==null)return null;
+  const has=k=>t['socket:'+k]!=null&&t['socket:'+k]!=='no';
+  let ac=null,dc=null,known=false;
+  if(has('type2')||has('type2_cable')){known=true;ac={kw:kwOf(t['socket:type2:output']||t['socket:type2_cable:output'])||0,n:cntOf(t['socket:type2']||t['socket:type2_cable'])}}
+  if(has('type2_combo')||has('ccs')){known=true;dc={kw:kwOf(t['socket:type2_combo:output']||t['socket:ccs:output'])||0,n:cntOf(t['socket:type2_combo']||t['socket:ccs'])}}
+  if(!known){ // keine Steckerangaben: AC annehmen, bei Schnell-Betreibern DC
+    const o=((t.operator||'')+(t.network||'')+(t.brand||'')).toLowerCase();
+    if(/ionity|fastned|tesla|allego|electra|hpc|supercharger/.test(o)||(t.capacity&&parseInt(t.capacity)>=4&&/enbw|aral|shell/.test(o)))dc={kw:0,n:cntOf(t.capacity)};
+    else ac={kw:0,n:cntOf(t.capacity)};
+  } else {
+    if(ac&&!ac.kw)ac.kw=11; // Typ 2: üblich
+  }
+  if(!ac&&!dc)return null;
+  if(!known&&!ac&&!dc)return null;
+  if(known&&!ac&&!dc)return null;
+  const name=t.name||t.operator||t.brand||t.network||'Ladestation';
+  const hay=[t.operator,t.network,t.brand,t.name].filter(Boolean).join(' ');
+  return{id:e.type[0]+e.id,lat,lon,name,op:t.operator||t.network||t.brand||'',hay,ac,dc,known,tags:t,free:(t.fee==='no'||t.fee==='0'),access:t.access||'',cap:t.capacity||'',hours:t.opening_hours||''};
+}
+function dist(a,b,c,d){const R=6371,p=Math.PI/180,x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+async function search(){
+  const {lat,lon}=S.loc,r=S.q.radius*1000;
+  const q=`[out:json][timeout:25];(node["amenity"="charging_station"](around:${r},${lat},${lon});way["amenity"="charging_station"](around:${r},${lat},${lon}););out center tags 500;`;
+  $('#res')&&($('#res').innerHTML='<div class="card mu">Suche läuft …</div>');
+  let data=null,err='';
+  for(const u of OV){const r=await http('POST',u,'', 'data='+encodeURIComponent(q));
+    if(r.status==200){try{data=JSON.parse(r.body);break}catch(e){err='Antwort unlesbar'}}else err=r.status?('Server '+r.status):'keine Verbindung'}
+  if(!data){const c=localStorage.getItem('mlc');if(c){try{const j=JSON.parse(c);ST=j.st;stInfo='Offline – zuletzt gespeichert ('+j.label+')'}catch(e){}}else{ST=[];stInfo=''}
+    toast('Suche fehlgeschlagen: '+err);renderRes();return}
+  ST=(data.elements||[]).map(parseEl).filter(Boolean);
+  ST.forEach(s=>s.d=dist(lat,lon,s.lat,s.lon));
+  stInfo='';
+  try{localStorage.setItem('mlc',JSON.stringify({st:ST.slice(0,300),label:S.loc.label}))}catch(e){}
+  renderRes();
+}
+function visible(){
+  let a=ST.filter(s=>{
+    if(S.q.type=='ac'&&!s.ac)return false;if(S.q.type=='dc'&&!s.dc)return false;
+    const kw=Math.max(s.ac?s.ac.kw:0,s.dc?s.dc.kw:0);if(S.q.minkw&&kw&&kw<S.q.minkw)return false;
+    if(s.access&&/private|no|customers/.test(s.access)&&s.access!='yes')return false;
+    return true});
+  a.forEach(s=>{const k=S.q.type=='all'?(s.dc?(s.ac&&costOf(s,'ac').cost<costOf(s,'dc').cost?'ac':'dc'):'ac'):S.q.type;s.k=k;s.c=costOf(s,k)});
+  const kwm=s=>Math.max(s.ac?s.ac.kw:0,s.dc?s.dc.kw:0);
+  a.sort(S.q.sort=='price'?(x,y)=>x.c.cost-y.c.cost||x.d-y.d:S.q.sort=='dist'?(x,y)=>x.d-y.d:(x,y)=>kwm(y)-kwm(x));
+  return a;
+}
+const col=p=>p==null?'#777':p<.40?'#34d399':p<.58?'#F59E0B':'#f87171';
+
+/* ===== Home Assistant ===== */
+let HS={};
+async function haState(){
+  const e=S.ha.e;if(!S.ha.url||!S.ha.token||!e.soc)return null;
+  const get=async id=>{if(!id)return null;try{const j=await ha('/api/states/'+id);return j.state}catch(x){return null}};
+  const [soc,odo,chg,rng]=await Promise.all([get(e.soc),get(e.odo),get(e.chg),get(e.rng)]);
+  HS={soc:num(soc),odo:num(odo),chg:chg=='on',rng:num(rng),t:Date.now()};return HS;
+}
+async function haDetect(){
+  const list=await ha('/api/states');
+  const f=(re,dom)=>{const x=list.find(s=>s.entity_id.startsWith(dom+'.')&&re.test((s.attributes.friendly_name||'')+' '+s.entity_id)&&/byd|dolphin|surf/i.test((s.attributes.friendly_name||'')+s.entity_id));return x?x.entity_id:''};
+  S.ha.e.soc=f(/ladezustand|state_of_charge|soc/i,'sensor');
+  S.ha.e.odo=f(/kilometerz|odometer|total_mileage|mileage/i,'sensor');
+  S.ha.e.chg=f(/(^|\s|_)laden$|charging/i,'binary_sensor');
+  S.ha.e.rng=f(/reichweite|range/i,'sensor');
+  save();return S.ha.e;
+}
+async function haSessions(days){
+  const e=S.ha.e;if(!e.soc||!e.chg)throw new Error('Entitäten fehlen (Einstellungen → Auto verbinden)');
+  const start=new Date(Date.now()-days*864e5).toISOString();
+  const ids=[e.chg,e.soc,e.odo].filter(Boolean).join(',');
+  const h=await ha('/api/history/period/'+encodeURIComponent(start)+'?filter_entity_id='+encodeURIComponent(ids)+'&minimal_response&no_attributes');
+  const byId={};
+  // minimal_response: nur der erste Eintrag trägt entity_id
+  h.forEach(arr=>{if(!arr.length)return;const id=arr[0].entity_id;byId[id]=arr.map(x=>({t:new Date(x.last_changed||x.last_updated).getTime(),s:x.state}))});
+  const chg=byId[e.chg]||[],soc=(byId[e.soc]||[]).filter(x=>!isNaN(parseFloat(x.s))).map(x=>({t:x.t,v:parseFloat(x.s)})),odo=(byId[e.odo]||[]).filter(x=>!isNaN(parseFloat(x.s))).map(x=>({t:x.t,v:parseFloat(x.s)}));
+  let iv=[],cur=null;
+  chg.forEach(x=>{if(x.s=='on'&&cur==null)cur=x.t;else if(x.s!='on'&&cur!=null){iv.push([cur,x.t]);cur=null}});
+  if(cur!=null)iv.push([cur,Date.now()]);
+  const m=[];iv.forEach(i=>{const l=m[m.length-1];if(l&&i[0]-l[1]<15*60e3)l[1]=i[1];else m.push(i.slice())});
+  const near=(a,t,after)=>{ // nächster Wert vor (bzw. nach) t
+    let b=null;if(!after){a.forEach(x=>{if(x.t<=t)b=x});if(!b)b=a.find(x=>x.t>t);}else{b=a.find(x=>x.t>=t)||a[a.length-1]}return b?b.v:null};
+  const out=[];
+  m.forEach(i=>{
+    if(i[1]-i[0]<5*60e3)return;
+    const s0=near(soc,i[0],false),s1=near(soc,i[1]+10*60e3,false);
+    if(s0==null||s1==null||s1-s0<=0)return;
+    const hrs=(i[1]-i[0])/36e5,batt=(s1-s0)/100*S.car.cap;
+    const kind=(batt/hrs)>16?'dc':'ac';
+    out.push({id:'ha'+i[0],ha:true,date:new Date(i[0]).toISOString().slice(0,10),kwh:Math.round(batt*(1+LOSS[kind])*10)/10,price:null,odo:near(odo,i[0],false),who:'',kind,note:'aus HA, '+Math.round(s0)+'% → '+Math.round(s1)+'% ('+Math.round(hrs*60)+' min), kWh geschätzt',est:true});
+  });
+  return out;
+}
+
+/* ===== Views ===== */
+let tab='search',sheetOpen=false;
+const TABS=[['search','🔌','Laden'],['calc','🧮','Rechner'],['log','📒','Logbuch'],['tar','💶','Tarife'],['set','⚙️','Auto']];
+function renderNav(){$('#nav').innerHTML=TABS.map(t=>`<button class="${tab==t[0]?'on':''}" data-t="${t[0]}"><b>${t[1]}</b>${t[2]}</button>`).join('');
+  $('#nav').querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.t))}
+function go(t){tab=t;closeSheet();renderNav();({search:vSearch,calc:vCalc,log:vLog,tar:vTar,set:vSet})[t]();$('#main').scrollTop=0}
+window.onBack=()=>{if(sheetOpen){closeSheet();return true}if(tab!='search'){go('search');return true}return false};
+function closeSheet(){sheetOpen=false;$('#sheet').classList.remove('on')}
+function openSheet(h){sheetOpen=true;const s=$('#sheet');s.innerHTML=h;s.classList.add('on');s.scrollTop=0}
+
+function carCard(){
+  if(!HS.soc&&HS.soc!==0)return '';
+  return `<div class="card"><div class="row"><div class="grow"><div class="mu">${esc(S.car.name)} (Home Assistant)</div><div class="big-n">${Math.round(HS.soc)} %${HS.chg?' <span class="ok">⚡ lädt</span>':''}</div></div>
+  <div style="text-align:right">${HS.rng!=null?'<div class="big-n" style="font-size:1.3em">'+Math.round(HS.rng)+' km</div><span class="mu">Reichweite</span>':''}</div></div>
+  <div class="gauge"><div style="width:${Math.max(2,HS.soc)}%"></div></div></div>`}
+
+function vSearch(){
+  const q=S.q;
+  $('#main').innerHTML=`<h1>midnox <span>Laden</span></h1><div id="car">${carCard()}</div>
+  <div class="card">
+   <div class="row"><div class="grow"><input id="place" placeholder="Ort oder PLZ …" enterkeyhint="search"></div><button class="btn" id="go">Suchen</button></div>
+   <div class="row" style="margin-top:8px"><button class="btn s grow" id="gps">📍 Mein Standort</button></div>
+   <div class="mu" style="margin-top:6px">Suche um: <b>${esc(S.loc.label)}</b></div><div id="places"></div>
+   <div class="row" style="margin-top:6px"><div class="grow"><label>Umkreis</label><select id="rad">${[2,5,10,25].map(x=>`<option ${q.radius==x?'selected':''} value="${x}">${x} km</option>`).join('')}</select></div>
+   <div class="grow"><label>Laden von %</label><input id="qf" type="number" inputmode="numeric" min="0" max="99" value="${q.from}"></div>
+   <div class="grow"><label>auf %</label><input id="qt" type="number" inputmode="numeric" min="1" max="100" value="${q.to}"></div></div>
+   <div style="margin-top:8px">${[['all','Alle'],['ac','AC (langsam)'],['dc','DC (schnell)']].map(x=>`<button class="chip ${q.type==x[0]?'on':''}" data-ty="${x[0]}">${x[1]}</button>`).join('')}
+   ${[['price','💶 Preis'],['dist','📏 Nähe'],['kw','⚡ Leistung']].map(x=>`<button class="chip ${q.sort==x[0]?'on':''}" data-so="${x[0]}">${x[1]}</button>`).join('')}
+   <button class="chip ${q.view=='map'?'on':''}" id="vm">🗺️ Karte</button></div></div>
+  <div id="res"></div>`;
+  $('#gps').onclick=gps;$('#go').onclick=()=>geocode($('#place').value);
+  $('#place').onkeydown=e=>{if(e.key=='Enter')geocode(e.target.value)};
+  $('#rad').onchange=e=>{q.radius=+e.target.value;save();search()};
+  $('#qf').onchange=e=>{q.from=Math.min(99,Math.max(0,+e.target.value||0));save();renderRes()};
+  $('#qt').onchange=e=>{q.to=Math.min(100,Math.max(1,+e.target.value||80));save();renderRes()};
+  document.querySelectorAll('[data-ty]').forEach(b=>b.onclick=()=>{q.type=b.dataset.ty;save();vSearch();renderRes()});
+  document.querySelectorAll('[data-so]').forEach(b=>b.onclick=()=>{q.sort=b.dataset.so;save();vSearch();renderRes()});
+  $('#vm').onclick=()=>{q.view=q.view=='map'?'list':'map';save();vSearch();renderRes()};
+  if(S.ha.url&&!HS.t)haState().then(()=>{const c=$('#car');if(c&&tab=='search')c.innerHTML=carCard()});
+  if(ST.length)renderRes();else search();
+}
+function renderRes(){
+  const el=$('#res');if(!el)return;const a=visible();
+  const need=kwhNeeded('ac');
+  const head=`<div class="mu" style="margin:0 2px 6px">${a.length} Ladepunkte · Kosten für ${S.q.from}→${S.q.to} % (${n1(need)} kWh)${stInfo?' · '+esc(stInfo):''}</div>`;
+  if(S.q.view=='map'){el.innerHTML=head+'<div id="map"></div>';drawMap(a);return}
+  if(!a.length){el.innerHTML=head+'<div class="card mu">Nichts gefunden. Größeren Umkreis wählen oder den Filter lockern.</div>';return}
+  el.innerHTML=head+a.slice(0,80).map((s,i)=>stRow(s,i)).join('');
+  el.querySelectorAll('.st').forEach(b=>b.onclick=()=>detail(a[+b.dataset.i]));
+}
+function tags(s){const kwA=s.ac?(s.ac.kw||'?'):0,kwD=s.dc?(s.dc.kw||'?'):0;
+  return (s.free?'<span class="tag fr">gratis</span>':'')+(s.ac?`<span class="tag ac">AC ${kwA} kW${s.ac.n>1?' ×'+s.ac.n:''}</span>`:'')+(s.dc?`<span class="tag dc">DC ${kwD||'?'} kW${s.dc.n>1?' ×'+s.dc.n:''}</span>`:'')}
+function stRow(s,i){const c=s.c;return `<button class="st" data-i="${i}"><div class="grow"><div class="nm">${esc(s.name)}</div><div class="mu">${esc(s.op&&s.op!=s.name?s.op:'')} ${n1(s.d)} km</div><div style="margin-top:4px">${tags(s)}${s.known?'':'<span class="tag">Stecker unbekannt</span>'}</div></div>
+ <div class="pr"><b style="color:${col(c.p)}">${eur(c.cost)}</b><span class="mu">${c.p===0?'gratis':eur(c.p)+'/kWh'}</span><br><span class="mu">${s.k=='dc'?'DC':'AC'} · ${esc(c.src)}</span></div></button>`}
+let map=null;
+function drawMap(a){
+  const el=$('#map');if(!el||!window.L)return;if(map){map.remove();map=null}
+  map=L.map('map',{zoomControl:true,attributionControl:true}).setView([S.loc.lat,S.loc.lon],S.q.radius<=2?14:S.q.radius<=5?13:S.q.radius<=10?12:11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,attribution:'© OpenStreetMap · © CARTO'}).addTo(map);
+  L.circleMarker([S.loc.lat,S.loc.lon],{radius:7,color:'#60a5fa',fillColor:'#60a5fa',fillOpacity:.9}).addTo(map);
+  a.slice(0,150).forEach(s=>{
+    const ic=L.divIcon({className:'',html:`<div class="pin" style="background:${col(s.c.p)}"><i>${s.c.p===0?'0':Math.round(s.c.p*100)}</i></div>`,iconSize:[30,30],iconAnchor:[8,30]});
+    L.marker([s.lat,s.lon],{icon:ic}).addTo(map).on('click',()=>detail(s));
+  });
+}
+function detail(s){
+  const kinds=[];if(s.ac)kinds.push('ac');if(s.dc)kinds.push('dc');
+  const rows=kinds.map(k=>{const c=costOf(s,k),kw=s[k].kw;return `<tr><td><span class="tag ${k}">${k.toUpperCase()}</span> ${kw?kw+' kW':'? kW'} ×${s[k].n}</td><td>${c.p===0?'gratis':eur(c.p)+'/kWh'}<div class="mu">${esc(c.src)}${c.note?' · '+esc(c.note):''}</div></td><td><b>${eur(c.cost)}</b><div class="mu">${dur(minutes(kwhNeeded(k),kw||(k=='ac'?11:50),k))}</div></td></tr>`}).join('');
+  const t=s.tags;
+  openSheet(`<div class="row"><div class="grow"><div class="nm" style="font-size:1.15em">${esc(s.name)}</div><div class="mu">${esc(s.op)} · ${n1(s.d)} km${s.hours?' · '+esc(s.hours):''}</div></div><button class="btn s" onclick="closeSheet()">✕</button></div>
+  <table style="margin:8px 0"><tr><th>Anschluss</th><th>Preis</th><th>${S.q.from}→${S.q.to} %</th></tr>${rows}</table>
+  ${s.free?'':'<div class="mu">Preise sind Richtwerte aus deiner Tarif-Tabelle (Tab „Tarife“) – vor Ort in der App des Anbieters prüfen.</div>'}
+  <div class="mu" style="margin-top:6px">${s.known?'':'Steckertypen in OSM nicht eingetragen – Annahme: '+(s.dc?'Schnelllader':'AC')+'. '}${t.authentication?'':''}${t['payment:credit_cards']=='yes'?'Kartenzahlung · ':''}${t.parking_fee=='yes'?'Parkgebühr · ':''}${esc(s.cap?'Ladepunkte: '+s.cap:'')}</div>
+  <div class="row" style="margin-top:12px"><button class="btn grow" id="nav1">🧭 Navigation</button><button class="btn s grow" id="lg">📒 In Logbuch</button></div>`);
+  $('#nav1').onclick=()=>openExt('geo:'+s.lat+','+s.lon+'?q='+s.lat+','+s.lon+'('+encodeURIComponent(s.name)+')');
+  $('#lg').onclick=()=>{closeSheet();const k=s.k||kinds[0],c=costOf(s,k);logForm({who:s.op||s.name,kind:k,kwh:Math.round(kwhNeeded(k)*10)/10,price:Math.round(c.cost*100)/100})};
+}
+function openExt(u){if(window.Android&&Android.openUrl)Android.openUrl(u);else window.open(u,'_blank')}
+function gps(){
+  if(!navigator.geolocation){toast('Kein GPS – Ort eintippen');return}
+  toast('Standort wird bestimmt …');
+  navigator.geolocation.getCurrentPosition(p=>{S.loc={lat:p.coords.latitude,lon:p.coords.longitude,label:'Mein Standort',gps:true};save();vSearch()},()=>toast('Standort nicht verfügbar – Ort eintippen'),{enableHighAccuracy:false,timeout:15000,maximumAge:60000});
+}
+async function geocode(q){
+  q=(q||'').trim();if(!q)return;
+  const r=await http('GET','https://photon.komoot.io/api/?limit=5&lang=de&q='+encodeURIComponent(q+(/\d{5}/.test(q)?', Deutschland':'')),'');
+  let f=[];try{f=JSON.parse(r.body).features||[]}catch(e){}
+  if(!f.length){toast('Ort nicht gefunden');return}
+  const mk=x=>({lat:x.geometry.coordinates[1],lon:x.geometry.coordinates[0],label:[x.properties.name,x.properties.postcode,x.properties.city&&x.properties.city!=x.properties.name?x.properties.city:''].filter(Boolean).join(', ')});
+  const L2=f.map(mk);
+  if(L2.length==1){pick(L2[0])}else{pick(L2[0]);$('#places').innerHTML=L2.slice(1).map((p,i)=>`<button class="chip" data-p="${i+1}">${esc(p.label)}</button>`).join('');
+    document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>pick(L2[+b.dataset.p]))}
+}
+function pick(p){S.loc={lat:p.lat,lon:p.lon,label:p.label,gps:false};save();const pl=$('#places');if(pl)pl.innerHTML='';document.querySelector('.card .mu b')&&(document.querySelector('.card .mu b').textContent=p.label);search()}
+
+/* --- Rechner --- */
+function vCalc(){
+  const q=S.q,c=S.car;
+  const rows=[];
+  S.tariffs.forEach(t=>{ // je Tarif AC und DC
+    ['ac','dc'].forEach(k=>{const kwh=kwhNeeded(k);rows.push({n:t.n,k,p:t[k],cost:kwh*t[k]+(t.fee||0),kwh})})});
+  rows.push({n:'Zuhause (Heimladen)',k:'ac',p:S.home,cost:kwhNeeded('ac')*S.home,kwh:kwhNeeded('ac'),home:1});
+  rows.sort((a,b)=>a.cost-b.cost);
+  const km=(q.to-q.from)/100*c.cap/c.cons*100,kw=kwhNeeded('ac');
+  $('#main').innerHTML=`<h1>Lade<span>rechner</span></h1>
+  <div class="card"><div class="row"><div class="grow"><label>von %</label><input id="f" type="number" inputmode="numeric" value="${q.from}"></div><div class="grow"><label>auf %</label><input id="t" type="number" inputmode="numeric" value="${q.to}"></div></div>
+  ${S.ha.url?'<button class="btn s" id="hs" style="margin-top:8px">🚗 Ladestand aus Auto übernehmen</button>':''}
+  <input type="range" id="rg" min="0" max="100" value="${q.to}" style="margin-top:10px;padding:0">
+  <div class="kpi" style="margin-top:10px"><div class="card"><span class="mu">Energie im Akku</span><div class="big-n">${n1((q.to-q.from)/100*c.cap)} kWh</div></div>
+  <div class="card"><span class="mu">Reichweite dazu</span><div class="big-n">≈ ${Math.round(km)} km</div></div></div></div>
+  <h2>Kosten & Dauer – günstigste zuerst</h2>
+  <div class="card"><table><tr><th>Tarif</th><th>€/kWh</th><th>Kosten</th><th>Dauer*</th></tr>
+  ${rows.map(r=>`<tr><td>${esc(r.n)} <span class="tag ${r.k}">${r.home?'AC':r.k.toUpperCase()}</span></td><td>${eur(r.p)}</td><td><b>${eur(r.cost)}</b></td><td>${r.home?dur(minutes(r.kwh,c.ac>3.7?3.7:c.ac,'ac')):dur(minutes(r.kwh,r.k=='ac'?c.ac:c.dc,r.k))}</td></tr>`).join('')}</table>
+  <div class="mu" style="margin-top:6px">* Schätzung mit ${c.ac} kW AC / ${c.dc} kW DC (Einstellungen). Heimladen mit Steckdose gerechnet. Verluste: AC 10 %, DC 5 %. Preise: Tab „Tarife“.</div></div>
+  <div class="mu">Strom für <b>100 km</b> (${c.cons} kWh): Zuhause ${eur(c.cons*S.home)}, öffentlich AC ${eur(c.cons*tariffFor('*').ac)}, DC ${eur(c.cons*tariffFor('*').dc)}</div>`;
+  const upd=()=>{q.from=Math.min(99,Math.max(0,+$('#f').value||0));q.to=Math.min(100,Math.max(1,+$('#t').value||80));save();vCalc()};
+  $('#f').onchange=upd;$('#t').onchange=upd;$('#rg').onchange=e=>{$('#t').value=e.target.value;upd()};
+  const hs=$('#hs');if(hs)hs.onclick=async()=>{try{const s=await haState();if(s&&s.soc!=null){q.from=Math.round(s.soc);save();toast('Ladestand '+q.from+' % übernommen');vCalc()}else toast('Kein Ladestand in HA gefunden')}catch(e){toast(e.message)}};
+}
+
+/* --- Logbuch --- */
+function stats(){
+  const L=S.log.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.odo||0)-(b.odo||0));
+  let kwh=0,cost=0,pr=0;L.forEach(x=>{kwh+=x.kwh||0;if(x.price!=null){cost+=x.price;pr+=x.kwh||0}});
+  // Verbrauch: kWh zwischen erstem und letztem km-Stand
+  const o=L.filter(x=>x.odo!=null);let cons=null,per100=null;
+  if(o.length>=2){const d=o[o.length-1].odo-o[0].odo;if(d>0){const k=o.slice(1).reduce((s,x)=>s+(x.kwh||0),0);cons=k/d*100;
+    const c2=o.slice(1).reduce((s,x)=>s+(x.price||0),0),k2=o.slice(1).reduce((s,x)=>s+(x.price!=null?x.kwh||0:0),0);if(k2>0)per100=c2/k2*cons}}
+  const mon={};L.forEach(x=>{const m=x.date.slice(0,7);mon[m]=mon[m]||{kwh:0,cost:0};mon[m].kwh+=x.kwh||0;mon[m].cost+=x.price||0});
+  return{n:L.length,kwh,cost,avg:pr>0?cost/pr:null,cons,per100,mon};
+}
+function vLog(){
+  const st=stats(),L=S.log.slice().sort((a,b)=>a.date<b.date?1:-1);
+  const mons=Object.keys(st.mon).sort().reverse().slice(0,6),mx=Math.max(1,...mons.map(m=>st.mon[m].cost));
+  $('#main').innerHTML=`<h1>Lade<span>buch</span></h1>
+  <div class="kpi"><div class="card"><span class="mu">Ø Preis</span><div class="big-n">${st.avg!=null?eur(st.avg):'–'}</div><span class="mu">pro kWh</span></div>
+  <div class="card"><span class="mu">Verbrauch Ø</span><div class="big-n">${st.cons!=null?n1(st.cons):'–'}</div><span class="mu">kWh / 100 km</span></div>
+  <div class="card"><span class="mu">Kosten pro 100 km</span><div class="big-n">${st.per100!=null?eur(st.per100):'–'}</div></div>
+  <div class="card"><span class="mu">Gesamt (${st.n} Ladungen)</span><div class="big-n">${eur(st.cost)}</div><span class="mu">${n1(st.kwh)} kWh</span></div></div>
+  <div class="row" style="margin:10px 0"><button class="btn grow" id="add">＋ Ladung eintragen</button>${S.ha.url?'<button class="btn s grow" id="imp">🚗 Aus Auto holen</button>':''}</div>
+  ${mons.length?'<h2>Monate</h2><div class="card">'+mons.map(m=>`<div class="row" style="margin:5px 0"><span style="width:62px" class="mu">${m}</span><div class="grow"><div class="bar" style="width:${Math.max(3,st.mon[m].cost/mx*100)}%"></div></div><span style="width:128px;text-align:right">${eur(st.mon[m].cost)} · ${Math.round(st.mon[m].kwh)} kWh</span></div>`).join('')+'</div>':''}
+  <h2>Ladungen</h2>${L.length?L.map(x=>`<button class="st" data-id="${x.id}"><div class="grow"><div class="nm">${esc(x.date.split('-').reverse().join('.'))} · ${esc(x.who||(x.kind=='home'?'Zuhause':'Unterwegs'))}</div><div class="mu">${esc(x.note||'')}${x.odo?' · '+x.odo+' km':''}</div><span class="tag ${x.kind=='home'?'fr':x.kind}">${x.kind=='home'?'ZUHAUSE':x.kind.toUpperCase()}</span>${x.est?'<span class="tag">geschätzt</span>':''}</div>
+   <div class="pr"><b>${x.price!=null?eur(x.price):'<span class="wa">Preis?</span>'}</b><span class="mu">${n1(x.kwh)} kWh${x.price!=null&&x.kwh?'<br>'+eur(x.price/x.kwh)+'/kWh':''}</span></div></button>`).join(''):'<div class="card mu">Noch keine Ladungen. Trag die erste ein oder hol sie aus dem Auto.</div>'}
+  <details><summary>Backup / Export</summary><div class="row"><button class="btn s grow" id="bk">Backup kopieren</button><button class="btn s grow" id="csv">CSV kopieren</button><button class="btn s grow" id="rs">Backup einfügen</button></div></details>`;
+  $('#add').onclick=()=>logForm({});
+  document.querySelectorAll('.st[data-id]').forEach(b=>b.onclick=()=>logForm(S.log.find(x=>x.id==b.dataset.id)));
+  const imp=$('#imp');if(imp)imp.onclick=async()=>{imp.textContent='Lade …';try{const a=await haSessions(30);let n=0;a.forEach(x=>{if(!S.log.find(y=>y.id==x.id)){S.log.push(x);n++}});save();toast(n?n+' Ladungen übernommen – bitte Preise ergänzen':'Keine neuen Ladungen gefunden',4000);vLog()}catch(e){toast(e.message,5000);imp.textContent='🚗 Aus Auto holen'}};
+  $('#bk').onclick=()=>copy(JSON.stringify(S.log));
+  $('#csv').onclick=()=>copy('Datum;kWh;Preis;km;Anbieter;Art\n'+S.log.map(x=>[x.date,x.kwh,x.price,x.odo,x.who,x.kind].map(v=>v==null?'':String(v).replace('.',',')).join(';')).join('\n'));
+  $('#rs').onclick=()=>{const t=prompt('Backup einfügen:');if(!t)return;try{const a=JSON.parse(t);if(!Array.isArray(a))throw 0;a.forEach(x=>{if(!S.log.find(y=>y.id==x.id))S.log.push(x)});save();vLog();toast('Importiert')}catch(e){toast('Backup unlesbar')}};
+}
+function copy(t){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Kopiert')}catch(e){toast('Kopieren nicht möglich')}a.remove()}
+function logForm(x){
+  const e=!!x.id,d=x.date||new Date().toISOString().slice(0,10);
+  openSheet(`<div class="row"><div class="grow nm" style="font-size:1.1em">${e?'Ladung bearbeiten':'Ladung eintragen'}</div><button class="btn s" onclick="closeSheet()">✕</button></div>
+  <div class="row"><div class="grow"><label>Datum</label><input id="ld" type="date" value="${d}"></div><div class="grow"><label>Art</label><select id="lk">${[['home','Zuhause'],['ac','Öffentlich AC'],['dc','Öffentlich DC']].map(o=>`<option value="${o[0]}" ${(x.kind||'home')==o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></div></div>
+  <div class="row"><div class="grow"><label>kWh</label><input id="lw" inputmode="decimal" value="${x.kwh!=null?String(x.kwh).replace('.',','):''}"></div><div class="grow"><label>Preis gesamt (€)</label><input id="lp" inputmode="decimal" value="${x.price!=null?String(x.price).replace('.',','):''}"></div></div>
+  <div class="row"><div class="grow"><label>Kilometerstand</label><input id="lo" inputmode="numeric" value="${x.odo!=null?x.odo:''}"></div><div class="grow"><label>Anbieter / Ort</label><input id="lv" value="${esc(x.who||'')}"></div></div>
+  <label>Notiz</label><input id="ln" value="${esc(x.note||'')}">
+  <div class="row" style="margin-top:12px">${S.ha.url?'<button class="btn s" id="lh">🚗 km aus Auto</button>':''}<button class="btn grow" id="ls">Speichern</button>${e?'<button class="btn d" id="lx">Löschen</button>':''}</div>`);
+  const lh=$('#lh');if(lh)lh.onclick=async()=>{try{const s=await haState();if(s&&s.odo!=null){$('#lo').value=Math.round(s.odo);toast('km-Stand übernommen')}else toast('Kein km-Stand in HA')}catch(e){toast(e.message)}};
+  $('#ls').onclick=()=>{
+    const r={id:x.id||'m'+Date.now(),date:$('#ld').value||d,kind:$('#lk').value,kwh:num($('#lw').value),price:num($('#lp').value),odo:num($('#lo').value),who:$('#lv').value.trim(),note:$('#ln').value.trim()};
+    if(r.kwh==null||r.kwh<=0){toast('Bitte kWh angeben');return}
+    if(x.est&&r.kwh==x.kwh)r.est=true; if(x.ha)r.ha=true;
+    const i=S.log.findIndex(y=>y.id==r.id);if(i>=0)S.log[i]=r;else S.log.push(r);save();closeSheet();go('log')};
+  const lx=$('#lx');if(lx)lx.onclick=()=>{if(confirm('Eintrag löschen?')){S.log=S.log.filter(y=>y.id!=x.id);save();closeSheet();go('log')}};
+}
+
+/* --- Tarife --- */
+function vTar(){
+  $('#main').innerHTML=`<h1>Deine <span>Tarife</span></h1>
+  <div class="card mu">Hier steht, was dich <b>mit deinen Karten/Apps</b> pro kWh kostet. Die Werte sind Richtwerte (Stand Ende 2026) – bitte an deine Verträge anpassen. „Suchwörter“ ordnen Ladesäulen per Betreibername zu (mit Komma trennen).</div>
+  <div class="card"><label>Heimstrom (€/kWh)</label><input id="hm" inputmode="decimal" value="${String(S.home).replace('.',',')}"></div>
+  ${S.tariffs.map((t,i)=>`<div class="card" data-i="${i}"><div class="row"><div class="grow"><input data-f="n" value="${esc(t.n)}" style="font-weight:700"></div>${t.k.trim()=='*'?'':`<button class="btn d" data-del="${i}">✕</button>`}</div>
+   <div class="row"><div class="grow"><label>AC €/kWh</label><input data-f="ac" inputmode="decimal" value="${String(t.ac).replace('.',',')}"></div><div class="grow"><label>DC €/kWh</label><input data-f="dc" inputmode="decimal" value="${String(t.dc).replace('.',',')}"></div><div class="grow"><label>€/Ladung</label><input data-f="fee" inputmode="decimal" value="${String(t.fee||0).replace('.',',')}"></div></div>
+   ${t.k.trim()=='*'?'':`<label>Suchwörter</label><input data-f="k" value="${esc(t.k)}">`}<label>Notiz</label><input data-f="note" value="${esc(t.note||'')}"></div>`).join('')}
+  <div class="row"><button class="btn grow" id="ta">＋ Tarif hinzufügen</button><button class="btn s" id="tr">Zurücksetzen</button></div>`;
+  $('#hm').onchange=e=>{S.home=num(e.target.value)??S.home;save()};
+  document.querySelectorAll('.card[data-i] [data-f]').forEach(inp=>inp.onchange=()=>{const t=S.tariffs[+inp.closest('.card').dataset.i],f=inp.dataset.f;t[f]=['ac','dc','fee'].includes(f)?(num(inp.value)??0):inp.value;save()});
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{S.tariffs.splice(+b.dataset.del,1);save();vTar()});
+  $('#ta').onclick=()=>{S.tariffs.splice(S.tariffs.length-1,0,{n:'Neuer Tarif',k:'name',ac:.5,dc:.6,fee:0,note:''});save();vTar();window.scrollTo(0,0)};
+  $('#tr').onclick=()=>{if(confirm('Alle Tarife auf Richtwerte zurücksetzen?')){S.tariffs=JSON.parse(JSON.stringify(DEF_TARIFFS));S.home=.30;save();vTar()}};
+}
+
+/* --- Einstellungen / Auto --- */
+function vSet(){
+  const c=S.car,h=S.ha;
+  $('#main').innerHTML=`<h1>Auto & <span>Einstellungen</span></h1>
+  <div class="card"><label>Fahrzeug</label><input data-c="name" value="${esc(c.name)}">
+  <div class="row"><div class="grow"><label>Akku nutzbar (kWh)</label><input data-c="cap" inputmode="decimal" value="${String(c.cap).replace('.',',')}"></div><div class="grow"><label>Verbrauch kWh/100 km</label><input data-c="cons" inputmode="decimal" value="${String(c.cons).replace('.',',')}"></div></div>
+  <div class="row"><div class="grow"><label>max. AC (kW)</label><input data-c="ac" inputmode="decimal" value="${c.ac}"></div><div class="grow"><label>max. DC (kW)</label><input data-c="dc" inputmode="decimal" value="${c.dc}"></div></div>
+  <div class="mu" style="margin-top:6px">Voreinstellung für den Dolphin Surf mit 43,2 kWh – bitte mit deiner Ausstattung abgleichen (Active: 30 kWh).</div></div>
+  <h2>Home Assistant</h2><div class="card">
+  <label>Adresse (z. B. http://homeassistant.local:8123)</label><input id="hu" value="${esc(h.url)}" placeholder="http://192.168.178.xx:8123" autocapitalize="off">
+  <label>Long-Lived Access Token (HA → Profil → Sicherheit)</label><input id="ht" type="password" value="${esc(h.token)}" autocapitalize="off">
+  <div class="row" style="margin-top:8px"><button class="btn grow" id="hc">Verbinden & Auto finden</button></div>
+  <div id="hst" class="mu" style="margin-top:6px"></div>
+  <details><summary>Entitäten von Hand ändern</summary>
+  ${[['soc','Ladezustand (sensor)'],['odo','Kilometerzähler (sensor)'],['chg','Laden (binary_sensor)'],['rng','Reichweite (sensor)']].map(x=>`<label>${x[1]}</label><input data-e="${x[0]}" value="${esc(h.e[x[0]])}" autocapitalize="off">`).join('')}</details>
+  <div class="mu" style="margin-top:6px">Der Token bleibt nur auf diesem Gerät. Außerhalb des Heimnetzes braucht HA eine erreichbare Adresse (z. B. Nabu Casa oder VPN).</div></div>
+  <h2>Anzeige</h2><div class="card"><label class="row" style="margin:0;color:var(--tx)"><input type="checkbox" id="bg" style="width:auto" ${S.big?'checked':''}> Große Schrift (Auto / Fernseher)</label></div>
+  <div class="mu" style="text-align:center;margin-top:12px">midnox Laden 1.0 · Ladesäulen: © OpenStreetMap-Mitwirkende · Karte © CARTO</div>`;
+  document.querySelectorAll('[data-c]').forEach(i=>i.onchange=()=>{const f=i.dataset.c;c[f]=f=='name'?i.value:(num(i.value)??c[f]);save()});
+  document.querySelectorAll('[data-e]').forEach(i=>i.onchange=()=>{h.e[i.dataset.e]=i.value.trim();save()});
+  $('#bg').onchange=e=>{S.big=e.target.checked;document.body.classList.toggle('big',S.big);save()};
+  $('#hc').onclick=async()=>{
+    h.url=$('#hu').value.trim();if(h.url&&!/^https?:\/\//.test(h.url))h.url='http://'+h.url;h.token=$('#ht').value.trim();save();
+    const o=$('#hst');o.textContent='Verbinde …';
+    try{const e=await haDetect();const s=await haState();
+      o.innerHTML=e.soc?`<span class="ok">✔ Verbunden.</span> Gefunden: ${esc(e.soc)}${e.odo?', '+esc(e.odo):''}${e.chg?', '+esc(e.chg):''}${e.rng?', '+esc(e.rng):''}<br>Ladestand jetzt: <b>${s&&s.soc!=null?Math.round(s.soc)+' %':'?'}</b>${s&&s.odo!=null?' · '+Math.round(s.odo)+' km':''}`:'<span class="wa">Verbunden, aber kein BYD-Auto gefunden – Entitäten von Hand eintragen.</span>';
+      if(e.soc)vSetKeep()}catch(x){o.innerHTML='<span class="no">'+esc(x.message)+'</span>'}};
+}
+function vSetKeep(){document.querySelectorAll('[data-e]').forEach(i=>i.value=S.ha.e[i.dataset.e])}
+
+renderNav();go('search');
+</script></body></html>
